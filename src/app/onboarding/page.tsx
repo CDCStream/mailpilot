@@ -16,7 +16,7 @@ export default async function OnboardingPage() {
       <div className="w-full max-w-md text-center">
         <h1 className="text-2xl font-bold">Setting up your inbox</h1>
         <p className="mt-3 text-sm text-zinc-600">
-          MailPilot is creating your Gmail labels, learning your writing style from your
+          Inbox Wingman is creating your Gmail labels, learning your writing style from your
           sent mail, and triaging your most recent emails. This takes a minute or two.
         </p>
         <OnboardingProgress />

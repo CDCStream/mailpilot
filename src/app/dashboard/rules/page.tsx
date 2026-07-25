@@ -14,7 +14,7 @@ export default async function RulesPage() {
     <div>
       <h1 className="text-2xl font-bold">Rules</h1>
       <p className="mt-1 text-sm text-zinc-500">
-        Write rules in plain English. MailPilot converts them into filters applied during
+        Write rules in plain English. Inbox Wingman converts them into filters applied during
         triage.
       </p>
 

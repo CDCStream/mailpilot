@@ -31,7 +31,7 @@ export default async function FollowupsPage() {
 
       {open.length === 0 ? (
         <p className="mt-8 rounded-xl border border-dashed border-zinc-200 p-8 text-center text-sm text-zinc-500">
-          Nothing waiting on a reply. Send an email and MailPilot will start tracking it.
+          Nothing waiting on a reply. Send an email and Inbox Wingman will start tracking it.
         </p>
       ) : (
         <ul className="mt-8 space-y-3">

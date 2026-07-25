@@ -3,12 +3,12 @@ import { decryptSecret } from "@/lib/crypto";
 import type { Category } from "@/lib/db/schema";
 
 export const CATEGORY_LABELS: Record<Category, string> = {
-  to_respond: "MailPilot/To Respond",
-  fyi: "MailPilot/FYI",
-  newsletter: "MailPilot/Newsletter",
-  marketing: "MailPilot/Marketing",
-  notification: "MailPilot/Notification",
-  cold_email: "MailPilot/Cold Email",
+  to_respond: "Wingman/To Respond",
+  fyi: "Wingman/FYI",
+  newsletter: "Wingman/Newsletter",
+  marketing: "Wingman/Marketing",
+  notification: "Wingman/Notification",
+  cold_email: "Wingman/Cold Email",
 };
 
 /** Categories that are safe to auto-archive when the user opts in. */
@@ -23,7 +23,7 @@ export function getGmailClient(encryptedRefreshToken: string): gmail_v1.Gmail {
   return google.gmail({ version: "v1", auth: oauth2 });
 }
 
-/** Creates the MailPilot label set if missing; returns category -> labelId map. */
+/** Creates the Wingman label set if missing; returns category -> labelId map. */
 export async function ensureLabels(gmail: gmail_v1.Gmail): Promise<Record<string, string>> {
   const { data } = await gmail.users.labels.list({ userId: "me" });
   const existing = new Map((data.labels ?? []).map((l) => [l.name, l.id]));

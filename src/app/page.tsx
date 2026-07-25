@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/auth";
 
@@ -8,7 +9,7 @@ const FEATURES = [
   },
   {
     title: "Drafts in your voice",
-    body: "MailPilot learns your tone from your sent mail and drops a ready-to-send reply draft into the thread. You review, tweak, and hit send. It never sends for you.",
+    body: "Inbox Wingman learns your tone from your sent mail and drops a ready-to-send reply draft into the thread. You review, tweak, and hit send. It never sends for you.",
   },
   {
     title: "Daily brief",
@@ -16,11 +17,11 @@ const FEATURES = [
   },
   {
     title: "Follow-up radar",
-    body: "Sent something important and got silence? MailPilot tracks unanswered threads and nudges you when it's time to follow up.",
+    body: "Sent something important and got silence? Inbox Wingman tracks unanswered threads and nudges you when it's time to follow up.",
   },
   {
     title: "Rules in plain English",
-    body: '"Archive receipts", "never draft replies to my accountant", "star anything from acme.com" — write the rule, MailPilot applies it.',
+    body: '"Archive receipts", "never draft replies to my accountant", "star anything from acme.com" — write the rule, Inbox Wingman applies it.',
   },
   {
     title: "Private by design",
@@ -37,7 +38,10 @@ export default async function LandingPage() {
       {/* Nav */}
       <header className="border-b border-zinc-100">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="text-lg font-semibold tracking-tight">MailPilot</span>
+          <span className="flex items-center gap-2.5">
+            <Image src="/logo-64.png" alt="" width={28} height={28} className="rounded-lg" />
+            <span className="text-lg font-semibold tracking-tight">Inbox Wingman</span>
+          </span>
           <nav className="flex items-center gap-6 text-sm">
             <a href="#features" className="text-zinc-600 hover:text-zinc-900">
               Features
@@ -66,7 +70,7 @@ export default async function LandingPage() {
           Your replies, drafted.
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-600">
-          MailPilot works inside your Gmail. It labels what matters, drafts replies that
+          Inbox Wingman works inside your Gmail. It labels what matters, drafts replies that
           sound like you, tracks who owes you an answer, and briefs you every morning.
           Nothing to install, nothing to learn.
         </p>
@@ -165,7 +169,7 @@ export default async function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-zinc-100 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-sm text-zinc-500 sm:flex-row">
-          <span>© {new Date().getFullYear()} MailPilot</span>
+          <span>© {new Date().getFullYear()} Inbox Wingman</span>
           <div className="flex gap-6">
             <Link href="/privacy" className="hover:text-zinc-900">
               Privacy

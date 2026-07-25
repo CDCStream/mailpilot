@@ -13,9 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MailPilot — Your inbox, on autopilot",
+  metadataBase: new URL("https://inboxwingman.com"),
+  title: "Inbox Wingman — Your Gmail, triaged and drafted by AI",
   description:
-    "MailPilot organizes your Gmail, drafts replies in your voice, and sends you a daily brief. You just review and send.",
+    "Inbox Wingman organizes your Gmail, drafts replies in your voice, and sends you a daily brief. You just review and send.",
 };
 
 export default function RootLayout({

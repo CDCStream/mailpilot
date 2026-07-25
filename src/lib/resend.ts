@@ -10,6 +10,6 @@ export function getResend(): Resend {
 }
 
 export async function sendEmail(opts: { to: string; subject: string; html: string }) {
-  const from = process.env.BRIEF_FROM_EMAIL ?? "MailPilot <onboarding@resend.dev>";
+  const from = process.env.BRIEF_FROM_EMAIL ?? "Inbox Wingman <onboarding@resend.dev>";
   await getResend().emails.send({ from, to: opts.to, subject: opts.subject, html: opts.html });
 }

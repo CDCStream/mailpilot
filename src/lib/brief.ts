@@ -109,7 +109,7 @@ export async function buildAndSendBrief(userId: string): Promise<boolean> {
     ${respondRows ? `<h3 style="margin:0 0 8px">Needs your response (${needsResponse.length})</h3><ul style="padding-left:18px;margin:0 0 24px">${respondRows}</ul>` : ""}
     ${followupRows ? `<h3 style="margin:0 0 8px">Waiting on a reply — time to nudge (${dueFollowups.length})</h3><ul style="padding-left:18px;margin:0 0 24px">${followupRows}</ul>` : ""}
     ${countRows ? `<h3 style="margin:0 0 8px">Last 24 hours</h3><table style="border-collapse:collapse;margin-bottom:24px">${countRows}</table>` : ""}
-    <p style="color:#999;font-size:13px">Sent by <a href="${appUrl}" style="color:#4f46e5">MailPilot</a> · <a href="${appUrl}/dashboard/settings" style="color:#999">brief settings</a></p>
+    <p style="color:#999;font-size:13px">Sent by <a href="${appUrl}" style="color:#4f46e5">Inbox Wingman</a> · <a href="${appUrl}/dashboard/settings" style="color:#999">brief settings</a></p>
   </div>`;
 
   await sendEmail({

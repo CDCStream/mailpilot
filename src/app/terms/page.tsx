@@ -1,12 +1,12 @@
 import Link from "next/link";
 
-export const metadata = { title: "Terms of Service — MailPilot" };
+export const metadata = { title: "Terms of Service — Inbox Wingman" };
 
 export default function TermsPage() {
   return (
     <main className="mx-auto max-w-2xl flex-1 px-6 py-16">
       <Link href="/" className="text-sm text-zinc-500 hover:text-zinc-900">
-        ← MailPilot
+        ← Inbox Wingman
       </Link>
       <h1 className="mt-6 text-3xl font-bold">Terms of Service</h1>
       <p className="mt-2 text-sm text-zinc-500">Last updated: {new Date().toDateString()}</p>
@@ -15,7 +15,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-semibold text-zinc-900">1. The service</h2>
           <p>
-            MailPilot is an AI email assistant that organizes your Gmail inbox, drafts
+            Inbox Wingman is an AI email assistant that organizes your Gmail inbox, drafts
             replies, and sends daily summaries. Drafts are suggestions: you are always
             responsible for reviewing and sending email yourself.
           </p>
@@ -23,7 +23,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-semibold text-zinc-900">2. Subscriptions</h2>
           <p>
-            MailPilot Pro is billed monthly via Stripe after a 7-day free trial. You can
+            Inbox Wingman Pro is billed monthly via Stripe after a 7-day free trial. You can
             cancel anytime from the billing portal; access continues until the end of the
             paid period.
           </p>
@@ -31,7 +31,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-semibold text-zinc-900">3. Acceptable use</h2>
           <p>
-            You may not use MailPilot for spam, unlawful activity, or on mailboxes you do
+            You may not use Inbox Wingman for spam, unlawful activity, or on mailboxes you do
             not own or administer.
           </p>
         </section>
@@ -45,7 +45,7 @@ export default function TermsPage() {
         </section>
         <section>
           <h2 className="text-lg font-semibold text-zinc-900">5. Contact</h2>
-          <p>Questions: support@mailpilot.app</p>
+          <p>Questions: support@inboxwingman.com</p>
         </section>
       </div>
     </main>

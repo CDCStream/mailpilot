@@ -35,7 +35,7 @@ export default async function BillingPage() {
       <div className="mt-8 rounded-2xl border border-zinc-200 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-semibold">MailPilot Pro</p>
+            <p className="font-semibold">Inbox Wingman Pro</p>
             <p className="mt-1 text-sm text-zinc-500">$19/month · 7-day free trial</p>
           </div>
           <span className={`rounded-full px-3 py-1 text-xs font-medium ${copy.cls}`}>

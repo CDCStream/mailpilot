@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
@@ -21,8 +22,9 @@ export default async function DashboardLayout({
       <header className="border-b border-zinc-100">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-8">
-            <Link href="/" className="font-semibold tracking-tight">
-              MailPilot
+            <Link href="/" className="inline-flex items-center gap-2 font-semibold tracking-tight">
+              <Image src="/logo-64.png" alt="" width={24} height={24} className="rounded-md" />
+              Inbox Wingman
             </Link>
             <nav className="flex gap-5 text-sm">
               {NAV.map((item) => (

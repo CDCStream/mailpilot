@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, signIn } from "@/auth";
@@ -9,12 +10,13 @@ export default async function LoginPage() {
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-24">
       <div className="w-full max-w-sm text-center">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          MailPilot
+        <Link href="/" className="inline-flex items-center gap-2.5 text-lg font-semibold tracking-tight">
+          <Image src="/logo-64.png" alt="" width={28} height={28} className="rounded-lg" />
+          Inbox Wingman
         </Link>
         <h1 className="mt-8 text-2xl font-bold">Connect your Gmail</h1>
         <p className="mt-3 text-sm text-zinc-600">
-          Sign in with Google and grant Gmail access so MailPilot can label your inbox and
+          Sign in with Google and grant Gmail access so Inbox Wingman can label your inbox and
           create drafts. It never sends email on its own.
         </p>
         <form
