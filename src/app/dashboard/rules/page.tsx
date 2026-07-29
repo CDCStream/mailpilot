@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { db, rules } from "@/lib/db";
 import { RULE_TEMPLATES } from "@/lib/rule-templates";
 import { addRule, addRuleTemplate, deleteRule, toggleRule } from "../actions";
+import { PendingButton } from "./pending-button";
 
 export default async function RulesPage() {
   const session = await auth();
@@ -48,21 +49,21 @@ export default async function RulesPage() {
                       pattern="[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
                       className="min-w-0 flex-1 rounded-full border border-zinc-300 px-3 py-1.5 text-xs outline-none focus:border-teal-600"
                     />
-                    <button
-                      type="submit"
-                      className="shrink-0 rounded-full bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
+                    <PendingButton
+                      pendingText="Adding…"
+                      className="shrink-0 rounded-full bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       Add
-                    </button>
+                    </PendingButton>
                   </div>
                 ) : (
-                  <button
-                    type="submit"
+                  <PendingButton
                     disabled={already}
+                    pendingText="Adding…"
                     className="mt-3 rounded-full border border-zinc-300 px-3 py-1.5 text-xs font-medium hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {already ? "Added" : "Add rule"}
-                  </button>
+                  </PendingButton>
                 )}
               </form>
             );
@@ -78,12 +79,12 @@ export default async function RulesPage() {
           placeholder='e.g. "Archive all receipts", "Never draft replies to newsletters from acme.com"'
           className="flex-1 rounded-full border border-zinc-300 px-5 py-2.5 text-sm outline-none focus:border-teal-600"
         />
-        <button
-          type="submit"
-          className="rounded-full bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-teal-700"
+        <PendingButton
+          pendingText="Adding rule…"
+          className="shrink-0 rounded-full bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
         >
           Add rule
-        </button>
+        </PendingButton>
       </form>
 
       {userRules.length === 0 ? (
