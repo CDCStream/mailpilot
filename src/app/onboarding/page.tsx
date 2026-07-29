@@ -12,13 +12,11 @@ export default async function OnboardingPage() {
   if (user?.onboardedAt) redirect("/dashboard");
 
   return (
-    <main className="flex flex-1 items-center justify-center px-6 py-24">
-      <div className="w-full max-w-md text-center">
-        <h1 className="text-2xl font-bold">Setting up your inbox</h1>
-        <p className="mt-3 text-sm text-zinc-600">
-          Inbox Wingman is creating your Gmail labels, learning your writing style from your
-          sent mail, and triaging your most recent emails. This takes a minute or two.
-        </p>
+    <main className="flex flex-1 items-center justify-center px-6 py-10 lg:px-12">
+      <div className="w-full max-w-6xl">
+        <h1 className="text-center text-3xl font-bold tracking-tight md:text-4xl">
+          Set up your inbox
+        </h1>
         <OnboardingProgress />
       </div>
     </main>

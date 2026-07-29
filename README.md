@@ -51,7 +51,7 @@ Set `BILLING_ENABLED=false` locally to skip Stripe checks.
 | Postgres | app data                          | Railway Postgres plugin or Neon/Supabase |
 | Google Cloud | OAuth + Gmail API + Pub/Sub   | enable **Gmail API**, create OAuth Web Client, redirect URI `<APP_URL>/api/auth/callback/google` |
 | OpenAI   | classification + drafting         | |
-| Stripe   | subscription ($19/mo, 7-day trial)| create a Product + monthly Price, set `STRIPE_PRICE_ID`; webhook endpoint `<APP_URL>/api/stripe/webhook` with `customer.subscription.*` events |
+| Stripe   | subscription ($13/mo, 7-day trial)| create a Product + monthly Price, set `STRIPE_PRICE_ID`; webhook endpoint `<APP_URL>/api/stripe/webhook` with `customer.subscription.*` events |
 | Resend   | daily brief emails                | verify a sending domain |
 | Inngest  | background jobs                   | free tier; register `<APP_URL>/api/inngest` as the app URL |
 

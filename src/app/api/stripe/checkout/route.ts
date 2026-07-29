@@ -3,18 +3,29 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db, subscriptions, users } from "@/lib/db";
 import { getStripe } from "@/lib/billing";
+import { isPlanId, PLANS, stripePriceIdForPlan, type PlanId } from "@/lib/plans";
 
-export async function POST() {
+export async function POST(req: Request) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  let plan: PlanId = "pilot";
+  try {
+    const body = (await req.json()) as { plan?: string };
+    if (isPlanId(body.plan)) plan = body.plan;
+  } catch {
+    // empty body → default Pilot
+  }
+
+  const planDef = PLANS[plan];
+  const priceId = stripePriceIdForPlan(plan);
 
   const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const stripe = getStripe();
 
-  // Reuse the Stripe customer if we already created one.
   let sub = await db.query.subscriptions.findFirst({
     where: eq(subscriptions.userId, userId),
   });
@@ -28,7 +39,7 @@ export async function POST() {
     customerId = customer.id;
     [sub] = await db
       .insert(subscriptions)
-      .values({ userId, stripeCustomerId: customerId, status: "none" })
+      .values({ userId, stripeCustomerId: customerId, status: "none", plan })
       .onConflictDoUpdate({
         target: subscriptions.userId,
         set: { stripeCustomerId: customerId },
@@ -37,15 +48,34 @@ export async function POST() {
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  // Prefer Dashboard Price IDs when set; otherwise charge the formula price from PLANS.
+  const lineItems = priceId
+    ? [{ price: priceId, quantity: 1 }]
+    : [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd" as const,
+            unit_amount: planDef.priceMonthly * 100,
+            recurring: { interval: "month" as const },
+            product_data: {
+              name: `Inbox Wingman ${planDef.name}`,
+              description: `${planDef.credits.toLocaleString("en-US")} AI credits / month`,
+            },
+          },
+        },
+      ];
+
   const checkout = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
-    line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+    line_items: lineItems,
     subscription_data: {
       trial_period_days: 7,
-      metadata: { userId },
+      metadata: { userId, plan },
     },
-    metadata: { userId },
+    metadata: { userId, plan },
     allow_promotion_codes: true,
     success_url: `${appUrl}/dashboard/billing?status=success`,
     cancel_url: `${appUrl}/dashboard/billing?status=canceled`,

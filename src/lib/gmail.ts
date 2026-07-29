@@ -11,9 +11,6 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   cold_email: "Wingman/Cold Email",
 };
 
-/** Categories that are safe to auto-archive when the user opts in. */
-export const LOW_PRIORITY_CATEGORIES: Category[] = ["newsletter", "marketing", "cold_email"];
-
 export function getGmailClient(encryptedRefreshToken: string): gmail_v1.Gmail {
   const oauth2 = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -74,6 +71,18 @@ function decodeBase64Url(data: string): string {
   return Buffer.from(data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
 }
 
+function decodeHtmlEntities(s: string): string {
+  return s
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
 function extractText(part: gmail_v1.Schema$MessagePart | undefined): string {
   if (!part) return "";
   if (part.mimeType === "text/plain" && part.body?.data) {
@@ -87,20 +96,101 @@ function extractText(part: gmail_v1.Schema$MessagePart | undefined): string {
     }
   }
   if (part.mimeType === "text/html" && part.body?.data) {
-    return decodeBase64Url(part.body.data)
-      .replace(/<style[\s\S]*?<\/style>/gi, " ")
-      .replace(/<script[\s\S]*?<\/script>/gi, " ")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/&nbsp;/g, " ")
+    return decodeHtmlEntities(
+      decodeBase64Url(part.body.data)
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<[^>]+>/g, " "),
+    )
       .replace(/\s+/g, " ")
       .trim();
   }
   return "";
 }
 
+/**
+ * Reply-quote headers, which Gmail localizes and often wraps across two lines,
+ * e.g. "On Mon, Jun 1 ... wrote:" or "Göksel K. <g@x>, 1 Haz 2026 Pzt, 12:57
+ * tarihinde ↵ şunu yazdı:". Matched against the whole body, not per line.
+ */
+const QUOTE_MARKERS = [
+  /(^|\n)\s*On\s[\s\S]{0,220}?\bwrote:/,
+  /(^|\n)[^\n]{0,220}(\n[^\n]{0,120})?\s*(şunu\s+yazdı|schrieb|a\s+écrit|escribió):/,
+  /(^|\n)\s*-{2,}\s*(Original Message|Forwarded message)/i,
+  /(^|\n)\s*From:\s[^\n]*\n\s*(Sent|Date):/,
+];
+
+/**
+ * Keeps only the text the user wrote themselves: cuts the message at the first
+ * reply-quote marker and drops ">"-quoted lines.
+ */
+function stripQuotedText(body: string): string {
+  let cut = body.length;
+  for (const re of QUOTE_MARKERS) {
+    const m = re.exec(body);
+    if (m && m.index < cut) cut = m.index;
+  }
+  return body
+    .slice(0, cut)
+    .split(/\r?\n/)
+    .filter((line) => !line.trim().startsWith(">"))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/** True when the text reads like something a person wrote — not a data dump, link or attachment-only send. */
+function looksLikeProse(text: string): boolean {
+  // Links, attachment names and inline-image placeholders aren't the user's voice.
+  const cleaned = text
+    .replace(/https?:\/\/\S+|www\.\S+/gi, " ")
+    .replace(/<[^<>\s]+@[^<>\s]+>/g, " ")
+    .replace(/\[image:[^\]]*\]/gi, " ")
+    .replace(/\S+\.(zip|rar|7z|pdf|docx?|xlsx?|pptx?|csv|png|jpe?g|gif|mp4|txt)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (cleaned.length < 60) return false;
+  const letters = (cleaned.match(/\p{L}/gu) ?? []).length;
+  return letters / cleaned.length >= 0.5;
+}
+
+function extractHtml(part: gmail_v1.Schema$MessagePart | undefined): string {
+  if (!part) return "";
+  if (part.mimeType === "text/html" && part.body?.data) {
+    return decodeBase64Url(part.body.data);
+  }
+  for (const p of part.parts ?? []) {
+    const html = extractHtml(p);
+    if (html) return html;
+  }
+  return "";
+}
+
+/** Raw HTML body of a message, for rendering in the app's reading pane. */
+export async function getMessageHtml(
+  gmail: gmail_v1.Gmail,
+  messageId: string,
+): Promise<string | null> {
+  try {
+    const { data } = await gmail.users.messages.get({
+      userId: "me",
+      id: messageId,
+      format: "full",
+    });
+    return extractHtml(data.payload).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 export function parseEmailAddress(raw: string): string {
   const match = raw.match(/<([^>]+)>/);
   return (match ? match[1] : raw).trim().toLowerCase();
+}
+
+/** Deep link into Gmail for the right account, works even if the thread is archived. */
+export function gmailThreadUrl(accountEmail: string, threadId: string): string {
+  return `https://mail.google.com/mail/?authuser=${encodeURIComponent(accountEmail)}#all/${threadId}`;
 }
 
 export async function getMessageMeta(
@@ -150,10 +240,57 @@ export async function listRecentInboxIds(gmail: gmail_v1.Gmail, max = 25): Promi
   return (data.messages ?? []).map((m) => m.id!);
 }
 
+/**
+ * Full-text search across the whole mailbox via Gmail's own search engine
+ * (bodies included, any label). Supports Gmail query syntax too.
+ */
+export async function searchMessageIds(
+  gmail: gmail_v1.Gmail,
+  q: string,
+  max = 500,
+): Promise<string[]> {
+  const ids: string[] = [];
+  let pageToken: string | undefined;
+  while (ids.length < max) {
+    const { data } = await gmail.users.messages.list({
+      userId: "me",
+      q,
+      maxResults: Math.min(100, max - ids.length),
+      pageToken,
+    });
+    for (const m of data.messages ?? []) ids.push(m.id!);
+    pageToken = data.nextPageToken ?? undefined;
+    if (!pageToken || (data.messages ?? []).length === 0) break;
+  }
+  return ids.slice(0, max);
+}
+
+/** Inbox message ids matching a Gmail search query, paginated up to max. */
+export async function listInboxIdsByQuery(
+  gmail: gmail_v1.Gmail,
+  q: string,
+  max = 300,
+): Promise<string[]> {
+  const ids: string[] = [];
+  let pageToken: string | undefined;
+  while (ids.length < max) {
+    const { data } = await gmail.users.messages.list({
+      userId: "me",
+      labelIds: ["INBOX"],
+      q,
+      maxResults: Math.min(100, max - ids.length),
+      pageToken,
+    });
+    for (const m of data.messages ?? []) ids.push(m.id!);
+    pageToken = data.nextPageToken ?? undefined;
+    if (!pageToken || (data.messages ?? []).length === 0) break;
+  }
+  return ids.slice(0, max);
+}
+
 export type HistoryResult = {
   newHistoryId: string;
   addedInboxIds: string[];
-  addedSentIds: string[];
   /** true when the stored historyId is too old and a full resync is needed */
   historyExpired: boolean;
 };
@@ -164,7 +301,6 @@ export async function listHistory(
   startHistoryId: string,
 ): Promise<HistoryResult> {
   const addedInbox = new Set<string>();
-  const addedSent = new Set<string>();
   let newHistoryId = startHistoryId;
   let pageToken: string | undefined;
 
@@ -184,14 +320,13 @@ export async function listHistory(
           const id = added.message?.id;
           if (!id) continue;
           if (labels.includes("INBOX") && !labels.includes("DRAFT")) addedInbox.add(id);
-          if (labels.includes("SENT") && !labels.includes("DRAFT")) addedSent.add(id);
         }
       }
       pageToken = data.nextPageToken ?? undefined;
     } while (pageToken);
   } catch (err: unknown) {
     if (typeof err === "object" && err && "code" in err && (err as { code: number }).code === 404) {
-      return { newHistoryId: startHistoryId, addedInboxIds: [], addedSentIds: [], historyExpired: true };
+      return { newHistoryId: startHistoryId, addedInboxIds: [], historyExpired: true };
     }
     throw err;
   }
@@ -199,7 +334,6 @@ export async function listHistory(
   return {
     newHistoryId,
     addedInboxIds: [...addedInbox],
-    addedSentIds: [...addedSent],
     historyExpired: false,
   };
 }
@@ -211,7 +345,7 @@ export async function getCurrentHistoryId(gmail: gmail_v1.Gmail): Promise<string
 
 /**
  * Registers (or renews) Gmail push notifications to a Pub/Sub topic.
- * Watches INBOX + SENT so both triage and follow-up tracking stay push-driven.
+ * Watches INBOX so triage stays push-driven.
  * Returns the expiration timestamp reported by Google (~7 days out).
  */
 export async function startWatch(gmail: gmail_v1.Gmail, topicName: string): Promise<Date> {
@@ -219,7 +353,7 @@ export async function startWatch(gmail: gmail_v1.Gmail, topicName: string): Prom
     userId: "me",
     requestBody: {
       topicName,
-      labelIds: ["INBOX", "SENT"],
+      labelIds: ["INBOX"],
       labelFilterBehavior: "include",
     },
   });
@@ -278,6 +412,45 @@ export async function createReplyDraft(
   return data.id!;
 }
 
+/**
+ * Body text of a Gmail draft, for showing the AI reply inline in the app.
+ * Returns null when the draft no longer exists (sent or discarded).
+ */
+export async function getDraftText(
+  gmail: gmail_v1.Gmail,
+  draftId: string,
+): Promise<string | null> {
+  try {
+    const { data } = await gmail.users.drafts.get({
+      userId: "me",
+      id: draftId,
+      format: "full",
+    });
+    return extractText(data.message?.payload).trim() || null;
+  } catch (err: unknown) {
+    const code =
+      typeof err === "object" && err && "code" in err ? (err as { code: number }).code : 0;
+    if (code === 404 || code === 400) return null;
+    throw err;
+  }
+}
+
+/**
+ * Deletes a Gmail draft. Returns false when the draft no longer exists —
+ * i.e. the user already sent or discarded it.
+ */
+export async function deleteDraft(gmail: gmail_v1.Gmail, draftId: string): Promise<boolean> {
+  try {
+    await gmail.users.drafts.delete({ userId: "me", id: draftId });
+    return true;
+  } catch (err: unknown) {
+    const code =
+      typeof err === "object" && err && "code" in err ? (err as { code: number }).code : 0;
+    if (code === 404 || code === 400) return false;
+    throw err;
+  }
+}
+
 /** Fetches recent sent messages' text (for building the voice profile). */
 export async function listRecentSentTexts(
   gmail: gmail_v1.Gmail,
@@ -293,9 +466,71 @@ export async function listRecentSentTexts(
   for (const m of data.messages ?? []) {
     const meta = await getMessageMeta(gmail, m.id!, selfEmail);
     if (!meta) continue;
-    const body = meta.bodyExcerpt.slice(0, 800);
+    const body = stripQuotedText(meta.bodyExcerpt).slice(0, 800);
     if (body.length > 40) out.push({ subject: meta.subject, body });
     if (out.length >= 30) break;
+  }
+  return out;
+}
+
+export type SentSample = {
+  id: string;
+  to: string;
+  subject: string;
+  snippet: string;
+  date: string;
+};
+
+/** Lists recent sent messages so the user can pick voice-training samples. */
+export async function listSentSamples(
+  gmail: gmail_v1.Gmail,
+  max = 60,
+): Promise<SentSample[]> {
+  const { data } = await gmail.users.messages.list({
+    userId: "me",
+    labelIds: ["SENT"],
+    maxResults: max,
+  });
+  const out: SentSample[] = [];
+  for (const m of data.messages ?? []) {
+    const { data: msg } = await gmail.users.messages.get({
+      userId: "me",
+      id: m.id!,
+      format: "full",
+    });
+    // Show only what the user wrote themselves — skips attachment-only sends,
+    // pure quotes and pasted data, and avoids the HTML-escaped Gmail snippet.
+    const ownText = stripQuotedText(extractText(msg.payload));
+    if (!looksLikeProse(ownText)) continue;
+    out.push({
+      id: msg.id!,
+      to: header(msg.payload, "To"),
+      subject: header(msg.payload, "Subject") || "(no subject)",
+      snippet: ownText
+        .replace(/\[image:[^\]]*\]/gi, " ")
+        .replace(/https?:\/\/\S+/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 200),
+      date: new Date(Number(msg.internalDate ?? Date.now())).toISOString(),
+    });
+    if (out.length >= 40) break;
+  }
+  return out;
+}
+
+/** Fetches the full text of specific sent messages (user-picked voice-training samples). */
+export async function getSentTextsByIds(
+  gmail: gmail_v1.Gmail,
+  selfEmail: string,
+  messageIds: string[],
+): Promise<{ subject: string; body: string }[]> {
+  const out: { subject: string; body: string }[] = [];
+  for (const id of messageIds) {
+    const meta = await getMessageMeta(gmail, id, selfEmail);
+    if (!meta) continue;
+    const body = stripQuotedText(meta.bodyExcerpt).slice(0, 800);
+    if (body.length > 0) out.push({ subject: meta.subject, body });
   }
   return out;
 }
@@ -322,3 +557,4 @@ export async function threadHasExternalReplyAfter(
   }
   return false;
 }
+

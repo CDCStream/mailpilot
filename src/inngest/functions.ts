@@ -1,27 +1,36 @@
-import { eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull, lt } from "drizzle-orm";
 import { inngest } from "./client";
 import {
   db,
   emailAccounts,
+  messages,
   rules,
   users,
   DEFAULT_PREFERENCES,
 } from "@/lib/db";
 import {
+  deleteDraft,
   ensureLabels,
   getCurrentHistoryId,
   getGmailClient,
+  getSentTextsByIds,
   listHistory,
-  listRecentInboxIds,
+  listInboxIdsByQuery,
   listRecentSentTexts,
   startWatch,
 } from "@/lib/gmail";
 import { buildVoiceProfile } from "@/lib/ai";
-import { processInboxMessage, processSentMessage, type PipelineContext } from "@/lib/pipeline";
+import { processInboxMessage, type PipelineContext } from "@/lib/pipeline";
 import { buildAndSendBrief } from "@/lib/brief";
 import { hasActiveAccess } from "@/lib/billing";
 
 const MAX_MESSAGES_PER_RUN = 20;
+
+/** Fyxer-style cap: an import batch never triages more than this many emails. */
+export const BACKFILL_MAX = 300;
+
+/** How far back the automatic import after connecting goes. */
+export const BACKFILL_DAYS = 5;
 
 async function loadContext(accountId: string): Promise<PipelineContext | null> {
   const account = await db.query.emailAccounts.findFirst({
@@ -60,7 +69,10 @@ async function loadContext(accountId: string): Promise<PipelineContext | null> {
 export const accountConnected = inngest.createFunction(
   { id: "account-connected", retries: 2, triggers: { event: "app/account.connected" } },
   async ({ event, step }) => {
-    const { accountId } = event.data as { accountId: string };
+    const { accountId, voiceSampleIds = [] } = event.data as {
+      accountId: string;
+      voiceSampleIds?: string[];
+    };
 
     const labelMap = await step.run("ensure-labels", async () => {
       const account = await db.query.emailAccounts.findFirst({
@@ -98,7 +110,13 @@ export const accountConnected = inngest.createFunction(
       });
       if (!account) return;
       const gmail = getGmailClient(account.refreshTokenEnc);
-      const samples = await listRecentSentTexts(gmail, account.email, 60);
+      // Prefer the replies the user hand-picked during onboarding; fall back to recent sent mail.
+      const picked =
+        voiceSampleIds.length > 0
+          ? await getSentTextsByIds(gmail, account.email, voiceSampleIds)
+          : [];
+      const samples =
+        picked.length > 0 ? picked : await listRecentSentTexts(gmail, account.email, 60);
       const profile = await buildVoiceProfile(samples);
       await db.update(users).set({ voiceProfile: profile }).where(eq(users.id, account.userId));
     });
@@ -106,14 +124,18 @@ export const accountConnected = inngest.createFunction(
     const initialIds = await step.run("list-initial-inbox", async () => {
       const ctx = await loadContext(accountId);
       if (!ctx) return [] as string[];
-      return listRecentInboxIds(ctx.gmail, 10);
+      // Quick first bites for instant feedback — but only from the same 5-day
+      // window the backfill covers, so a quiet inbox doesn't import old mail.
+      const q = `after:${Math.floor((Date.now() - BACKFILL_DAYS * 24 * 60 * 60 * 1000) / 1000)}`;
+      return listInboxIdsByQuery(ctx.gmail, q, 10);
     });
 
     for (const messageId of initialIds) {
       await step.run(`triage-${messageId}`, async () => {
         const ctx = await loadContext(accountId);
         if (!ctx) return;
-        await processInboxMessage(ctx, messageId);
+        // Onboarding import is on the house — its cost is priced into the plans.
+        await processInboxMessage(ctx, messageId, { free: true });
       });
     }
 
@@ -128,7 +150,81 @@ export const accountConnected = inngest.createFunction(
         .where(eq(users.id, account.userId));
     });
 
+    // Import the rest of the last few days in the background (Fyxer-style),
+    // so the dashboard isn't blocked on it during onboarding. Flag it up front
+    // so the dashboard banner shows before the backfill function picks it up.
+    await step.run("mark-backfill-pending", async () => {
+      await db
+        .update(emailAccounts)
+        .set({ backfillStartedAt: new Date() })
+        .where(eq(emailAccounts.id, accountId));
+    });
+    await step.sendEvent("backfill-recent", {
+      name: "app/account.backfill",
+      data: {
+        accountId,
+        afterMs: Date.now() - BACKFILL_DAYS * 24 * 60 * 60 * 1000,
+        beforeMs: Date.now() + 24 * 60 * 60 * 1000,
+        free: true,
+      },
+    });
+
     return { labels: Object.keys(labelMap).length, triaged: initialIds.length };
+  },
+);
+
+/**
+ * Imports and triages a window of existing inbox mail (on connect: the last
+ * 5 days; afterwards: older 5-day chunks the user requests from the Inbox
+ * page). Capped at 300 emails per run, like Fyxer's initial import.
+ */
+export const backfillAccount = inngest.createFunction(
+  {
+    id: "backfill-account",
+    retries: 1,
+    concurrency: { key: "event.data.accountId", limit: 1 },
+    triggers: { event: "app/account.backfill" },
+  },
+  async ({ event, step }) => {
+    const { accountId, afterMs, beforeMs, free } = event.data as {
+      accountId: string;
+      afterMs: number;
+      beforeMs: number;
+      /** True for the automatic import right after connecting (no credits charged). */
+      free?: boolean;
+    };
+
+    // Drives the "importing your mail" banner in the dashboard.
+    await step.run("mark-backfill-running", async () => {
+      await db
+        .update(emailAccounts)
+        .set({ backfillStartedAt: new Date() })
+        .where(eq(emailAccounts.id, accountId));
+    });
+
+    const ids = await step.run("list-window", async () => {
+      const ctx = await loadContext(accountId);
+      if (!ctx) return [] as string[];
+      const q = `after:${Math.floor(afterMs / 1000)} before:${Math.ceil(beforeMs / 1000)}`;
+      return listInboxIdsByQuery(ctx.gmail, q, BACKFILL_MAX);
+    });
+
+    for (const messageId of ids) {
+      await step.run(`triage-${messageId}`, async () => {
+        const ctx = await loadContext(accountId);
+        if (!ctx) return;
+        await processInboxMessage(ctx, messageId, { free: free === true });
+      });
+    }
+
+    await step.run("mark-backfill-done", async () => {
+      await db
+        .update(emailAccounts)
+        .set({ backfillStartedAt: null })
+        .where(eq(emailAccounts.id, accountId));
+    });
+
+    return { found: ids.length };
   },
 );
 
@@ -139,16 +235,24 @@ export const accountConnected = inngest.createFunction(
 export const scheduleSyncs = inngest.createFunction(
   { id: "schedule-syncs", retries: 0, triggers: { cron: "*/30 * * * *" } },
   async ({ step }) => {
-    const accounts = await step.run("list-accounts", async () => {
+    const { eligible: accounts, stuck } = await step.run("list-accounts", async () => {
       const rows = await db.query.emailAccounts.findMany({
         where: eq(emailAccounts.status, "active"),
       });
       const eligible: { accountId: string }[] = [];
+      const stuck: { accountId: string }[] = [];
+      const staleBefore = Date.now() - 10 * 60 * 1000;
       for (const account of rows) {
-        if (!account.lastHistoryId) continue; // onboarding not finished
-        if (await hasActiveAccess(account.userId)) eligible.push({ accountId: account.id });
+        if (!(await hasActiveAccess(account.userId))) continue;
+        if (!account.lastHistoryId) {
+          // Setup never ran (e.g. the connected-event send failed) — retry it,
+          // but leave freshly linked accounts alone while setup is in flight.
+          if (account.createdAt.getTime() < staleBefore) stuck.push({ accountId: account.id });
+          continue;
+        }
+        eligible.push({ accountId: account.id });
       }
-      return eligible;
+      return { eligible, stuck };
     });
 
     if (accounts.length > 0) {
@@ -157,7 +261,13 @@ export const scheduleSyncs = inngest.createFunction(
         accounts.map((a) => ({ name: "app/account.sync", data: a })),
       );
     }
-    return { queued: accounts.length };
+    if (stuck.length > 0) {
+      await step.sendEvent(
+        "retry-setup",
+        stuck.map((a) => ({ name: "app/account.connected", data: a })),
+      );
+    }
+    return { queued: accounts.length, setupRetried: stuck.length };
   },
 );
 
@@ -194,7 +304,6 @@ export const syncAccount = inngest.createFunction(
         }
         return {
           inboxIds: result.addedInboxIds.slice(0, MAX_MESSAGES_PER_RUN),
-          sentIds: result.addedSentIds.slice(0, MAX_MESSAGES_PER_RUN),
           newHistoryId: result.newHistoryId,
         };
       } catch (err) {
@@ -221,15 +330,6 @@ export const syncAccount = inngest.createFunction(
       });
     }
 
-    for (const messageId of changes.sentIds) {
-      await step.run(`sent-${messageId}`, async () => {
-        const ctx = await loadContext(accountId);
-        if (!ctx) return;
-        const prefs = ctx.user.preferences ?? DEFAULT_PREFERENCES;
-        await processSentMessage(ctx, messageId, prefs.followUpDays);
-      });
-    }
-
     await step.run("advance-cursor", async () => {
       await db
         .update(emailAccounts)
@@ -237,7 +337,7 @@ export const syncAccount = inngest.createFunction(
         .where(eq(emailAccounts.id, accountId));
     });
 
-    return { processed: changes.inboxIds.length + changes.sentIds.length };
+    return { processed: changes.inboxIds.length };
   },
 );
 
@@ -335,10 +435,118 @@ export const dailyBrief = inngest.createFunction(
   },
 );
 
+/**
+ * Daily: removes Wingman-created drafts the user never sent, once they're older
+ * than the user's draftCleanupDays preference (0 disables the cleanup).
+ */
+export const cleanupStaleDrafts = inngest.createFunction(
+  { id: "cleanup-stale-drafts", retries: 0, triggers: { cron: "30 4 * * *" } },
+  async ({ step }) => {
+    const targets = await step.run("select-accounts", async () => {
+      const rows = await db.query.emailAccounts.findMany({
+        where: eq(emailAccounts.status, "active"),
+      });
+      const daysByUser = new Map<string, number>();
+      const eligible: { accountId: string; days: number }[] = [];
+      for (const account of rows) {
+        let days = daysByUser.get(account.userId);
+        if (days === undefined) {
+          const user = await db.query.users.findFirst({ where: eq(users.id, account.userId) });
+          const prefs = user?.preferences ?? DEFAULT_PREFERENCES;
+          days = prefs.draftCleanupDays ?? 14;
+          if (days > 0 && !(await hasActiveAccess(account.userId))) days = 0;
+          daysByUser.set(account.userId, days);
+        }
+        if (days > 0) eligible.push({ accountId: account.id, days });
+      }
+      return eligible;
+    });
+
+    let deleted = 0;
+    for (const target of targets) {
+      deleted += await step.run(`cleanup-${target.accountId}`, async () => {
+        const account = await db.query.emailAccounts.findFirst({
+          where: eq(emailAccounts.id, target.accountId),
+        });
+        if (!account || account.status !== "active") return 0;
+
+        const cutoff = new Date(Date.now() - target.days * 24 * 60 * 60 * 1000);
+        const stale = await db.query.messages.findMany({
+          where: and(
+            eq(messages.accountId, target.accountId),
+            isNotNull(messages.draftId),
+            lt(messages.receivedAt, cutoff),
+          ),
+          limit: 50,
+        });
+        if (stale.length === 0) return 0;
+
+        const gmail = getGmailClient(account.refreshTokenEnc);
+        let removed = 0;
+        for (const row of stale) {
+          if (await deleteDraft(gmail, row.draftId!)) removed += 1;
+          // Clear draftId either way; a 404 means the draft was sent or discarded.
+          await db.update(messages).set({ draftId: null }).where(eq(messages.id, row.id));
+        }
+        return removed;
+      });
+    }
+
+    return { accounts: targets.length, deleted };
+  },
+);
+
+/**
+ * Weekly: quietly retrains each user's voice profile from their most recent
+ * sent replies, so drafts keep up with how their writing evolves.
+ */
+export const weeklyVoiceRetrain = inngest.createFunction(
+  { id: "weekly-voice-retrain", retries: 0, triggers: { cron: "30 5 * * 1" } },
+  async ({ step }) => {
+    const targets = await step.run("select-users", async () => {
+      const allUsers = await db.query.users.findMany({
+        where: isNotNull(users.onboardedAt),
+      });
+      const selected: string[] = [];
+      for (const user of allUsers) {
+        const prefs = user.preferences ?? DEFAULT_PREFERENCES;
+        if (!(prefs.autoRetrainVoice ?? true)) continue;
+        if (await hasActiveAccess(user.id)) selected.push(user.id);
+      }
+      return selected;
+    });
+
+    let retrained = 0;
+    for (const userId of targets) {
+      await step.run(`retrain-${userId}`, async () => {
+        const account = await db.query.emailAccounts.findFirst({
+          where: and(eq(emailAccounts.userId, userId), eq(emailAccounts.status, "active")),
+        });
+        if (!account) return;
+        try {
+          const gmail = getGmailClient(account.refreshTokenEnc);
+          const samples = await listRecentSentTexts(gmail, account.email, 40);
+          if (samples.length === 0) return;
+          const profile = await buildVoiceProfile(samples);
+          await db.update(users).set({ voiceProfile: profile }).where(eq(users.id, userId));
+          retrained += 1;
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          if (!message.includes("invalid_grant")) throw err;
+        }
+      });
+    }
+    return { candidates: targets.length, retrained };
+  },
+);
+
 export const functions = [
   accountConnected,
+  backfillAccount,
   scheduleSyncs,
   syncAccount,
   renewWatches,
   dailyBrief,
+  cleanupStaleDrafts,
+  weeklyVoiceRetrain,
 ];

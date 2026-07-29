@@ -1,25 +1,19 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { gmail_v1 } from "googleapis";
 import {
   db,
-  followups,
   messages,
+  archiveSetFor,
   DEFAULT_PREFERENCES,
   type Category,
   type ParsedRule,
   type UserPreferences,
   type VoiceProfile,
 } from "@/lib/db";
-import {
-  applyLabels,
-  createReplyDraft,
-  getMessageMeta,
-  parseEmailAddress,
-  LOW_PRIORITY_CATEGORIES,
-} from "@/lib/gmail";
+import { applyLabels, createReplyDraft, getMessageMeta } from "@/lib/gmail";
 import { classifyEmail, generateReplyDraft } from "@/lib/ai";
 import { applyRules } from "@/lib/rules-engine";
-import { consumeBudget } from "@/lib/usage";
+import { consumeCredits } from "@/lib/usage";
 
 export type PipelineContext = {
   gmail: gmail_v1.Gmail;
@@ -37,6 +31,14 @@ export type ProcessResult =
   | { status: "processed"; category: Category; draftCreated: boolean }
   | { status: "skipped"; reason: string };
 
+export type ProcessOptions = {
+  /**
+   * Skip credit consumption — used for the initial import after connecting an
+   * account, whose cost is baked into plan pricing instead of the user's credits.
+   */
+  free?: boolean;
+};
+
 /**
  * Full triage pipeline for one inbound message:
  * classify -> user rules -> Gmail labels/archive -> optional voice draft -> record.
@@ -44,12 +46,21 @@ export type ProcessResult =
 export async function processInboxMessage(
   ctx: PipelineContext,
   messageId: string,
+  opts: ProcessOptions = {},
 ): Promise<ProcessResult> {
   const prefs = ctx.user.preferences ?? DEFAULT_PREFERENCES;
 
   const meta = await getMessageMeta(ctx.gmail, messageId, ctx.account.email);
   if (!meta) return { status: "skipped", reason: "message gone" };
   if (meta.isFromMe) return { status: "skipped", reason: "own message" };
+
+  // "Respect my categories": if the user (or their own filters) already applied a
+  // personal label to this message, we still import + classify it so it shows up
+  // in the app, but we never touch its Gmail labels or archive it.
+  const wingmanLabelIds = new Set(Object.values(ctx.account.labelMap ?? {}));
+  const hasUserLabel =
+    (prefs.respectUserLabels ?? true) &&
+    meta.labelIds.some((id) => id.startsWith("Label_") && !wingmanLabelIds.has(id));
 
   // Dedupe: claim the message row first; bail if another run already handled it.
   const inserted = await db
@@ -68,20 +79,8 @@ export async function processInboxMessage(
   if (inserted.length === 0) return { status: "skipped", reason: "already processed" };
   const rowId = inserted[0].id;
 
-  // An inbound external message closes any pending follow-up on this thread.
-  await db
-    .update(followups)
-    .set({ status: "replied" })
-    .where(
-      and(
-        eq(followups.accountId, ctx.account.id),
-        eq(followups.threadId, meta.threadId),
-        inArray(followups.status, ["waiting", "due"]),
-      ),
-    );
-
-  if (!(await consumeBudget(ctx.user.id, "classifications"))) {
-    return { status: "skipped", reason: "daily classification budget reached" };
+  if (!opts.free && !(await consumeCredits(ctx.user.id, "triage"))) {
+    return { status: "skipped", reason: "monthly AI credit limit reached" };
   }
 
   const classification = await classifyEmail({
@@ -89,6 +88,7 @@ export async function processInboxMessage(
     to: meta.to,
     subject: meta.subject,
     bodyExcerpt: meta.bodyExcerpt,
+    summaryLanguage: prefs.summaryLanguage,
   });
 
   const outcome = applyRules(ctx.rules, {
@@ -98,19 +98,21 @@ export async function processInboxMessage(
     category: classification.category,
   });
 
-  // --- Apply Gmail label operations ---
+  // --- Apply Gmail label operations (skipped when respecting a user label) ---
   const labelMap = ctx.account.labelMap ?? {};
   const addLabelIds: string[] = [];
   const removeLabelIds: string[] = [];
 
-  const categoryLabelId = labelMap[outcome.category];
-  if (categoryLabelId) addLabelIds.push(categoryLabelId);
-  if (outcome.star) addLabelIds.push("STARRED");
+  if (!hasUserLabel) {
+    const categoryLabelId = labelMap[outcome.category];
+    if (categoryLabelId) addLabelIds.push(categoryLabelId);
+    if (outcome.star) addLabelIds.push("STARRED");
+  }
 
   const shouldArchive =
+    !hasUserLabel &&
     !outcome.keepInInbox &&
-    (outcome.forceArchive ||
-      (prefs.archiveLowPriority && LOW_PRIORITY_CATEGORIES.includes(outcome.category)));
+    (outcome.forceArchive || archiveSetFor(prefs).includes(outcome.category));
   if (shouldArchive) removeLabelIds.push("INBOX");
 
   if (addLabelIds.length || removeLabelIds.length) {
@@ -119,13 +121,16 @@ export async function processInboxMessage(
 
   // --- Voice draft for emails that need a reply ---
   let draftId: string | null = null;
+  const draftStyle = prefs.draftStyle ?? "everything";
   const wantsDraft =
     outcome.category === "to_respond" &&
     classification.needs_reply &&
     prefs.draftsEnabled &&
-    !outcome.skipDraft;
+    !outcome.skipDraft &&
+    draftStyle !== "manual" &&
+    (draftStyle === "everything" || classification.urgent);
 
-  if (wantsDraft && (await consumeBudget(ctx.user.id, "drafts"))) {
+  if (wantsDraft && (opts.free || (await consumeCredits(ctx.user.id, "draft")))) {
     try {
       const body = await generateReplyDraft({
         userName: ctx.user.name ?? ctx.account.email,
@@ -167,35 +172,4 @@ export async function processInboxMessage(
     .where(eq(messages.id, rowId));
 
   return { status: "processed", category: outcome.category, draftCreated: Boolean(draftId) };
-}
-
-/** Records a follow-up expectation when the user sends an email to someone external. */
-export async function processSentMessage(
-  ctx: PipelineContext,
-  messageId: string,
-  followUpDays: number,
-): Promise<void> {
-  const meta = await getMessageMeta(ctx.gmail, messageId, ctx.account.email);
-  if (!meta || !meta.isFromMe) return;
-
-  const recipient = parseEmailAddress(meta.to);
-  if (!recipient || recipient === ctx.account.email.toLowerCase()) return;
-
-  const dueAt = new Date(meta.date.getTime() + followUpDays * 24 * 60 * 60 * 1000);
-
-  await db
-    .insert(followups)
-    .values({
-      accountId: ctx.account.id,
-      threadId: meta.threadId,
-      subject: meta.subject,
-      toRecipients: meta.to,
-      sentAt: meta.date,
-      dueAt,
-      status: "waiting",
-    })
-    .onConflictDoUpdate({
-      target: [followups.accountId, followups.threadId],
-      set: { sentAt: meta.date, dueAt, status: "waiting", subject: meta.subject },
-    });
 }

@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { eq } from "drizzle-orm";
-import { db, subscriptions } from "@/lib/db";
+import { db, creditTopups, subscriptions } from "@/lib/db";
 import { getStripe } from "@/lib/billing";
+import { planFromPriceId, type PlanId } from "@/lib/plans";
+import { grantBonusCredits } from "@/lib/usage";
 
 async function upsertFromSubscription(sub: Stripe.Subscription) {
   const userId = sub.metadata?.userId;
   const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+  const priceId = sub.items?.data?.[0]?.price?.id ?? null;
+  const planFromMeta = sub.metadata?.plan;
+  const plan: PlanId | null =
+    planFromMeta === "wingman" || planFromMeta === "pilot"
+      ? planFromMeta
+      : planFromPriceId(priceId);
 
-  // current_period_end lives on subscription items in recent Stripe API versions.
   const periodEnd =
     sub.items?.data?.[0]?.current_period_end ??
     (sub as unknown as { current_period_end?: number }).current_period_end;
@@ -17,7 +24,8 @@ async function upsertFromSubscription(sub: Stripe.Subscription) {
     stripeCustomerId: customerId,
     stripeSubscriptionId: sub.id,
     status: sub.status,
-    priceId: sub.items?.data?.[0]?.price?.id ?? null,
+    plan,
+    priceId,
     currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
     updatedAt: new Date(),
   };
@@ -33,6 +41,31 @@ async function upsertFromSubscription(sub: Stripe.Subscription) {
       .set(values)
       .where(eq(subscriptions.stripeCustomerId, customerId));
   }
+}
+
+async function handleTopupSession(session: Stripe.Checkout.Session) {
+  if (session.metadata?.type !== "credit_topup") return;
+  if (session.payment_status !== "paid") return;
+
+  const userId = session.metadata.userId;
+  const packId = session.metadata.packId ?? "unknown";
+  const credits = Number(session.metadata.credits ?? 0);
+  if (!userId || !Number.isFinite(credits) || credits <= 0) return;
+
+  const inserted = await db
+    .insert(creditTopups)
+    .values({
+      userId,
+      stripeSessionId: session.id,
+      packId,
+      credits,
+      amountCents: session.amount_total ?? 0,
+    })
+    .onConflictDoNothing()
+    .returning({ id: creditTopups.id });
+
+  if (inserted.length === 0) return; // already processed
+  await grantBonusCredits(userId, credits);
 }
 
 export async function POST(req: Request) {
@@ -64,6 +97,9 @@ export async function POST(req: Request) {
         .where(eq(subscriptions.stripeCustomerId, customerId));
       break;
     }
+    case "checkout.session.completed":
+      await handleTopupSession(event.data.object);
+      break;
   }
 
   return NextResponse.json({ received: true });

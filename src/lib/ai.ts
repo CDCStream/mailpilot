@@ -4,8 +4,27 @@ import {
   CATEGORIES,
   type Category,
   type ParsedRule,
+  type SummaryLanguage,
   type VoiceProfile,
 } from "@/lib/db/schema";
+
+/** English names the model understands, for the summary-language instruction. */
+const LANGUAGE_NAMES: Record<Exclude<SummaryLanguage, "auto">, string> = {
+  en: "English",
+  tr: "Turkish",
+  de: "German",
+  fr: "French",
+  es: "Spanish",
+  pt: "Portuguese",
+  it: "Italian",
+  nl: "Dutch",
+};
+
+function languageInstruction(lang: SummaryLanguage | undefined, what: string): string {
+  if (!lang || lang === "en") return "";
+  if (lang === "auto") return `\nWrite ${what} in the same language as the email itself.`;
+  return `\nWrite ${what} in ${LANGUAGE_NAMES[lang]}, regardless of the email's language.`;
+}
 
 let openaiSingleton: OpenAI | null = null;
 
@@ -42,6 +61,7 @@ async function jsonCompletion<T>(
 const classificationSchema = z.object({
   category: z.enum(CATEGORIES),
   needs_reply: z.boolean(),
+  urgent: z.boolean().catch(false),
   summary: z.string(),
 });
 
@@ -56,21 +76,26 @@ Classify the email into exactly one category:
 - "notification": automated transactional messages (receipts, alerts, calendar, shipping, security codes, invoices).
 - "cold_email": unsolicited outreach from a stranger trying to sell or pitch something.
 
-Also return "needs_reply" (true only for to_respond) and a one-sentence "summary" of the email.
-Respond with JSON: {"category": ..., "needs_reply": ..., "summary": ...}`;
+Also return:
+- "needs_reply": true only for to_respond.
+- "urgent": true only when the email needs a reply AND is time-sensitive or high-stakes (deadline, waiting client/boss, deal at risk, explicit ASAP). Routine questions are not urgent.
+- "summary": one sentence describing the email.
+Respond with JSON: {"category": ..., "needs_reply": ..., "urgent": ..., "summary": ...}`;
 
 export async function classifyEmail(input: {
   from: string;
   to: string;
   subject: string;
   bodyExcerpt: string;
+  summaryLanguage?: SummaryLanguage;
 }): Promise<Classification> {
+  const system = CLASSIFY_SYSTEM + languageInstruction(input.summaryLanguage, 'the "summary"');
   const user = `From: ${input.from}\nTo: ${input.to}\nSubject: ${input.subject}\n\nBody (excerpt):\n${input.bodyExcerpt.slice(0, 1500)}`;
   try {
-    return await jsonCompletion(CLASSIFY_MODEL, CLASSIFY_SYSTEM, user, classificationSchema);
+    return await jsonCompletion(CLASSIFY_MODEL, system, user, classificationSchema);
   } catch {
     // Fail safe: keep the email visible rather than mis-filing it.
-    return { category: "fyi", needs_reply: false, summary: input.subject };
+    return { category: "fyi", needs_reply: false, urgent: false, summary: input.subject };
   }
 }
 
@@ -179,22 +204,86 @@ Example: "Archive invoices and label them as notifications" ->
   );
 }
 
-// ---------- Brief summarization ----------
+// ---------- Ask your inbox ----------
 
-export async function summarizeForBrief(items: string[]): Promise<string> {
-  if (items.length === 0) return "";
+/** Answers a free-form question using stored inbox metadata (no email bodies). */
+export async function askInbox(input: {
+  question: string;
+  context: string;
+  /** Previous chat turns, oldest first, so follow-up questions keep their context. */
+  history?: { role: "user" | "assistant"; content: string }[];
+}): Promise<string> {
   const res = await openaiClient().chat.completions.create({
     model: CLASSIFY_MODEL,
     messages: [
       {
         role: "system",
-        content:
-          "Summarize these inbox items into a short, scannable morning briefing (3-6 bullet points max, plain text, no markdown headers). Prioritize what needs action.",
+        content: `You are the user's inbox assistant. Answer their question using ONLY the inbox data provided (sender, subject, category, one-line summary, dates, draft status).
+Rules:
+- Answer in the same language as the question.
+- If the data doesn't contain the answer, say you don't see it in the recent inbox data — never invent emails.
+- Dates in the data are ISO format; phrase them naturally (e.g. "yesterday", "on Jul 22").
+
+Formatting (light markdown, keep it scannable):
+- Start with one short sentence that directly answers the question (e.g. a count or yes/no) — no heading.
+- When listing more than ~3 emails, group them under short bold headers like **Needs your reply (2)** or **Notifications (6)** instead of one long flat list.
+- Bullets look like: - **Sender** — subject (date). Add the one-line summary only when it helps.
+- Use the human category names exactly as given in the data (e.g. "To Respond", "Notification") — never raw codes like to_respond.
+- No tables, no nested lists, no headings other than bold lines. Keep the whole answer compact.
+
+Inbox data (most recent first):
+${input.context}`,
       },
-      { role: "user", content: items.join("\n") },
+      ...(input.history ?? []).slice(-8),
+      { role: "user", content: input.question },
     ],
   });
   return res.choices[0]?.message?.content?.trim() ?? "";
+}
+
+// ---------- Brief summarization ----------
+
+const briefDigestSchema = z.object({
+  overview: z.string().catch(""),
+  newsletterHighlights: z.array(z.string()).catch([]),
+  deadlines: z.array(z.string()).catch([]),
+  logistics: z.array(z.string()).catch([]),
+});
+
+export type BriefDigest = z.infer<typeof briefDigestSchema>;
+
+const BRIEF_DIGEST_SYSTEM = `You compile a morning email briefing. You get three groups of inbox items (one-line each): CORRESPONDENCE (real people), NEWSLETTERS (editorial/marketing content), NOTIFICATIONS (automated/transactional).
+
+Produce JSON with:
+- "overview": 2-4 plain-text bullet lines (each starting with "• ") summarizing what matters most in CORRESPONDENCE today. Empty string if nothing notable.
+- "newsletterHighlights": up to 5 short takeaways worth knowing from NEWSLETTERS, so the user doesn't have to open them (e.g. "TechCrunch: OpenAI released X"). Skip pure promotions with no informational value. Empty array if none.
+- "deadlines": concrete dates/deadlines/asks extracted from ANY group, phrased as actions with the date (e.g. "Reply to Sarah about the contract by Friday", "Invoice #123 payment due Jul 30"). Only include real, explicit time commitments. Empty array if none.
+- "logistics": bills, receipts, order and delivery updates from NOTIFICATIONS (e.g. "Amazon order arriving today", "Netflix charged $15.99"). Empty array if none.
+
+Rules: plain text only, no markdown. Never invent items. Keep every line under 140 characters.`;
+
+export async function buildBriefDigest(input: {
+  correspondence: string[];
+  newsletters: string[];
+  notifications: string[];
+  summaryLanguage?: SummaryLanguage;
+}): Promise<BriefDigest> {
+  // "auto" makes no sense for a digest spanning many emails; fall back to English.
+  const lang = input.summaryLanguage === "auto" ? "en" : input.summaryLanguage;
+  const system = BRIEF_DIGEST_SYSTEM + languageInstruction(lang, "every output field");
+  const section = (title: string, items: string[]) =>
+    `${title}:\n${items.length ? items.join("\n") : "(none)"}`;
+  const user = [
+    section("CORRESPONDENCE", input.correspondence.slice(0, 25)),
+    section("NEWSLETTERS", input.newsletters.slice(0, 25)),
+    section("NOTIFICATIONS", input.notifications.slice(0, 25)),
+  ].join("\n\n");
+
+  try {
+    return await jsonCompletion(CLASSIFY_MODEL, system, user, briefDigestSchema);
+  } catch {
+    return { overview: "", newsletterHighlights: [], deadlines: [], logistics: [] };
+  }
 }
 
 export function isValidCategory(value: string): value is Category {

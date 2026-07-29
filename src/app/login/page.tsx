@@ -1,17 +1,22 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, signIn } from "@/auth";
+import { BrandLogo } from "@/components/brand-logo";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const session = await auth();
   if (session?.user) redirect("/dashboard");
+  const { error } = await searchParams;
 
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-24">
       <div className="w-full max-w-sm text-center">
-        <Link href="/" className="inline-flex items-center gap-2.5 text-lg font-semibold tracking-tight">
-          <Image src="/logo-64.png" alt="" width={28} height={28} className="rounded-lg" />
+        <Link href="/" className="inline-flex items-center gap-3 text-xl font-semibold tracking-tight">
+          <BrandLogo size={40} />
           Inbox Wingman
         </Link>
         <h1 className="mt-8 text-2xl font-bold">Connect your Gmail</h1>
@@ -19,6 +24,19 @@ export default async function LoginPage() {
           Sign in with Google and grant Gmail access so Inbox Wingman can label your inbox and
           create drafts. It never sends email on its own.
         </p>
+        {error === "gmail-permission" ? (
+          <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-left text-sm text-amber-900">
+            <p className="font-semibold">Gmail access wasn&apos;t granted</p>
+            <p className="mt-1">
+              On the Google consent screen, please tick the checkbox that lets Inbox Wingman read,
+              compose, and manage your email. Without it the app can&apos;t triage your inbox.
+            </p>
+          </div>
+        ) : error ? (
+          <div className="mt-6 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-left text-sm text-red-900">
+            Sign-in didn&apos;t complete. Please try again in a single tab.
+          </div>
+        ) : null}
         <form
           action={async () => {
             "use server";

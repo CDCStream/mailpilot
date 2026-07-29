@@ -28,10 +28,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   pages: {
     signIn: "/login",
+    error: "/login",
   },
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider !== "google" || !user.email) return false;
+
+      // Google lets users uncheck individual scopes on the consent screen.
+      // Without gmail.modify the app can't do anything, so send them back.
+      const grantedScopes = account.scope?.split(" ") ?? [];
+      if (!grantedScopes.includes("https://www.googleapis.com/auth/gmail.modify")) {
+        return "/login?error=gmail-permission";
+      }
 
       // Upsert the user record.
       const [dbUser] = await db
@@ -58,6 +66,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: user.email,
             refreshTokenEnc: encryptSecret(account.refresh_token),
             status: "active",
+            // First connect kicks off the 5-day import — surface the banner
+            // immediately. Deliberately NOT in the conflict-update below: that
+            // path runs on every sign-in, where no import happens.
+            backfillStartedAt: new Date(),
           })
           .onConflictDoUpdate({
             target: [emailAccounts.userId, emailAccounts.email],

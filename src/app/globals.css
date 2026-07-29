@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark only — OS dark mode must not swap logos on a light UI. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -7,4 +10,114 @@
 
 body {
   font-family: var(--font-geist-sans), -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Tailwind v4 defaults buttons to cursor: default — restore the pointer. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  select:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+}
+
+@keyframes iw-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Stays fully visible while flying; fades only once it reaches the robot. */
+@keyframes iw-fly-to-robot {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--fly-x, 150px), var(--fly-y, 0px)) scale(0.15);
+  }
+}
+
+.iw-fly-to-robot {
+  animation: iw-fly-to-robot 0.75s cubic-bezier(0.5, 0, 0.9, 0.4) both;
+}
+
+@keyframes iw-pulse-dot {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes iw-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.iw-fade-up {
+  animation: iw-fade-up 0.45s ease-out both;
+}
+
+.iw-pulse-dot {
+  animation: iw-pulse-dot 1.1s ease-in-out infinite;
+}
+
+.iw-caret {
+  animation: iw-caret 1s step-end infinite;
+}
+
+/* Credit top-up pack scroller (light) */
+.iw-topup-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: #e4e4e7;
+  outline: none;
+}
+.iw-topup-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 2px solid #e4e4e7;
+  background: #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2318181b' stroke-width='2.5'%3E%3Cpath d='M8 9l-4 3 4 3M16 9l4 3-4 3'/%3E%3C/svg%3E")
+    center / 14px no-repeat;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+.iw-topup-range::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #e4e4e7;
+  border-radius: 999px;
+  background: #fff;
+  cursor: pointer;
 }
