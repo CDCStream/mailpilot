@@ -9,7 +9,9 @@ export default async function OnboardingPage() {
   if (!session?.user?.id) redirect("/login");
 
   const user = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
-  if (user?.onboardedAt) redirect("/dashboard");
+  // Stale JWT (user deleted from the DB) — clear the cookie and start over.
+  if (!user) redirect("/api/session/clear");
+  if (user.onboardedAt) redirect("/dashboard");
 
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-10 lg:px-12">

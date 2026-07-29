@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import NextTopLoader from "nextjs-toploader";
 import { eq } from "drizzle-orm";
 import { auth, signOut } from "@/auth";
-import { db, emailAccounts } from "@/lib/db";
+import { db, emailAccounts, users } from "@/lib/db";
 import { maxAccountsFor } from "@/lib/plans";
 import { resolveCreditLimit } from "@/lib/usage";
 import { BrandLogo } from "@/components/brand-logo";
@@ -17,6 +17,13 @@ export default async function DashboardLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+
+  // Stale JWT (user deleted from the DB) — clear the cookie and start over.
+  const dbUser = await db.query.users.findFirst({
+    where: eq(users.id, session.user.id),
+    columns: { id: true },
+  });
+  if (!dbUser) redirect("/api/session/clear");
 
   const accounts = await db.query.emailAccounts.findMany({
     where: eq(emailAccounts.userId, session.user.id),
