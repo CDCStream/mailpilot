@@ -35,8 +35,35 @@ function esc(s: string): string {
 
 function bulletList(items: string[]): string {
   return items
-    .map((t) => `<li style="margin-bottom:8px;color:#333">${esc(t)}</li>`)
+    .map(
+      (t) =>
+        `<li style="margin-bottom:10px;color:#3f3f46;font-size:14px;line-height:1.6">${esc(t)}</li>`,
+    )
     .join("");
+}
+
+/** One rounded section card with an emoji badge and colored accent (email-safe markup). */
+function sectionCard(opts: {
+  emoji: string;
+  title: string;
+  accent: string; // badge background
+  accentText: string; // badge/title color
+  subtitle?: string;
+  body: string;
+}): string {
+  return `
+  <tr><td style="padding:0 24px 16px">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e4e4e7;border-radius:14px">
+      <tr><td style="padding:18px 22px 6px">
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+          <td style="width:30px;height:30px;background:${opts.accent};border-radius:8px;text-align:center;font-size:15px;line-height:30px">${opts.emoji}</td>
+          <td style="padding-left:10px;font-size:15px;font-weight:700;color:${opts.accentText}">${opts.title}</td>
+        </tr></table>
+        ${opts.subtitle ? `<p style="margin:10px 0 0;color:#a1a1aa;font-size:12px;line-height:1.5">${opts.subtitle}</p>` : ""}
+      </td></tr>
+      <tr><td style="padding:10px 22px 18px">${opts.body}</td></tr>
+    </table>
+  </td></tr>`;
 }
 
 function briefLine(m: { fromAddress: string | null; subject: string | null; summary: string | null; snippet: string | null }): string {
@@ -103,44 +130,162 @@ export async function buildAndSendBrief(
 
   const respondRows = needsResponse
     .slice(0, 15)
-    .map((m) => {
+    .map((m, i) => {
       const email = accountEmailById.get(m.accountId) ?? "";
       const url = gmailThreadUrl(email, m.threadId);
-      return `<li style="margin-bottom:10px"><strong>${esc(m.fromAddress ?? "")}</strong> — <a href="${url}" style="color:#111;text-decoration:underline">${esc(m.subject ?? "(no subject)")}</a><br/><span style="color:#666">${esc(m.summary ?? m.snippet ?? "")}</span>${m.draftId ? ` · <a href="${url}" style="color:#0a7d32;text-decoration:underline">draft ready</a>` : ""}</li>`;
+      return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="${i > 0 ? "border-top:1px solid #f4f4f5;" : ""}">
+        <tr><td style="padding:12px 0">
+          <p style="margin:0;font-size:14px;color:#18181b"><strong>${esc(m.fromAddress ?? "")}</strong></p>
+          <p style="margin:4px 0 0"><a href="${url}" style="color:#0f766e;font-size:14px;font-weight:600;text-decoration:none">${esc(m.subject ?? "(no subject)")}</a></p>
+          ${m.summary || m.snippet ? `<p style="margin:4px 0 0;color:#71717a;font-size:13px;line-height:1.5">${esc(m.summary ?? m.snippet ?? "")}</p>` : ""}
+          <p style="margin:8px 0 0">
+            ${m.draftId ? `<a href="${url}" style="display:inline-block;background:#ecfdf5;color:#047857;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;text-decoration:none;margin-right:6px">✓ Draft ready</a>` : ""}
+            <a href="${url}" style="display:inline-block;background:#f4f4f5;color:#3f3f46;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;text-decoration:none">Open in Gmail →</a>
+          </p>
+        </td></tr>
+      </table>`;
     })
     .join("");
 
-  const countRows = Object.entries(CATEGORY_TITLES)
+  const countChips = Object.entries(CATEGORY_TITLES)
     .map(([cat, title]) => {
       const n = counts.get(cat) ?? 0;
       return n > 0
-        ? `<tr><td style="padding:4px 12px 4px 0;color:#666">${title}</td><td style="padding:4px 0;font-weight:600">${n}</td></tr>`
+        ? `<span style="display:inline-block;background:#f4f4f5;border-radius:999px;padding:6px 14px;font-size:12px;color:#52525b;margin:0 6px 6px 0;white-space:nowrap">${title}&nbsp;&nbsp;<strong style="color:#18181b;font-size:13px">${n}</strong></span>`
         : "";
     })
     .join("");
 
   const credits = await getCreditBalance(userId);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const dateLabel = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
   const html = `
-  <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111">
-    <h2 style="margin:0 0 4px">Your morning brief</h2>
-    <p style="color:#666;margin:0 0 8px">${new Date().toDateString()}</p>
-    <p style="color:#0f766e;font-size:13px;margin:0 0 20px">${credits.remaining.toLocaleString("en-US")} AI credits left (${credits.planRemaining.toLocaleString("en-US")} plan + ${credits.bonusCredits.toLocaleString("en-US")} top-up · ${credits.planName})</p>
-    ${digest.overview ? `<div style="background:#f5f7fa;border-radius:8px;padding:16px;margin-bottom:24px;white-space:pre-line">${esc(digest.overview)}</div>` : ""}
-    ${digest.deadlines.length ? `<h3 style="margin:0 0 8px">⏰ Deadlines &amp; action items</h3><ul style="padding-left:18px;margin:0 0 24px">${bulletList(digest.deadlines)}</ul>` : ""}
-    ${respondRows ? `<h3 style="margin:0 0 8px">Needs your response (${needsResponse.length})</h3><ul style="padding-left:18px;margin:0 0 24px">${respondRows}</ul>` : ""}
-    ${digest.newsletterHighlights.length ? `<h3 style="margin:0 0 8px">📰 From your newsletters</h3><p style="color:#999;font-size:12px;margin:0 0 8px">Key takeaways so you can skip the reading — the originals are under their Wingman labels in Gmail.</p><ul style="padding-left:18px;margin:0 0 24px">${bulletList(digest.newsletterHighlights)}</ul>` : ""}
-    ${digest.logistics.length ? `<h3 style="margin:0 0 8px">📦 Bills, orders &amp; deliveries</h3><ul style="padding-left:18px;margin:0 0 24px">${bulletList(digest.logistics)}</ul>` : ""}
-    ${countRows ? `<h3 style="margin:0 0 8px">Last 24 hours</h3><table style="border-collapse:collapse;margin-bottom:24px">${countRows}</table>` : ""}
-    <p style="color:#999;font-size:13px">Sent by <a href="${appUrl}" style="color:#0f766e">Inbox Wingman</a> · <a href="${appUrl}/dashboard/billing" style="color:#999">credits</a> · <a href="${appUrl}/dashboard/settings" style="color:#999">brief settings</a></p>
-  </div>`;
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;font-family:-apple-system,'Segoe UI',Roboto,sans-serif">
+    <tr><td align="center" style="padding:32px 12px">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
+
+        <!-- Header -->
+        <tr><td style="background:#0f766e;border-radius:16px 16px 0 0;padding:26px 28px">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td>
+              <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+                <td><img src="${appUrl}/logo-96.png" width="34" height="34" alt="" style="display:block;border-radius:8px" /></td>
+                <td style="padding-left:10px;color:#ffffff;font-size:15px;font-weight:700">Inbox Wingman</td>
+              </tr></table>
+              <p style="margin:18px 0 2px;color:#99f6e4;font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase">${dateLabel}</p>
+              <p style="margin:0;color:#ffffff;font-size:24px;font-weight:800">Your morning brief</p>
+            </td>
+          </tr></table>
+        </td></tr>
+
+        <!-- Credits strip -->
+        <tr><td style="background:#134e4a;padding:10px 28px">
+          <p style="margin:0;color:#99f6e4;font-size:12px">⚡ ${credits.remaining.toLocaleString("en-US")} AI credits left · ${credits.planName}</p>
+        </td></tr>
+
+        <tr><td style="height:20px;background:#f4f5f7"></td></tr>
+
+        ${
+          digest.overview
+            ? sectionCard({
+                emoji: "☕",
+                title: "The gist",
+                accent: "#f0fdfa",
+                accentText: "#0f766e",
+                body: `<p style="margin:0;color:#3f3f46;font-size:14px;line-height:1.7;white-space:pre-line">${esc(digest.overview)}</p>`,
+              })
+            : ""
+        }
+        ${
+          digest.deadlines.length
+            ? sectionCard({
+                emoji: "⏰",
+                title: "Deadlines & action items",
+                accent: "#fffbeb",
+                accentText: "#b45309",
+                body: `<ul style="padding-left:18px;margin:0">${bulletList(digest.deadlines)}</ul>`,
+              })
+            : ""
+        }
+        ${
+          respondRows
+            ? sectionCard({
+                emoji: "✉️",
+                title: `Needs your response (${needsResponse.length})`,
+                accent: "#fff1f2",
+                accentText: "#be123c",
+                body: respondRows,
+              })
+            : ""
+        }
+        ${
+          digest.newsletterHighlights.length
+            ? sectionCard({
+                emoji: "📰",
+                title: "From your newsletters",
+                accent: "#eff6ff",
+                accentText: "#1d4ed8",
+                subtitle:
+                  "Key takeaways so you can skip the reading — the originals are under their Wingman labels in Gmail.",
+                body: `<ul style="padding-left:18px;margin:0">${bulletList(digest.newsletterHighlights)}</ul>`,
+              })
+            : ""
+        }
+        ${
+          digest.logistics.length
+            ? sectionCard({
+                emoji: "📦",
+                title: "Bills, orders & deliveries",
+                accent: "#f5f3ff",
+                accentText: "#6d28d9",
+                body: `<ul style="padding-left:18px;margin:0">${bulletList(digest.logistics)}</ul>`,
+              })
+            : ""
+        }
+        ${
+          countChips
+            ? sectionCard({
+                emoji: "📊",
+                title: "Last 24 hours",
+                accent: "#f0fdfa",
+                accentText: "#0f766e",
+                body: countChips,
+              })
+            : ""
+        }
+
+        <!-- Footer -->
+        <tr><td align="center" style="padding:8px 24px 4px">
+          <a href="${appUrl}/dashboard" style="display:inline-block;background:#0f766e;color:#ffffff;font-size:14px;font-weight:700;padding:11px 28px;border-radius:999px;text-decoration:none">Open your dashboard</a>
+        </td></tr>
+        <tr><td align="center" style="padding:16px 24px 8px">
+          <p style="margin:0;color:#a1a1aa;font-size:12px">
+            Sent by <a href="${appUrl}" style="color:#0f766e;text-decoration:none;font-weight:600">Inbox Wingman</a>
+            &nbsp;·&nbsp; <a href="${appUrl}/dashboard/billing" style="color:#a1a1aa">credits</a>
+            &nbsp;·&nbsp; <a href="${appUrl}/dashboard/briefs" style="color:#a1a1aa">brief settings</a>
+          </p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>`;
 
   const subjectParts = [`${needsResponse.length} to respond`];
   if (digest.deadlines.length > 0) subjectParts.push(`${digest.deadlines.length} deadlines`);
 
   const subject = `Your inbox brief — ${subjectParts.join(", ")}`;
-  await sendEmail({ to: user.email, subject, html });
-  // Keep a copy so the user can re-read briefs in the dashboard.
+  // Save first — the dashboard copy must survive even if email delivery fails
+  // (e.g. Resend key missing or the provider is down).
   await db.insert(briefs).values({ userId, subject, html });
+  try {
+    await sendEmail({ to: user.email, subject, html });
+  } catch (e) {
+    console.error("brief saved but email delivery failed", e);
+  }
   return true;
 }

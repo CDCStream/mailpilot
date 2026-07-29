@@ -10,6 +10,7 @@ import {
 } from "@/lib/db";
 import { CREDIT_COSTS } from "@/lib/plans";
 import { sendBriefNow, updateBriefHour } from "../actions";
+import { GenerateBriefButton } from "./generate-button";
 
 /** 6am–11pm, like a sensible send-time range. */
 const HOUR_OPTIONS = Array.from({ length: 18 }, (_, i) => i + 6);
@@ -76,15 +77,7 @@ export default async function BriefsPage() {
           </p>
         </div>
         <form action={sendBriefNow}>
-          <button
-            type="submit"
-            className="inline-flex items-center gap-2 rounded-full bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Generate brief
-          </button>
+          <GenerateBriefButton />
         </form>
       </div>
 
