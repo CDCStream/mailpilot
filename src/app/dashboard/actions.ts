@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { requireUserId, signOut } from "@/auth";
 import {
@@ -410,4 +411,5 @@ export async function rebuildVoiceProfile() {
   const profile = await buildVoiceProfile(samples);
   await db.update(users).set({ voiceProfile: profile }).where(eq(users.id, userId));
   revalidatePath("/dashboard/training");
+  redirect(`/dashboard/training?retrained=${samples.length}`);
 }

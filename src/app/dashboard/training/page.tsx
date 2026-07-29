@@ -3,11 +3,18 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db, users, DEFAULT_PREFERENCES, TONE_PRESET_INSTRUCTIONS } from "@/lib/db";
 import { rebuildVoiceProfile, toggleAutoRetrainVoice } from "../actions";
+import { PendingButton } from "../pending-button";
 import { VoiceTrainer } from "./voice-trainer";
 
-export default async function TrainingPage() {
+export default async function TrainingPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth();
   const userId = session!.user.id;
+  const sp = await searchParams;
+  const retrained = typeof sp.retrained === "string" ? Number(sp.retrained) : null;
 
   const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
   const prefs = user?.preferences ?? DEFAULT_PREFERENCES;
@@ -19,6 +26,12 @@ export default async function TrainingPage() {
       <p className="mt-1 text-sm text-zinc-500">
         Teach Wingman how you write, so every draft sounds like you — not like a bot.
       </p>
+
+      {retrained !== null && (
+        <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Done — your voice profile was rebuilt from {retrained} recent sent emails.
+        </p>
+      )}
 
       <div className="mt-8 grid items-start gap-6 xl:grid-cols-2">
       <div className="space-y-6">
@@ -103,12 +116,12 @@ export default async function TrainingPage() {
         </p>
         <div className="mt-4 flex flex-wrap items-start gap-3">
           <form action={rebuildVoiceProfile}>
-            <button
-              type="submit"
-              className="rounded-full border border-zinc-300 px-5 py-2 text-sm font-medium hover:bg-zinc-50"
+            <PendingButton
+              pendingText="Re-learning from your sent mail… (~30s)"
+              className="rounded-full border border-zinc-300 px-5 py-2 text-sm font-medium hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Re-learn from recent sent mail
-            </button>
+            </PendingButton>
           </form>
         </div>
         <div className="mt-3">

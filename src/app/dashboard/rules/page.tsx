@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { db, rules } from "@/lib/db";
 import { RULE_TEMPLATES } from "@/lib/rule-templates";
 import { addRule, addRuleTemplate, deleteRule, toggleRule } from "../actions";
-import { PendingButton } from "./pending-button";
+import { PendingButton } from "../pending-button";
 
 export default async function RulesPage() {
   const session = await auth();
