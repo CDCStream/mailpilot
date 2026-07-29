@@ -21,6 +21,7 @@ const CUSTOM_ARCHIVE_OPTIONS: { id: Category; label: string }[] = [
 import { maxAccountsFor } from "@/lib/plans";
 import { resolveCreditLimit } from "@/lib/usage";
 import { disconnectAccount, updatePreferences } from "../actions";
+import { PendingButton } from "../pending-button";
 import { DeleteAccountSection } from "./delete-account";
 
 export default async function SettingsPage({
@@ -43,11 +44,17 @@ export default async function SettingsPage({
   const linked = typeof sp.linked === "string" ? sp.linked : null;
   const setupDeferred = sp.setup === "deferred";
   const error = typeof sp.error === "string" ? sp.error : null;
+  const saved = sp.saved === "1";
 
   return (
     <div className="w-full px-6 py-10 lg:px-10">
       <h1 className="text-2xl font-bold">Settings</h1>
 
+      {saved && (
+        <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          ✓ Changes saved successfully.
+        </p>
+      )}
       {linked && (
         <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           Connected {linked}.{" "}
@@ -341,13 +348,16 @@ export default async function SettingsPage({
           </div>
         </section>
 
-        <div className="xl:col-span-2">
-          <button
-            type="submit"
-            className="rounded-full bg-teal-600 px-8 py-3 text-sm font-semibold text-white hover:bg-teal-700"
+        <div className="flex items-center gap-4 xl:col-span-2">
+          <PendingButton
+            pendingText="Saving…"
+            className="rounded-full bg-teal-600 px-8 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
           >
             Save settings
-          </button>
+          </PendingButton>
+          {saved && (
+            <span className="text-sm font-medium text-emerald-700">✓ Changes saved successfully</span>
+          )}
         </div>
       </form>
 

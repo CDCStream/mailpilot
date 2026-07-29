@@ -111,6 +111,7 @@ export async function updatePreferences(formData: FormData) {
 
   await db.update(users).set({ preferences: next }).where(eq(users.id, userId));
   revalidatePath("/dashboard/settings");
+  redirect("/dashboard/settings?saved=1");
 }
 
 export async function addRule(formData: FormData) {
