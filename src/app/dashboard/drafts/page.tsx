@@ -6,6 +6,7 @@ import { CREDIT_COSTS } from "@/lib/plans";
 import { getActiveAccountId } from "../active-account";
 import { writeDraftForMessage } from "../actions";
 import { displayFrom } from "../categories";
+import { PendingButton } from "../pending-button";
 
 export default async function DraftsPage() {
   const session = await auth();
@@ -92,12 +93,12 @@ export default async function DraftsPage() {
                 </span>
                 <form action={writeDraftForMessage} className="shrink-0">
                   <input type="hidden" name="messageId" value={m.id} />
-                  <button
-                    type="submit"
-                    className="rounded-full bg-teal-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
+                  <PendingButton
+                    pendingText="Writing…"
+                    className="rounded-full bg-teal-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     Write draft
-                  </button>
+                  </PendingButton>
                 </form>
               </li>
             ))}
