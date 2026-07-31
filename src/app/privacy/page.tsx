@@ -21,6 +21,17 @@ export default function PrivacyPage() {
           </p>
         </section>
         <section>
+          <h2 className="text-lg font-semibold text-zinc-900">Google user data we access</h2>
+          <p className="mt-2">
+            With your consent, we access: your Google account email address and basic profile
+            (name, avatar) to create your account; and your Gmail messages via the Gmail API —
+            we read message headers and content to categorize mail and generate summaries and
+            reply drafts, apply/remove labels and archive messages according to your
+            preferences, and create reply drafts in your Drafts folder. Message content is
+            processed transiently and is not stored on our servers (see below).
+          </p>
+        </section>
+        <section>
           <h2 className="text-lg font-semibold text-zinc-900">Data we store</h2>
           <p className="mt-2">
             We store email <strong>metadata only</strong>: sender, subject, a short snippet, the
@@ -54,6 +65,12 @@ export default function PrivacyPage() {
             their models; OpenAI may retain API data for up to 30 days solely for abuse
             monitoring, after which it is deleted. We never store the AI provider&apos;s copy of
             your content ourselves.
+          </p>
+          <p className="mt-2">
+            If you opt in to voice matching, we derive a short writing-style profile from
+            emails you select or recently sent. This profile personalizes drafts{" "}
+            <strong>for your account only</strong> — it is never used to train, develop, or
+            improve any generalized AI/ML model, and it is deleted with your account.
           </p>
         </section>
         <section>
