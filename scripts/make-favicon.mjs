@@ -4,13 +4,27 @@
 import { writeFileSync } from "fs";
 import sharp from "sharp";
 
+// The source logo is a purple rounded square on an opaque white canvas.
+// Mask everything outside the rounded rect (radius ≈ 17px at 96px) so the
+// favicon corners are transparent instead of white.
+const SIZE = 96;
+const RADIUS = 18;
+const mask = Buffer.from(
+  `<svg width="${SIZE}" height="${SIZE}"><rect width="${SIZE}" height="${SIZE}" rx="${RADIUS}" fill="#fff"/></svg>`,
+);
+const transparentLogo = await sharp("public/logo-96.png")
+  .ensureAlpha()
+  .composite([{ input: mask, blend: "dest-in" }])
+  .png({ palette: false })
+  .toBuffer();
+
 const sizes = [16, 32, 48];
 const pngs = [];
 for (const s of sizes) {
   // ensureAlpha + palette:false force true RGBA PNGs — Turbopack's ICO
   // decoder rejects palette/RGB entries.
   pngs.push(
-    await sharp("public/logo-96.png")
+    await sharp(transparentLogo)
       .resize(s, s)
       .ensureAlpha()
       .png({ palette: false })
