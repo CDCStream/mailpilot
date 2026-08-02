@@ -1,14 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { SenderAvatar } from "@/app/dashboard/sender-avatar";
 
 type Row = {
   from: string;
   subject: string;
   label: string;
   labelClass: string;
-  avatar: string;
+  /** Brand favicon domain; null → colored initial */
+  domain: string | null;
+  initial: string;
+  colorClass: string;
   /** Secondary cue: no draft / draft ready / deadline */
   note?: string;
   noteClass?: string;
@@ -22,7 +25,9 @@ const ROWS: Row[] = [
     subject: "Failed production deployment",
     label: "Notification",
     labelClass: "bg-sky-100 text-sky-700",
-    avatar: "/avatars/product.png",
+    domain: "vercel.com",
+    initial: "V",
+    colorClass: "bg-zinc-900",
     note: "no draft",
     noteClass: "text-zinc-400",
   },
@@ -31,16 +36,20 @@ const ROWS: Row[] = [
     subject: "Invoice #4021 failed — retry by Aug 10",
     label: "Money",
     labelClass: "bg-emerald-100 text-emerald-800",
-    avatar: "/avatars/legal.png",
+    domain: "stripe.com",
+    initial: "S",
+    colorClass: "bg-violet-600",
     note: "⏰ deadline",
     noteClass: "text-amber-700",
   },
   {
-    from: "Yaren",
+    from: "Elena Park",
     subject: "117 MB build file — how should I send?",
     label: "To Respond",
     labelClass: "bg-rose-100 text-rose-700",
-    avatar: "/avatars/sarah.png",
+    domain: null,
+    initial: "E",
+    colorClass: "bg-rose-500",
     note: "✓ draft ready",
     noteClass: "text-emerald-600",
     expand: true,
@@ -50,7 +59,9 @@ const ROWS: Row[] = [
     subject: "Bump next 14.2 → 15.0",
     label: "Notification",
     labelClass: "bg-sky-100 text-sky-700",
-    avatar: "/avatars/john.png",
+    domain: "github.com",
+    initial: "D",
+    colorClass: "bg-zinc-700",
     status: "Archived",
     note: "no draft",
     noteClass: "text-zinc-400",
@@ -60,7 +71,9 @@ const ROWS: Row[] = [
     subject: "Scope change for phase 2",
     label: "To Respond",
     labelClass: "bg-rose-100 text-rose-700",
-    avatar: "/avatars/legal.png",
+    domain: null,
+    initial: "A",
+    colorClass: "bg-teal-600",
     note: "✓ draft ready",
     noteClass: "text-emerald-600",
   },
@@ -69,7 +82,9 @@ const ROWS: Row[] = [
     subject: "Reserved instance expires Aug 14",
     label: "FYI",
     labelClass: "bg-indigo-100 text-indigo-700",
-    avatar: "/avatars/product.png",
+    domain: "aws.amazon.com",
+    initial: "A",
+    colorClass: "bg-orange-500",
     note: "⏰ deadline",
     noteClass: "text-amber-700",
   },
@@ -323,12 +338,11 @@ export function InboxDemo() {
             return (
               <li key={row.subject} className={isActive ? "bg-zinc-50/70" : undefined}>
                 <div className="flex items-center gap-3 px-4 py-3 sm:px-5 sm:py-3.5">
-                  <Image
-                    src={row.avatar}
-                    alt=""
-                    width={36}
-                    height={36}
-                    className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-zinc-200/80"
+                  <SenderAvatar
+                    domain={row.domain}
+                    initial={row.initial}
+                    colorClass={row.colorClass}
+                    size={36}
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
