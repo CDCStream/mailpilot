@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { SenderAvatar } from "@/app/dashboard/sender-avatar";
 
@@ -8,10 +9,12 @@ type Row = {
   subject: string;
   label: string;
   labelClass: string;
-  /** Brand favicon domain; null → colored initial */
+  /** Brand favicon domain; null → photo or colored initial */
   domain: string | null;
   initial: string;
   colorClass: string;
+  /** Person photo (AI avatar) — used when domain is null */
+  avatar?: string;
   /** Secondary cue: no draft / draft ready / deadline */
   note?: string;
   noteClass?: string;
@@ -50,6 +53,7 @@ const ROWS: Row[] = [
     domain: null,
     initial: "E",
     colorClass: "bg-rose-500",
+    avatar: "/avatars/sarah.png",
     note: "✓ draft ready",
     noteClass: "text-emerald-600",
     expand: true,
@@ -338,12 +342,22 @@ export function InboxDemo() {
             return (
               <li key={row.subject} className={isActive ? "bg-zinc-50/70" : undefined}>
                 <div className="flex items-center gap-3 px-4 py-3 sm:px-5 sm:py-3.5">
-                  <SenderAvatar
-                    domain={row.domain}
-                    initial={row.initial}
-                    colorClass={row.colorClass}
-                    size={36}
-                  />
+                  {row.avatar ? (
+                    <Image
+                      src={row.avatar}
+                      alt=""
+                      width={36}
+                      height={36}
+                      className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-zinc-200/80"
+                    />
+                  ) : (
+                    <SenderAvatar
+                      domain={row.domain}
+                      initial={row.initial}
+                      colorClass={row.colorClass}
+                      size={36}
+                    />
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <span className="truncate font-medium text-zinc-900">{row.from}</span>
