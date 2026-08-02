@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://inboxwingman.com"),
   title: "Inbox Wingman — Your Gmail, triaged and drafted by AI",
   description:
-    "AI email assistant for Gmail — triage CI noise and bots, draft replies in your voice, daily brief. Works inside Gmail, nothing to install, never sends without you. No credit card for the 7-day trial.",
+    "AI email assistant for Gmail — for freelance developers and small studios. Surface clients and deadlines, quiet bots, draft in your voice. Works inside Gmail, nothing to install, never sends without you. No credit card for the 7-day trial.",
 };
 
 export default function RootLayout({

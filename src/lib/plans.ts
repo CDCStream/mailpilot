@@ -102,16 +102,15 @@ export const PLANS: Record<PlanId, Plan> = {
   pilot: buildPlan({
     id: "pilot",
     name: "Pilot",
-    tagline: "For technical founders",
+    tagline: "For freelance developers & small studios",
     credits: 400,
     maxAccounts: 5,
     popular: true,
     featureExtras: [
-      "Dev notification triage (CI, Sentry, bots)",
-      "Voice-matched reply drafts",
-      "Daily brief with incidents & deadlines",
-      "Plain-English rules",
-      "Up to 5 Gmail accounts",
+      "Studio + personal + client inboxes (5)",
+      "Bots quiet — clients get drafts",
+      "Deadlines from mail you'd never open",
+      "Daily brief · plain-English rules",
     ],
   }),
   wingman: buildPlan({

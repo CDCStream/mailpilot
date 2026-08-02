@@ -9,61 +9,90 @@ type Row = {
   label: string;
   labelClass: string;
   avatar: string;
+  /** Secondary cue: no draft / draft ready / deadline */
+  note?: string;
+  noteClass?: string;
   status?: string;
   expand?: boolean;
 };
 
 const ROWS: Row[] = [
   {
-    from: "Maya Lindqvist",
-    subject: "Re: renewal terms for next year",
+    from: "Vercel",
+    subject: "Failed production deployment",
+    label: "Notification",
+    labelClass: "bg-sky-100 text-sky-700",
+    avatar: "/avatars/product.png",
+    note: "no draft",
+    noteClass: "text-zinc-400",
+  },
+  {
+    from: "Stripe",
+    subject: "Invoice #4021 failed — retry by Aug 10",
+    label: "Money",
+    labelClass: "bg-emerald-100 text-emerald-800",
+    avatar: "/avatars/legal.png",
+    note: "⏰ deadline",
+    noteClass: "text-amber-700",
+  },
+  {
+    from: "Yaren",
+    subject: "117 MB build file — how should I send?",
     label: "To Respond",
     labelClass: "bg-rose-100 text-rose-700",
     avatar: "/avatars/sarah.png",
+    note: "✓ draft ready",
+    noteClass: "text-emerald-600",
     expand: true,
   },
   {
-    from: "Tomás Ferreira",
-    subject: "Offsite moved to Oct 12 — agenda inside",
-    label: "FYI",
+    from: "Dependabot",
+    subject: "Bump next 14.2 → 15.0",
+    label: "Notification",
     labelClass: "bg-sky-100 text-sky-700",
     avatar: "/avatars/john.png",
+    status: "Archived",
+    note: "no draft",
+    noteClass: "text-zinc-400",
   },
   {
-    from: "Nadia Rahman",
-    subject: "NDA redlines before Friday?",
+    from: "Acme Corp",
+    subject: "Scope change for phase 2",
     label: "To Respond",
     labelClass: "bg-rose-100 text-rose-700",
     avatar: "/avatars/legal.png",
+    note: "✓ draft ready",
+    noteClass: "text-emerald-600",
   },
   {
-    from: "The Signal Dispatch",
-    subject: "Issue #87: onboarding teardowns",
-    label: "Newsletter",
-    labelClass: "bg-amber-100 text-amber-800",
+    from: "AWS",
+    subject: "Reserved instance expires Aug 14",
+    label: "FYI",
+    labelClass: "bg-indigo-100 text-indigo-700",
     avatar: "/avatars/product.png",
-    status: "Archived",
+    note: "⏰ deadline",
+    noteClass: "text-amber-700",
   },
 ];
 
 const DRAFT =
-  "Thanks for sending the renewal terms, Maya — the updated seat count works for us. I'll countersign today; could we grab 15 minutes Thursday to walk through the rollout plan?";
+  "OneDrive or a signed download link works — email will bounce at that size. Drop it in the shared folder and ping me when it's up; I'll pull it this afternoon.";
 
 const PAST_REPLIES = [
-  { subject: "Re: pricing proposal", sent: "Mar 12", picked: true },
+  { subject: "Re: phase 1 handoff", sent: "Mar 12", picked: true },
   { subject: "Fwd: out-of-office reply", sent: "Mar 11", picked: false },
-  { subject: "Re: kickoff notes", sent: "Mar 10", picked: true },
-  { subject: "Re: invoice question", sent: "Mar 6", picked: true },
+  { subject: "Re: invoice #3890", sent: "Mar 10", picked: true },
+  { subject: "Re: scope change question", sent: "Mar 6", picked: true },
 ];
 
 const BRIEF_LINES = [
-  { icon: "✉️", text: "2 emails need a reply — drafts are waiting" },
-  { icon: "⏰", text: "Invoice #4210 due Friday" },
-  { icon: "📰", text: "8 newsletters, boiled down to 4 takeaways" },
-  { icon: "📦", text: "Amazon order arriving today" },
+  { icon: "✉️", text: "2 client emails need a reply — drafts waiting" },
+  { icon: "⏰", text: "Stripe invoice #4021 — retry by Aug 10" },
+  { icon: "⏰", text: "Cancel captapi auto-renew by Aug 10" },
+  { icon: "⏰", text: "Inngest lab due Aug 12" },
 ];
 
-const CHAT_QUESTION = "How many emails did acme.com send me in the last 5 days?";
+const CHAT_QUESTION = "Which clients am I still waiting on?";
 
 type ChatLine =
   | { kind: "intro"; text: string }
@@ -71,12 +100,12 @@ type ChatLine =
   | { kind: "bullet"; sender: string; text: string };
 
 const CHAT_ANSWER: ChatLine[] = [
-  { kind: "intro", text: "3 emails from Acme.com in the last 5 days — 2 notifications, 1 needs your reply:" },
-  { kind: "header", text: "Notifications (2)" },
-  { kind: "bullet", sender: "Acme.com", text: "Sign-in to your account · today" },
-  { kind: "bullet", sender: "Acme.com", text: "Your company has been registered 🎉 · Jul 24" },
-  { kind: "header", text: "To Respond (1)" },
-  { kind: "bullet", sender: "Acme.com", text: "Signature pending — SS-4 form · Jul 25" },
+  { kind: "intro", text: "2 threads waiting on a client reply:" },
+  { kind: "header", text: "Waiting on them" },
+  { kind: "bullet", sender: "Acme Corp", text: "Scope change for phase 2 · 4 days ago" },
+  { kind: "bullet", sender: "Northline", text: "Proposal sent · 11 days ago" },
+  { kind: "header", text: "Money" },
+  { kind: "bullet", sender: "Stripe", text: "Invoice #4021 failed — retry by Aug 10" },
 ];
 
 type Phase =
@@ -302,11 +331,18 @@ export function InboxDemo() {
                     className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-zinc-200/80"
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <span className="truncate font-medium text-zinc-900">{row.from}</span>
                       {row.status && labeled && (
-                        <span className="hidden text-xs font-medium text-emerald-600 sm:inline iw-fade-up">
+                        <span className="text-xs font-medium text-zinc-400 iw-fade-up">
                           {row.status}
+                        </span>
+                      )}
+                      {row.note && labeled && (
+                        <span
+                          className={`text-xs font-medium iw-fade-up ${row.noteClass ?? "text-zinc-500"}`}
+                        >
+                          {row.note}
                         </span>
                       )}
                     </div>

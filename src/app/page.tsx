@@ -52,40 +52,40 @@ const FAQ = [
 
 const FEATURES = [
   {
-    title: "Noise first, drafts second",
-    body: "CI alerts, Sentry, Dependabot, newsletters — labeled and sorted. Automated senders are recognized and skipped for drafts, so credits aren't spent on bots.",
+    title: "Your studio inbox, your personal inbox, that one client's shared inbox",
+    body: "One Wingman across up to 5 Gmail accounts on Pilot — studio, personal, and the shared client inbox you actually live in.",
+  },
+  {
+    title: "Bots quiet. Clients first.",
+    body: "Vercel, Dependabot, no-reply — recognized, skipped, no draft. Real humans get a reply in your voice. Credits aren't spent on noise.",
+  },
+  {
+    title: "Deadlines buried in mail you'd never open",
+    body: "Renewals, failed invoices, reserved-instance expiry — pulled into your brief so money and client dates don't hide in notifications.",
   },
   {
     title: "Nothing moves without you",
-    body: "\"Just label\" mode keeps every message in your inbox. Respect my categories means Wingman won't override filters or labels you already set.",
+    body: "\"Just label\" mode keeps every message in your inbox. Respect my categories means Wingman won't override filters you already set.",
   },
   {
     title: "Drafts in your voice",
-    body: "A transparent voice profile shows how Wingman thinks you write — then drafts only for real humans. You review and send. It never sends for you.",
+    body: "A transparent voice profile shows how Wingman thinks you write — then drafts only for real humans. You review and send. Never for you.",
   },
   {
     title: "Unused drafts clean themselves up",
-    body: "Send-ready drafts you don't use are removed from Gmail after 14 days, so your Drafts folder stays yours — not a pile of AI leftovers.",
-  },
-  {
-    title: "Daily brief",
-    body: "One morning email: replies you owe, deadlines from your mail, newsletter takeaways, bills & deliveries — each linked straight to Gmail.",
+    body: "Drafts you don't use are removed from Gmail after 14 days — your Drafts folder stays yours, not a pile of AI leftovers.",
   },
   {
     title: "Ask your inbox",
-    body: "Chat with triaged mail — \"what do I owe replies to?\", \"any invoices this week?\" — answered from your inbox, never invented.",
+    body: "\"Which clients am I waiting on?\" \"Any failed invoices?\" — answered from triaged mail, never invented.",
   },
   {
     title: "Rules in plain English",
-    body: "Skip drafts for a domain, archive newsletters, star a VIP — written as sentences, not filter syntax.",
-  },
-  {
-    title: "Up to 5 Gmail accounts",
-    body: "Personal + work + side project on Pilot. One Wingman for every inbox you actually live in.",
+    body: "Skip drafts for a domain, archive Dependabot, star a VIP client — written as sentences, not filter syntax.",
   },
   {
     title: "Pay for drafts, not triage",
-    body: "Unlimited triage is included. Credits only meter voice drafts, briefs, and Ask AI. No card for the 7-day trial.",
+    body: "Unlimited triage included. Credits only meter voice drafts, briefs, and Ask AI. No card for the 7-day trial.",
   },
 ];
 
@@ -103,6 +103,9 @@ export default async function LandingPage() {
             <span className="text-xl font-semibold tracking-tight">Inbox Wingman</span>
           </span>
           <nav className="flex items-center gap-6 text-sm">
+            <a href="#deadlines" className="hidden text-zinc-600 hover:text-zinc-900 sm:inline">
+              Deadlines
+            </a>
             <a href="#features" className="text-zinc-600 hover:text-zinc-900">
               Features
             </a>
@@ -148,14 +151,18 @@ export default async function LandingPage() {
             Your Gmail, triaged and drafted by AI
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-xl font-semibold tracking-tight text-teal-800 sm:text-2xl">
-            325 emails in two weeks. 8 actually needed you.
+            325 emails in two weeks. 8 needed me. 3 had deadlines I&apos;d have missed.
           </p>
           <p className="mx-auto mt-5 max-w-xl text-base text-zinc-600 sm:text-lg">
-            Wingman sorts CI noise, newsletters, and bots — then drafts only the humans, in
-            your voice. Vercel, GitHub, Sentry, Dependabot: recognized, skipped, no draft.
+            Wingman sorts CI noise, vendor mail, and newsletters — surfaces the clients who
+            need you, and the dates buried in everything else. Drafts in your voice. Never
+            sends.
           </p>
           <p className="mt-4 text-sm font-medium text-zinc-700">
             Works inside Gmail · nothing to install · never sends without you
+          </p>
+          <p className="mt-2 text-sm text-zinc-500">
+            For freelance developers and small studios who run on Gmail
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link
@@ -177,55 +184,53 @@ export default async function LandingPage() {
           </p>
         </div>
 
-        {/* Above-the-fold product pixel — real inbox mix, not a marketing claim */}
-        <div className="mx-auto mt-12 max-w-3xl px-6">
-          <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 shadow-[0_20px_50px_-24px_rgba(15,23,42,0.35)] ring-1 ring-zinc-900/5">
+        <div id="demo" className="mx-auto mt-12 max-w-4xl px-6">
+          <InboxDemo />
+        </div>
+      </section>
+
+      <section id="deadlines" className="border-t border-zinc-100 bg-zinc-50/60 py-24">
+        <div className="mx-auto max-w-3xl px-6">
+          <h2 className="text-center text-3xl font-bold tracking-tight text-zinc-900">
+            The dates you&apos;d have missed
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-center text-zinc-600">
+            Renewals, invoices, and client dates live inside mail you&apos;d never open.
+            Wingman reads them anyway.
+          </p>
+          <div className="mx-auto mt-10 max-w-lg overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_20px_50px_-24px_rgba(15,23,42,0.3)]">
             <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-3">
-              <p className="text-sm font-semibold text-zinc-900">Triage mix · last 14 days</p>
-              <p className="text-xs text-zinc-400">My inbox · 325 emails</p>
+              <p className="text-sm font-semibold text-zinc-900">Deadlines &amp; action items</p>
+              <p className="text-xs text-zinc-400">From this morning&apos;s brief</p>
             </div>
-            <div className="space-y-3.5 px-5 py-5">
+            <ul className="divide-y divide-zinc-100">
               {(
                 [
-                  { label: "Notifications", n: 149, pct: 46, color: "bg-sky-500" },
-                  { label: "Newsletters", n: 111, pct: 34, color: "bg-amber-500" },
-                  { label: "To Respond", n: 8, pct: 2.5, color: "bg-rose-500" },
-                  { label: "Everything else", n: 57, pct: 17.5, color: "bg-zinc-300" },
+                  { when: "Aug 3", text: "PayPro Global — subscription payment" },
+                  { when: "Aug 10", text: "Cancel captapi auto-renew" },
+                  { when: "Aug 12", text: "Inngest lab due" },
                 ] as const
-              ).map((row) => (
-                <div key={row.label}>
-                  <div className="mb-1 flex items-baseline justify-between text-sm">
-                    <span className="font-medium text-zinc-700">{row.label}</span>
-                    <span className="tabular-nums text-zinc-900">{row.n}</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-zinc-100">
-                    <div
-                      className={`h-full rounded-full ${row.color}`}
-                      style={{ width: `${Math.max(row.pct, 3)}%` }}
-                    />
-                  </div>
-                </div>
+              ).map((d) => (
+                <li key={d.when} className="flex items-start gap-3 px-5 py-4">
+                  <span className="mt-0.5 shrink-0 rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold tabular-nums text-amber-800">
+                    {d.when}
+                  </span>
+                  <p className="text-sm font-medium text-zinc-800">{d.text}</p>
+                </li>
               ))}
-            </div>
-            <p className="border-t border-zinc-100 px-5 py-3 text-center text-xs text-zinc-500">
-              8 needed a reply. The rest was noise Wingman labeled inside Gmail.
-            </p>
+            </ul>
           </div>
-        </div>
-
-        <div id="demo" className="mx-auto mt-14 max-w-4xl px-6">
-          <InboxDemo />
         </div>
       </section>
 
       <section id="features" className="border-t border-zinc-100 py-24">
         <div className="mx-auto max-w-5xl px-6">
           <h2 className="text-center text-3xl font-bold tracking-tight">
-            Built against the complaints others ignore
+            Built for people who bill their time
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-center text-zinc-600">
-            Auto-draft spam, moved mail, and a Drafts folder full of leftovers — the three
-            things technical founders hate most about AI email tools.
+            Missed invoices and silent clients cost more than another AI that drafts LinkedIn
+            invites.
           </p>
           <div className="mt-14 grid gap-x-12 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f) => (
@@ -241,6 +246,9 @@ export default async function LandingPage() {
       <section id="pricing" className="border-t border-zinc-100 bg-zinc-50/80 py-24">
         <div className="mx-auto max-w-4xl px-6 text-center">
           <h2 className="text-3xl font-bold tracking-tight">Pay for drafts, not triage</h2>
+          <p className="mx-auto mt-4 max-w-lg text-lg font-semibold text-teal-800">
+            Pilot costs less than 10 minutes of your billable time.
+          </p>
           <p className="mx-auto mt-3 max-w-lg text-zinc-600">
             Unlimited triage is included. Credits only meter voice drafts ({CREDIT_COSTS.draft}),
             daily briefs ({CREDIT_COSTS.brief}), and Ask AI ({CREDIT_COSTS.ask}). 7-day trial — no

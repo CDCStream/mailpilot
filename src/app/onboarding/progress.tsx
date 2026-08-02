@@ -33,8 +33,8 @@ const PERSONA_OPTIONS: {
 }[] = [
   {
     id: "founder",
-    title: "Technical founder",
-    desc: "CI alerts, GitHub, Sentry, real humans",
+    title: "Freelance / studio",
+    desc: "Clients, invoices, CI noise — solo on Gmail",
     dot: "bg-indigo-500",
     defaults: { mode: "focus", tone: "direct" },
   },

@@ -3,24 +3,23 @@
 > Son güncelleme: 2 Ağustos 2026
 > Durum işaretleri: ✅ bitti · 🔄 devam ediyor · ⬜ bekliyor · 💡 opsiyonel
 
-## 0. Aksiyon planı — ICP: teknik kurucular (2 Ağu)
+## 0. Aksiyon planı — ICP: freelance developers & small studios (2 Ağu, kilit)
 
-> ICP: **teknik kurucular / solo developer-founder**. Kendi inbox'ımız bu profil (325 mail → 149 notification / 111 newsletter / 8 To Respond). Asıl rakip Fyxer değil — kullanıcının kendi Gmail filtreleri. Cora yan yana brief kıyası için ayrı bakılacak.
-> İlke: bu kitleye Show HN tek atış — billing sızıntısı / ölü chat / 30sn donma affedilmez. Önce kalite, sonra ekonomi.
+> ICP: **teknik solo danışmanlar / freelance developers & small studios**. Hikâye: kolaylık değil **sigorta** — “parayı ve müşteriyi kaçırmıyorsun.”
+> Landing ✓ yeniden yazıldı (hero + demo + deadlines bölümü + billable-time fiyat + multi-account headline).
+> **Yapma:** meeting notetaker · Outlook · mobil.
 >
-> **Rakip şikayet özeti (Trustpilot / Reddit / G2 / Cora board):** kategorinin #1 şikayeti = gereksiz auto-draft. Bizim P0 bot filtresi "geriden gelmek" değil — kategorinin çözemediği probleme ilk düzgün cevap. Sonrası hikâye: "vs auto-draft spam" (vs Gmail filters'a ek / yerine).
+> Rakip #1 şikayet = auto-draft spam → P0 bot filtresi kategorinin cevabı. Sonrası: vs auto-draft spam.
 
 ### Verilmiş kararlar
 
 | Konu | Karar |
 |------|--------|
-| ICP | Teknik kurucular. Landing/hero buna göre (Vercel deploy spam + triage mix). |
-| Fiyat | Pilot **tek yıldız** ($14 / ~130 draft). Wingman ($43) bu kitleye şimdilik öne çıkarma — "ben yazarım" eşiğinin üstünde. Kredi arkada. Görünmez ~3000 triage/ay tavanı. |
-| Trial | Kredi kartsız zorunlu. **25 draft** görünmez tavan; satış dili "7 gün — ihtiyaç duyan her maile draft". Sayaç gösterme. |
-| Tone varsayılan | **terse/direct**, Warm değil. Voice profile varsa **profil kazanır**, preset değil. |
-| vs içerik | "vs Fyxer" değil → **"vs Gmail filters"** (P2). |
-| "Bodies never stored" hero | Okuma paneli (anlık Gmail fetch) düzelince. |
-| Bot filtresi | Düzeltme değil → **developer notification taksonomisi** (aşağıda). |
+| ICP | Freelance developers & small studios. H1 Ads uyumlu; kanıt = 325/8 + **3 deadline kaçırırdım**. |
+| Fiyat | Pilot tek yıldız. **"Pilot costs less than 10 minutes of your billable time."** Wingman öne çıkarma. |
+| Multi-account | Dipnot değil — studio + kişisel + müşteri shared inbox. |
+| Trial / tone / bot | Kartsız · terse/direct · profil > preset · developer notification taxonomy. |
+| Yapma | Notetaker · Outlook · mobil. |
 
 ### Developer notification taksonomisi
 
@@ -38,36 +37,30 @@
 
 | Yaz | Yazma |
 |-----|--------|
-| "Otomatik gönderenlere draft yazmaz. Vercel, GitHub, Sentry, Dependabot, no-reply — tanınır, atlanır." | "Gereksiz draft yok" (mutlak; bir sızıntıda yalancı) |
-| Hero = gürültü ayıklama: "325 mail. 8'i seni ilgilendiriyordu." Draft ikincil. | Hero'da draft'ı ana vaat yapmak (dev inbox'ında draft az = doğru, algı zayıf) |
-| Dashboard'da kendi draft outcome kartın (20–30 kullanıcı sonrası landing'e ekran görüntüsü) | "Draft başarısını ölçüp geliştiriyoruz" (süreç, sayı yok, şüpheci kitle sorar "kaç?") |
-| "Hiçbir maili gizlemez — Just label" · "14 günde kullanılmayan draft silinir" · "Kartsız trial" | Rakiplerin şikayet ettiği ama sende olmayan özelliği vaat etmek |
+| H1 = ürün (Ads); alt = 325/8/**3 deadline**; sigorta dili | Mutlak "gereksiz draft yok" · "ölçüyoruz" |
+| "Pilot < 10 dk billable time" | Sadece Fyxer fiyat karşılaştırması |
+| Multi-account kendi başlığı | Multi-account dipnot |
+| Dashboard draft outcome (20–30 kullanıcı sonra) | Landing'de accepted-rate sayısı (henüz yok) |
 
-### P0 — bu hafta
+### P0 — bu hafta (müşteriden bağımsız)
 
-1. ✅ **Hard draft gate** — kategori'nin #1 şikayeti (Cora/Serif/Fyxer auto-draft spam). Taxonomy + List-Unsubscribe + noreply.
-2. ✅ **Triage kredisiz** + brief'ten kredi satırı kaldırıldı.
-3. ✅ **Billing UI sızıntısı** → Early access; checkout gizli.
-4. ⬜ **AI Chat input** — serbest metin yazılamıyor.
-5. ⬜ **Mail açılış donması + boş gövde**.
-6. ⬜ **"Neden draft yazmadım" görünürlüğü** — sessiz atlama yok; örn. "Vercel — otomatik gönderen, draft yazılmadı."
-7. ⬜ **Sağlık göstergesi sidebar'a** — last sync + 6 saatten eskiyse uyarı (Fyxer "sessizce öldü").
-8. ✅ **Voice/tone** · Pricing/metin · Demo verileri · Landing hero gürültü-öncelikli (bu sprint).
+1. ✅ Hard draft gate · triage kredisiz · billing sızıntısı · voice/tone · **landing solo-danışman**
+2. ⬜ AI Chat input · mail donması/boş gövde · "neden draft yazmadım" · sync sağlık göstergesi
 
-### P1 — bu ay
+### P1 — bu ay (sıra değişti — danışman ICP)
 
-- ⬜ **Draft outcome dashboard kartı** (önce "hiç gönderilmedi"; sonra SimHash). Landing'e sayı değil — kendi verin paneli. OAuth sent-mail gerekçesine şimdiden.
-- ⬜ **Kredi kartsız trial** Paddle'da silah olarak — Fyxer Trustpilot fatura hikâyelerine karşı konumlandırma.
-- ⬜ **Aktif thread'i geciktirme** — son 24s karşılıklı yazışma varsa brief'e alma, inbox'ta bırak (Cora time-shift).
-- ⬜ **Brief sadece bir şey değiştiyse** — boş gün = gönderme (ikinci newsletter tuzağı).
-- ⬜ **Wingman draft etiketi** — Gmail'de kullanıcının kendi taslaklarından ayır (Cora "taslaklarım kayboldu").
-- ⬜ **Taksonomi / gövde anlık render / 10 referans / Serif security incelemesi**.
+1. ⬜ **Money kategorisi** (`invoices_payments` / Invoices & Payments) — Stripe, banka, başarısız çekim, yenileme. Şu an Notification/FYI'ye dağılmış en değerli kova.
+2. ⬜ **Deadlines sekmesi (sidebar)** — brief'e hapsolmasın; sürekli güncel, **kredisiz**. Sigorta ürünü = her an orada.
+3. ⬜ **Follow-up tracking** (P2'den çekildi) — "4 maile cevap yok — 3g / 6g / 11g." Basit versiyon yeter; doğrudan gelir.
+4. ⬜ **Accepted-draft-rate** — SimHash; önce "hiç gönderilmedi"; dashboard kartı.
+5. ⬜ Kartsız trial (Paddle) · aktif thread geciktirme · brief boşsa gönderme · Wingman draft etiketi · gövde anlık render · Serif security incelemesi · 10 referans.
 
 ### P2 — bu çeyrek
 
-- ⬜ **"vs auto-draft spam"** hikâyesi (vs Gmail filters'ın yanında veya yerine — rakip şikayet #1).
-- ⬜ **Onboarding: ilk 5 dk = ilk gerçek draft** — başka hiçbir şey (Cora "30+ dk anlama").
-- ⬜ Follow-up · CASA rozetleri (Serif modeli) · bodies-never-stored hero · Wingman tier revisit.
+1. ⬜ **Müşteri bazlı gruplama** — domain'e göre: "Acme — 3 thread, 1 sende, son yanıt 4g." Metadata ile; CRM yerine.
+2. ⬜ **Kişi bazlı ton** — alıcıya göre (müşteri vs iş ortağı); global profil altyapısı üzerine.
+3. ⬜ vs auto-draft spam · onboarding ilk draft · CASA rozetleri · bodies-never-stored hero.
+4. ⛔ Notetaker · Outlook · mobil — yapma.
 
 ### Rakip referansları
 
@@ -82,10 +75,60 @@
 
 ### Bilinçli ertelemeler
 
-- ~~Landing'e "ölçüyoruz"~~ → dashboard outcome kartı; sayı 20–30 kullanıcı sonra.
-- ~~"Gereksiz draft yok" mutlak~~ → davranış cümlesi (otomatik gönderenlere yazmaz).
-- ~~vs Fyxer P1~~ → P2; önce vs auto-draft spam.
-- ~~Warm varsayılan / Wingman push / tüm rakip siteler~~ → terse · Pilot · sadece Serif security.
+- ~~Kolaylık hikâyesi~~ → sigorta (müşteri + para + deadline).
+- ~~Follow-up P2~~ → P1.
+- ~~Landing "teknik kurucu"~~ → freelance / small studio (yapıldı).
+- ⛔ Notetaker / Outlook / mobil.
+- ⛔ **P0 bitmeden Show HN / Reddit launch / newsletter / X ürün duyurusu YOK.**
+
+---
+
+## 0b. Organik lansman kanalları (P0 kapısından sonra)
+
+> Aynı kitleye bedava: Show HN, r/SideProject, dev newsletter'ları, X. **Kritik kural: P0 bitmeden hiçbirini yapma.** Şu an çıkarsan yorumlarda billing sızıntısı, ölü chat, Vercel draft konuşulur.
+
+### Kapı kontrol listesi (hepsi ✅ olmadan kanal yok)
+
+| Madde | Durum |
+|-------|--------|
+| Bot draft filtresi canlıda | ✅ |
+| Dev banner / `BILLING_ENABLED` sızıntısı temiz | ✅ |
+| AI Chat input çalışıyor + 30sn donmalar gitti | ⬜ |
+| Kredi kartsız trial açık (Paddle dahil) | ⬜ / early access'te kart yok |
+| Auth gerektirmeyen demo veya 60sn video | ⬜ |
+| `/security` scope listesiyle güncel | ⬜ |
+| Hero: "Works inside Gmail · nothing to install · never sends without you" | ✅ |
+| Sahte Sarah Chen demo verileri gitmiş | ✅ |
+
+### Sıra
+
+1. **Dev newsletter'ları** (düşük risk, sinyal) → Console.dev, TLDR, Bytes, Pointer, Changelog News — tek oturumda gönder.
+2. **1–2 hafta X** — ürün değil süreç; özellikle **CASA Tier 2 solo kurucu** thread'i (niş boş, Ekim rozeti = kapanış postu).
+3. **Show HN en son** — o güne kadar ilk kullanıcı yorumların + düzeltilmiş ürünün olur.
+
+### Show HN
+
+- Tek atış. Salı–Perşembe sabahı ET; o gün 6–8 saat yorum başında ol.
+- Auth duvarı olmasın: sahte inbox'ta interaktif demo veya 60sn video şart.
+- Scope'ları açılışta ver (savunma değil): gövde saklanmaz, eğitim yok, gönderme yok, token AES-256-GCM, CASA süreçte.
+- Başlık (hype yok): `Show HN: Inbox Wingman – Gmail triage that doesn't draft replies to bots`
+- İlk yorumu sen yaz: neden (kendi Vercel alarmların), ne çalışmıyor, stack. Eksiğini söyleyeni ödüllendirirler.
+- "Bu bir prompt + cron" saldırısına cevap: özel model iddiası değil → şeffaf ses profili + bot taksonomisi + kendi problemini çözen geliştirici.
+- ⬜ Hazır olunca: Show HN metni + ilk yorum birlikte yazılacak (lansmanın kaderi bu iki paragraf).
+
+### Reddit
+
+- Launch atma — bulgu paylaş. Self-promo çoğu sub'da silinir.
+- Format: *"2 haftada 325 mail. 8'i beni ilgilendiriyordu. Dağılımı çıkardım."* + 149/111/8 grafiği. Ürün dipnot; sorulursa link.
+- Yaşar: r/ExperiencedDevs, r/webdev, r/productivity. Düz launch ölür (r/SideProject dahil sert).
+
+### Dev newsletter'ları
+
+- En yüksek verim/emek. Console.dev (ücretsiz form) + TLDR, Bytes, Pointer, Changelog News.
+
+### X (build in public)
+
+- Ürünü değil süreci anlat. Asıl fırsat: solo CASA Tier 2 yolculuğu — içerik neredeyse yok, sen ortasındasın.
 
 ## 1. Lansman blokerleri (bunlar bitmeden gerçek kullanıcı alamayız)
 
@@ -155,7 +198,8 @@
 
 ## 5. Büyüme
 
-- ⬜ **Google Ads kampanyaları** — Önce GA4 + dönüşüm olayları (signup, subscribe) bağlanmalı. Başlangıç: marka + "fyxer alternative" + "ai email assistant" arama kampanyaları.
+- ⬜ **Organik lansman (Show HN / Reddit bulgu / newsletter / X CASA)** — ayrıntı ve kapı listesi: **§0b**. P0 bitmeden yok. Sıra: newsletter → X ısınma → Show HN son.
+- ⬜ **Google Ads kampanyaları** — Önce GA4 + dönüşüm olayları (signup, subscribe) bağlanmalı. Başlangıç: marka + "ai email assistant for gmail" (landing H1 ile uyumlu Quality Score). Landing H1 ile reklam metni aynı dili konuşsun.
 - 💡 **Ücretsiz araçlar (risksiz)** — SEO mıknatısı olarak: e-posta konu satırı test aracı, "email tone checker", imza oluşturucu gibi tek sayfalık araçlar `/tools` altında.
 - 💡 **Product Hunt lansmanı** — Doğrulama bitip billing açılınca; social card + demo video zaten hazır olacak. *(benim önerim)*
 
