@@ -15,30 +15,30 @@ type Row = {
 
 const ROWS: Row[] = [
   {
-    from: "Sarah Chen",
-    subject: "Re: Q4 budget review",
+    from: "Maya Lindqvist",
+    subject: "Re: renewal terms for next year",
     label: "To Respond",
     labelClass: "bg-rose-100 text-rose-700",
     avatar: "/avatars/sarah.png",
     expand: true,
   },
   {
-    from: "John Martinez",
-    subject: "Meeting tomorrow at 2pm",
+    from: "Tomás Ferreira",
+    subject: "Offsite moved to Oct 12 — agenda inside",
     label: "FYI",
     labelClass: "bg-sky-100 text-sky-700",
     avatar: "/avatars/john.png",
   },
   {
-    from: "Aisha Okonkwo",
-    subject: "Contract review needed",
+    from: "Nadia Rahman",
+    subject: "NDA redlines before Friday?",
     label: "To Respond",
     labelClass: "bg-rose-100 text-rose-700",
     avatar: "/avatars/legal.png",
   },
   {
-    from: "Product Weekly",
-    subject: "Issue #214: pricing pages",
+    from: "The Signal Dispatch",
+    subject: "Issue #87: onboarding teardowns",
     label: "Newsletter",
     labelClass: "bg-amber-100 text-amber-800",
     avatar: "/avatars/product.png",
@@ -47,7 +47,7 @@ const ROWS: Row[] = [
 ];
 
 const DRAFT =
-  "Thanks for the follow-up, Sarah — I've reviewed the Q4 numbers and I'm aligned on the revised headcount. Let's lock Friday for a quick sync and I'll send the updated sheet beforehand.";
+  "Thanks for sending the renewal terms, Maya — the updated seat count works for us. I'll countersign today; could we grab 15 minutes Thursday to walk through the rollout plan?";
 
 const PAST_REPLIES = [
   { subject: "Re: pricing proposal", sent: "Mar 12", picked: true },

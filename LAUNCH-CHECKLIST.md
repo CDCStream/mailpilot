@@ -1,7 +1,39 @@
 # Inbox Wingman — Lansman Yapılacaklar Listesi
 
-> Son güncelleme: 29 Temmuz 2026
+> Son güncelleme: 2 Ağustos 2026
 > Durum işaretleri: ✅ bitti · 🔄 devam ediyor · ⬜ bekliyor · 💡 opsiyonel
+
+## 0. Rakip analizi aksiyon planı (2 Ağu)
+
+> Kaynak: dış rakip analizi (Cora / Fyxer / Serif / AI Emaily karşılaştırması).
+> Doğrulama notları: triage şu an 1 kredi (`CREDIT_COSTS.triage`), trial 80 kredi — "50+ mail/gün" personası için matematik gerçekten tutmuyor. Demo verileri Fyxer ile birebir aynıydı (doğrulandı). Kredi kartı iddiası YANLIŞ: trial'da kart istemiyoruz (billing kapalı; Paddle gelince de kartsız kalacak).
+
+### P0 — bu hafta
+
+- ✅ **Demo verilerini değiştir** — Sarah Chen / John Martinez / "Q4 budget review" Fyxer'ın sitesiyle birebir aynıydı; yeni isim + senaryolarla değiştirildi (Maya Lindqvist, Tomás Ferreira, Nadia Rahman, The Signal Dispatch).
+- ⬜ **Triage'ı kredisiz yap** — `CREDIT_COSTS.triage: 0`; kredi sadece draft (3), brief (2), ask (2) tüketsin. Gerçek maliyet analizi: triage gpt-5-mini ile ~$0.001-0.002/mail → 1500 mail/ay ≈ $2-3, Pilot $14 içinde taşınabilir. Pilot 400 kredi → ~130 draft/ay (~6/iş günü) anlamına gelir; bu dürüst bir vaat. `CREDIT_UNIT_COST_USD` yeniden hesaplanmalı (triage maliyeti fiyata gömülecek).
+- ⬜ **Trial'ı yeniden çerçevele** — Triage kredisiz olunca 80 kredi ≈ 26 draft / 7 gün = yeterli. Pazarlama dili: "7 days free — unlimited triage, 25+ AI drafts". `TRIAL_CREDITS`'i draft-odaklı yeniden adlandır/ayarla.
+- ⬜ **Pricing sayfası + landing metinlerini yeni kredi modeline göre güncelle** — "sınırsız triage" one-liner'ı; kredi tablosunda triage satırını "ücretsiz" göster.
+
+### P1 — bu ay
+
+- ⬜ **Accepted-draft-rate ölçümü + gösterimi** — Draft oluştururken normalize edilmiş metnin SHA-256'sını sakla (gövde saklamadan). Gece çalışan Inngest job'ı: draftId hâlâ duruyor mu, thread'e kullanıcıdan giden yanıt var mı, hash eşleşiyor mu → "edited / sent untouched". Overview'a kart: "Bu ay 47 draft'ın 38'i dokunulmadan gönderildi."
+- ⬜ **Gerçek testimonial toplama** — Beta kullanıcılarından 5-10 adet (isim + foto + şirket). Landing'deki placeholder yorumlar lansmandan önce ya gerçekleriyle değişecek ya kaldırılacak.
+- ⬜ **Cold email: etiketlemeden engellemeye** — "Cold outreach" kategorisine otomatik arşiv + gönderen domain'ini kalıcı engelleme aksiyonu (rules altyapısı hazır).
+- ⬜ **"vs Fyxer" / "vs Cora" sayfaları** — mevcut /compare rakip isimlendirmiyor; ayrı `/vs/fyxer`, `/vs/cora` sayfaları (SEO Faz 1 maddesiyle birleşiyor).
+
+### P2 — bu çeyrek
+
+- ⬜ **Niş seçimi** — "busy Gmail users" yerine tek bir ICP (öneri: solo danışman/ajans sahibi — çok hesap desteğimiz burada avantaj). Landing + ads bu dile göre.
+- ⬜ **Follow-up tracking'i geri getir** — MVP'den bilinçli çıkarılmıştı; Serif'in en çok konuşulan özelliği olduğu için accepted-draft-rate'ten sonra sıraya al.
+- ⬜ **Notetaker vs Outlook kararı** — ikisi de büyük yatırım; niş seçiminden SONRA karar ver.
+- ⬜ **"Email bodies never stored" mesajını hero'ya taşı** — kategorideki en sıkı gizlilik iddiamız; CASA rozeti gelince ana sayfanın kahraman mesajı yap (şu an sadece güven çipi + security sayfası).
+
+### Karar bekleyenler (ürün sahibi)
+
+- Triage kredisiz modelde fiyatlar aynı mı kalsın ($14/$29 civarı) yoksa marj yeniden mi hesaplansın?
+- Trial draft limiti: 25 mi, 50 mi?
+- Niş: danışmanlar mı, ajanslar mı, kurucular mı?
 
 ## 1. Lansman blokerleri (bunlar bitmeden gerçek kullanıcı alamayız)
 
