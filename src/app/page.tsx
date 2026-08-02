@@ -145,26 +145,17 @@ export default async function LandingPage() {
 
         <div className="mx-auto max-w-4xl px-6 text-center">
           <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-zinc-900 sm:text-5xl">
-            325 emails in two weeks.
-            <br />
-            <span className="text-teal-700">8 actually needed me.</span>
+            Your Gmail, triaged and drafted by AI
           </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-xl font-semibold tracking-tight text-teal-800 sm:text-2xl">
+            325 emails in two weeks. 8 actually needed you.
+          </p>
           <p className="mx-auto mt-5 max-w-xl text-base text-zinc-600 sm:text-lg">
-            That was my inbox — a technical founder drowning in CI noise. I built Wingman to
-            sort it, then draft only the humans, in my voice. Nothing moves or sends without
-            you.
+            Wingman sorts CI noise, newsletters, and bots — then drafts only the humans, in
+            your voice. Vercel, GitHub, Sentry, Dependabot: recognized, skipped, no draft.
           </p>
-          <p className="mx-auto mt-4 max-w-xl text-sm text-zinc-500">
-            Vercel, GitHub, Sentry, Dependabot, no-reply — recognized, skipped, no draft, no
-            credit spent.
-          </p>
-          <p className="mt-5 text-sm font-medium text-zinc-600">
-            My last two weeks:{" "}
-            <span className="text-zinc-900">149 notifications</span>
-            {" · "}
-            <span className="text-zinc-900">111 newsletters</span>
-            {" · "}
-            <span className="text-teal-700">8 to respond</span>
+          <p className="mt-4 text-sm font-medium text-zinc-700">
+            Works inside Gmail · nothing to install · never sends without you
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link
@@ -184,7 +175,42 @@ export default async function LandingPage() {
           <p className="mt-5 text-sm font-semibold text-teal-800">
             7 days free · No credit card required
           </p>
-          <p className="mt-1 text-xs text-zinc-500">Gmail only · Never sends without you</p>
+        </div>
+
+        {/* Above-the-fold product pixel — real inbox mix, not a marketing claim */}
+        <div className="mx-auto mt-12 max-w-3xl px-6">
+          <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 shadow-[0_20px_50px_-24px_rgba(15,23,42,0.35)] ring-1 ring-zinc-900/5">
+            <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-3">
+              <p className="text-sm font-semibold text-zinc-900">Triage mix · last 14 days</p>
+              <p className="text-xs text-zinc-400">My inbox · 325 emails</p>
+            </div>
+            <div className="space-y-3.5 px-5 py-5">
+              {(
+                [
+                  { label: "Notifications", n: 149, pct: 46, color: "bg-sky-500" },
+                  { label: "Newsletters", n: 111, pct: 34, color: "bg-amber-500" },
+                  { label: "To Respond", n: 8, pct: 2.5, color: "bg-rose-500" },
+                  { label: "Everything else", n: 57, pct: 17.5, color: "bg-zinc-300" },
+                ] as const
+              ).map((row) => (
+                <div key={row.label}>
+                  <div className="mb-1 flex items-baseline justify-between text-sm">
+                    <span className="font-medium text-zinc-700">{row.label}</span>
+                    <span className="tabular-nums text-zinc-900">{row.n}</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-zinc-100">
+                    <div
+                      className={`h-full rounded-full ${row.color}`}
+                      style={{ width: `${Math.max(row.pct, 3)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="border-t border-zinc-100 px-5 py-3 text-center text-xs text-zinc-500">
+              8 needed a reply. The rest was noise Wingman labeled inside Gmail.
+            </p>
+          </div>
         </div>
 
         <div id="demo" className="mx-auto mt-14 max-w-4xl px-6">
