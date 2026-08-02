@@ -57,6 +57,8 @@ export type GmailMessageMeta = {
   date: Date;
   messageIdHeader: string;
   references: string;
+  /** Present on bulk / marketing / most automated mail — never draft these. */
+  listUnsubscribe: string;
   labelIds: string[];
   isFromMe: boolean;
 };
@@ -218,6 +220,7 @@ export async function getMessageMeta(
       date: new Date(Number(data.internalDate ?? Date.now())),
       messageIdHeader: header(data.payload, "Message-ID"),
       references: header(data.payload, "References"),
+      listUnsubscribe: header(data.payload, "List-Unsubscribe"),
       labelIds: data.labelIds ?? [],
       isFromMe: fromEmail === selfEmail.toLowerCase(),
     };

@@ -27,6 +27,7 @@ import { buildVoiceProfile, generateReplyDraft, parseRule } from "@/lib/ai";
 import { buildAndSendBrief } from "@/lib/brief";
 import { getStripe } from "@/lib/billing";
 import { decryptSecret } from "@/lib/crypto";
+import { detectDevNotification, shouldBlockDraft } from "@/lib/dev-notifications";
 import {
   createReplyDraft,
   getGmailClient,
@@ -251,17 +252,36 @@ export async function writeDraftForMessage(formData: FormData) {
   const account = accounts.find((a) => a.id === row.accountId);
   if (!account) return;
 
-  if (!(await consumeCredits(userId, "draft"))) return;
-
   const gmail = getGmailClient(account.refreshTokenEnc);
   const meta = await getMessageMeta(gmail, row.gmailMessageId, account.email);
   if (!meta) return;
+
+  // Same hard gates as the auto pipeline — never draft bots / bulk / wrong category.
+  const signal = detectDevNotification({
+    from: meta.from,
+    fromEmail: meta.fromEmail,
+    subject: meta.subject,
+    bodyExcerpt: meta.bodyExcerpt,
+  });
+  if (
+    signal?.skipDraft ||
+    shouldBlockDraft({
+      fromEmail: meta.fromEmail,
+      from: meta.from,
+      category: row.category,
+      listUnsubscribe: meta.listUnsubscribe,
+    })
+  ) {
+    return;
+  }
+
+  if (!(await consumeCredits(userId, "draft"))) return;
 
   const prefs = user.preferences ?? DEFAULT_PREFERENCES;
   const body = await generateReplyDraft({
     userName: user.name ?? account.email,
     voiceProfile: user.voiceProfile,
-    toneInstructions: prefs.toneInstructions,
+    toneInstructions: user.voiceProfile ? "" : prefs.toneInstructions,
     from: meta.from,
     subject: meta.subject,
     bodyExcerpt: meta.bodyExcerpt,

@@ -33,8 +33,8 @@ const PERSONA_OPTIONS: {
 }[] = [
   {
     id: "founder",
-    title: "Founder / Exec",
-    desc: "Investors, team, high-stakes threads",
+    title: "Technical founder",
+    desc: "CI alerts, GitHub, Sentry, real humans",
     dot: "bg-indigo-500",
     defaults: { mode: "focus", tone: "direct" },
   },
@@ -96,18 +96,18 @@ const MODE_OPTIONS: {
 
 const TONE_OPTIONS: { id: TonePreset; title: string; desc: string; preview: string }[] = [
   {
+    id: "direct",
+    title: "Direct",
+    desc: "Short and to the point — the default for builders",
+    preview:
+      "Thursday works, same time. I'll move the invite — anything you want added to the agenda beforehand?",
+  },
+  {
     id: "warm",
     title: "Warm",
     desc: "Friendly and considerate",
     preview:
       "Of course — Thursday's no problem at all. I'll move the invite to the same time. If anything else shifts on your side, just let me know!",
-  },
-  {
-    id: "direct",
-    title: "Direct",
-    desc: "Short and to the point",
-    preview:
-      "Thursday works, same time. I'll move the invite — anything you want added to the agenda beforehand?",
   },
   {
     id: "formal",
@@ -193,7 +193,7 @@ export function OnboardingProgress() {
   const [step, setStep] = useState(1); // 1 persona, 2 inbox mode, 3 voice (tone or samples), 4 setup
   const [persona, setPersona] = useState<Persona | null>(null);
   const [mode, setMode] = useState<InboxMode>("focus");
-  const [tone, setTone] = useState<TonePreset>("warm");
+  const [tone, setTone] = useState<TonePreset>("direct");
   const [voicePath, setVoicePath] = useState<VoicePath | null>(null);
   const [samples, setSamples] = useState<SentSample[] | null>(null);
   const [samplesError, setSamplesError] = useState<"permission" | "generic" | null>(null);

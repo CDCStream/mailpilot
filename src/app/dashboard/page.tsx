@@ -153,8 +153,8 @@ export default async function OverviewPage() {
             <p className="mt-0.5 text-xs text-zinc-500">
               {credits.planRemaining.toLocaleString("en-US")} plan +{" "}
               {credits.bonusCredits.toLocaleString("en-US")} top-up ·{" "}
-              {credits.remaining.toLocaleString("en-US")} total left · triage {CREDIT_COSTS.triage} /
-              draft {CREDIT_COSTS.draft} / brief {CREDIT_COSTS.brief}
+              {credits.remaining.toLocaleString("en-US")} total left · triage free / draft{" "}
+              {CREDIT_COSTS.draft} / brief {CREDIT_COSTS.brief}
             </p>
           </div>
           <Link

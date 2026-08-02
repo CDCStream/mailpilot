@@ -67,17 +67,17 @@ const classificationSchema = z.object({
 
 export type Classification = z.infer<typeof classificationSchema>;
 
-const CLASSIFY_SYSTEM = `You are an expert executive assistant triaging a professional's inbox.
+const CLASSIFY_SYSTEM = `You are an expert assistant triaging a technical founder's inbox (CI, GitHub, Sentry, SaaS alerts, plus real human mail).
 Classify the email into exactly one category:
-- "to_respond": a real person is asking the user something, expects a reply, or the thread needs the user's action.
+- "to_respond": a real person is asking the user something, expects a reply, or a human is waiting (e.g. GitHub review requested). NOT for pure bots.
 - "fyi": relevant human correspondence that requires no reply (confirmations from known contacts, cc'd threads, status updates).
 - "newsletter": editorial content the user subscribed to (digests, publications, blogs).
 - "marketing": promotional email from companies (sales, offers, product announcements).
-- "notification": automated transactional messages (receipts, alerts, calendar, shipping, security codes, invoices).
+- "notification": automated transactional messages (receipts, deploy/CI alerts, Sentry, calendar, shipping, security codes, invoices, LinkedIn invites).
 - "cold_email": unsolicited outreach from a stranger trying to sell or pitch something.
 
 Also return:
-- "needs_reply": true only for to_respond.
+- "needs_reply": true ONLY when a human expects a written email reply. False for bots, noreply@, e-sign portals, ticket assignments, CI/Sentry alerts — even if the user must act in another app.
 - "urgent": true only when the email needs a reply AND is time-sensitive or high-stakes (deadline, waiting client/boss, deal at risk, explicit ASAP). Routine questions are not urgent.
 - "summary": one sentence describing the email.
 Respond with JSON: {"category": ..., "needs_reply": ..., "urgent": ..., "summary": ...}`;
@@ -140,9 +140,18 @@ export async function generateReplyDraft(input: {
   bodyExcerpt: string;
   summary: string;
 }): Promise<string> {
+  // Voice profile wins over onboarding presets. Without a profile, default terse
+  // (technical-founder default) rather than warm corporate.
   const profile = input.voiceProfile
     ? JSON.stringify(input.voiceProfile)
-    : "No profile yet; write neutral, warm, professional.";
+    : "No profile yet; write terse, direct, technical. Skip fluff greetings and sign-offs unless the thread clearly needs them.";
+
+  const toneLine =
+    !input.voiceProfile && input.toneInstructions
+      ? `Tone instructions: ${input.toneInstructions}`
+      : input.voiceProfile
+        ? "Follow the voice profile above exactly — it overrides any generic tone preset."
+        : "";
 
   const res = await openaiClient().chat.completions.create({
     model: DRAFT_MODEL,
@@ -151,14 +160,14 @@ export async function generateReplyDraft(input: {
         role: "system",
         content: `You draft email replies on behalf of ${input.userName}. You write exactly in their voice, based on this style profile:
 ${profile}
-${input.toneInstructions ? `Extra instructions from the user: ${input.toneInstructions}` : ""}
+${toneLine}
 
 Rules:
 - Write ONLY the reply body as plain text. No subject line, no commentary, no placeholders like [Name] unless unavoidable.
 - Match the language of the incoming email.
 - Be concise and directly address what the sender asked.
 - If a decision or information only the user can provide is needed, write the reply around it naturally but keep it easy to edit.
-- Use the greeting and sign-off style from the profile.`,
+- Use the greeting and sign-off style from the profile (including "none").`,
       },
       {
         role: "user",

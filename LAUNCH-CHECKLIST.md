@@ -3,37 +3,66 @@
 > Son güncelleme: 2 Ağustos 2026
 > Durum işaretleri: ✅ bitti · 🔄 devam ediyor · ⬜ bekliyor · 💡 opsiyonel
 
-## 0. Rakip analizi aksiyon planı (2 Ağu)
+## 0. Aksiyon planı — ICP: teknik kurucular (2 Ağu)
 
-> Kaynak: dış rakip analizi (Cora / Fyxer / Serif / AI Emaily karşılaştırması).
-> Doğrulama notları: triage şu an 1 kredi (`CREDIT_COSTS.triage`), trial 80 kredi — "50+ mail/gün" personası için matematik gerçekten tutmuyor. Demo verileri Fyxer ile birebir aynıydı (doğrulandı). Kredi kartı iddiası YANLIŞ: trial'da kart istemiyoruz (billing kapalı; Paddle gelince de kartsız kalacak).
+> ICP: **teknik kurucular / solo developer-founder**. Kendi inbox'ımız bu profil (325 mail → 149 notification / 111 newsletter / 8 To Respond). Asıl rakip Fyxer değil — kullanıcının kendi Gmail filtreleri. Cora yan yana brief kıyası için ayrı bakılacak.
+> İlke: bu kitleye Show HN tek atış — billing sızıntısı / ölü chat / 30sn donma affedilmez. Önce kalite, sonra ekonomi.
+
+### Verilmiş kararlar
+
+| Konu | Karar |
+|------|--------|
+| ICP | Teknik kurucular. Landing/hero buna göre (Vercel deploy spam + triage mix). |
+| Fiyat | Pilot **tek yıldız** ($14 / ~130 draft). Wingman ($43) bu kitleye şimdilik öne çıkarma — "ben yazarım" eşiğinin üstünde. Kredi arkada. Görünmez ~3000 triage/ay tavanı. |
+| Trial | Kredi kartsız zorunlu. **25 draft** görünmez tavan; satış dili "7 gün — ihtiyaç duyan her maile draft". Sayaç gösterme. |
+| Tone varsayılan | **terse/direct**, Warm değil. Voice profile varsa **profil kazanır**, preset değil. |
+| vs içerik | "vs Fyxer" değil → **"vs Gmail filters"** (P2). |
+| "Bodies never stored" hero | Okuma paneli (anlık Gmail fetch) düzelince. |
+| Bot filtresi | Düzeltme değil → **developer notification taksonomisi** (aşağıda). |
+
+### Developer notification taksonomisi
+
+| Gelen | Doğru davranış |
+|-------|----------------|
+| Vercel/CI deploy failed | Draft yok — brief'te "incident" + deploy linki |
+| GitHub "review requested" | To Respond (insan bekliyor) — draft OK |
+| Sentry hata artışı | Brief kalemi; eşik geçerse öne al — draft yok |
+| Dependabot / renovate | Sessiz arşiv — hiç gösterme |
+| Linear/Jira atama | To Respond, **draft değil** — aksiyon |
+| Adobe Sign / domain doğrulama | Deadline çıkar, draft yok |
+| noreply / LinkedIn invite / mailer-daemon | Draft yok |
 
 ### P0 — bu hafta
 
-- ✅ **Demo verilerini değiştir** — Sarah Chen / John Martinez / "Q4 budget review" Fyxer'ın sitesiyle birebir aynıydı; yeni isim + senaryolarla değiştirildi (Maya Lindqvist, Tomás Ferreira, Nadia Rahman, The Signal Dispatch).
-- ⬜ **Triage'ı kredisiz yap** — `CREDIT_COSTS.triage: 0`; kredi sadece draft (3), brief (2), ask (2) tüketsin. Gerçek maliyet analizi: triage gpt-5-mini ile ~$0.001-0.002/mail → 1500 mail/ay ≈ $2-3, Pilot $14 içinde taşınabilir. Pilot 400 kredi → ~130 draft/ay (~6/iş günü) anlamına gelir; bu dürüst bir vaat. `CREDIT_UNIT_COST_USD` yeniden hesaplanmalı (triage maliyeti fiyata gömülecek).
-- ⬜ **Trial'ı yeniden çerçevele** — Triage kredisiz olunca 80 kredi ≈ 26 draft / 7 gün = yeterli. Pazarlama dili: "7 days free — unlimited triage, 25+ AI drafts". `TRIAL_CREDITS`'i draft-odaklı yeniden adlandır/ayarla.
-- ⬜ **Pricing sayfası + landing metinlerini yeni kredi modeline göre güncelle** — "sınırsız triage" one-liner'ı; kredi tablosunda triage satırını "ücretsiz" göster.
+1. ✅ **Hard draft gate** — noreply/`reply+`/`notifications` · List-Unsubscribe · kategori ∈ {notification, newsletter, marketing, cold_email} → asla draft. + developer taxonomy.
+2. ✅ **Triage kredisiz** — `CREDIT_COSTS.triage: 0` + fair-use 3000/ay. Brief e-postasından kredi satırı kaldırıldı.
+3. ✅ **Billing UI sızıntısı** — canlıdaki `BILLING_ENABLED=false` / `Dev (billing off)` kaldırıldı → "Early access"; checkout/top-up gizlendi.
+4. ⬜ **AI Chat input** — serbest metin yazılamıyor.
+5. ⬜ **Mail açılış donması + boş gövde** — sync AI summary'yi render yolundan çıkar.
+6. ✅ **Voice/tone** — profil kazanır (Training sayfasında yazıyor); varsayılan direct.
+7. ✅ **Pricing/metin** — Pilot yıldız, unlimited triage, kartsız trial FAQ.
+8. ✅ **Demo verileri** — Fyxer kopyası kaldırıldı.
 
 ### P1 — bu ay
 
-- ⬜ **Accepted-draft-rate ölçümü + gösterimi** — Draft oluştururken normalize edilmiş metnin SHA-256'sını sakla (gövde saklamadan). Gece çalışan Inngest job'ı: draftId hâlâ duruyor mu, thread'e kullanıcıdan giden yanıt var mı, hash eşleşiyor mu → "edited / sent untouched". Overview'a kart: "Bu ay 47 draft'ın 38'i dokunulmadan gönderildi."
-- ⬜ **Gerçek testimonial toplama** — Beta kullanıcılarından 5-10 adet (isim + foto + şirket). Landing'deki placeholder yorumlar lansmandan önce ya gerçekleriyle değişecek ya kaldırılacak.
-- ⬜ **Cold email: etiketlemeden engellemeye** — "Cold outreach" kategorisine otomatik arşiv + gönderen domain'ini kalıcı engelleme aksiyonu (rules altyapısı hazır).
-- ⬜ **"vs Fyxer" / "vs Cora" sayfaları** — mevcut /compare rakip isimlendirmiyor; ayrı `/vs/fyxer`, `/vs/cora` sayfaları (SEO Faz 1 maddesiyle birleşiyor).
+- ⬜ **Draft outcome** — önce "hiç gönderilmedi" oranı; sonra SimHash (normalize, salt, ≥20 token). Sent-mail kullanımı OAuth gerekçesine şimdiden.
+- ⬜ **Taksonomi derinleştir** — brief incident bölümü, Sentry eşik, deadline çıkarma.
+- ⬜ **Gövde anlık render** (kalıcılaştırma yok) — "never stored" iddiasını bozmadan.
+- ⬜ **Kredi kartsız trial** Paddle'da da garantile.
+- ⬜ **İlk 10 referans** (teknik kurucu).
 
 ### P2 — bu çeyrek
 
-- ⬜ **Niş seçimi** — "busy Gmail users" yerine tek bir ICP (öneri: solo danışman/ajans sahibi — çok hesap desteğimiz burada avantaj). Landing + ads bu dile göre.
-- ⬜ **Follow-up tracking'i geri getir** — MVP'den bilinçli çıkarılmıştı; Serif'in en çok konuşulan özelliği olduğu için accepted-draft-rate'ten sonra sıraya al.
-- ⬜ **Notetaker vs Outlook kararı** — ikisi de büyük yatırım; niş seçiminden SONRA karar ver.
-- ⬜ **"Email bodies never stored" mesajını hero'ya taşı** — kategorideki en sıkı gizlilik iddiamız; CASA rozeti gelince ana sayfanın kahraman mesajı yap (şu an sadece güven çipi + security sayfası).
+- ⬜ **"vs Gmail filters"** içeriği (vs Fyxer değil).
+- ⬜ Follow-up tracking.
+- ⬜ "Bodies never stored" hero (okuma paneli + CASA sonrası).
+- ⬜ Wingman tier'ını yeniden değerlendir (ekip/ajans gelirse).
 
-### Karar bekleyenler (ürün sahibi)
+### Bilinçli ertelemeler
 
-- Triage kredisiz modelde fiyatlar aynı mı kalsın ($14/$29 civarı) yoksa marj yeniden mi hesaplansın?
-- Trial draft limiti: 25 mi, 50 mi?
-- Niş: danışmanlar mı, ajanslar mı, kurucular mı?
+- ~~vs Fyxer/Cora P1~~ → P2, ve vs Gmail filters öncelikli.
+- ~~Warm varsayılan~~ → terse/direct.
+- ~~Wingman'ı bu kitleye push~~ → Pilot tek yıldız.
 
 ## 1. Lansman blokerleri (bunlar bitmeden gerçek kullanıcı alamayız)
 

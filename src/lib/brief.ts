@@ -11,7 +11,7 @@ import {
 import { buildBriefDigest, type BriefDigest } from "@/lib/ai";
 import { gmailThreadUrl } from "@/lib/gmail";
 import { sendEmail } from "@/lib/resend";
-import { consumeCredits, getCreditBalance } from "@/lib/usage";
+import { consumeCredits } from "@/lib/usage";
 
 const CATEGORY_TITLES: Record<Category, string> = {
   to_respond: "To Respond",
@@ -157,7 +157,6 @@ export async function buildAndSendBrief(
     })
     .join("");
 
-  const credits = await getCreditBalance(userId);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const dateLabel = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -181,11 +180,6 @@ export async function buildAndSendBrief(
               <p style="margin:0;color:#ffffff;font-size:24px;font-weight:800">Your morning brief</p>
             </td>
           </tr></table>
-        </td></tr>
-
-        <!-- Credits strip -->
-        <tr><td style="background:#134e4a;padding:10px 28px">
-          <p style="margin:0;color:#99f6e4;font-size:12px">⚡ ${credits.remaining.toLocaleString("en-US")} AI credits left · ${credits.planName}</p>
         </td></tr>
 
         <tr><td style="height:20px;background:#f4f5f7"></td></tr>

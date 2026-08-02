@@ -16,9 +16,12 @@ export type Plan = {
   popular?: boolean;
 };
 
-/** Credit costs for AI actions — keep triage cheap, drafts expensive. */
+/**
+ * Credit costs for AI actions.
+ * Triage is free (cost baked into plan price); credits meter drafts / brief / ask.
+ */
 export const CREDIT_COSTS = {
-  triage: 1,
+  triage: 0,
   draft: 3,
   brief: 2,
   ask: 2,
@@ -26,8 +29,22 @@ export const CREDIT_COSTS = {
 
 export type CreditAction = keyof typeof CREDIT_COSTS;
 
-/** Fixed allowance during the 7-day trial (abuse guard). */
-export const TRIAL_CREDITS = 80;
+/**
+ * Invisible monthly ceiling on AI-classified messages per user.
+ * Not shown in marketing — stops shared-inbox abuse when triage is free.
+ */
+export const TRIAGE_FAIR_USE_MONTHLY = 3000;
+
+/**
+ * Trial abuse guard in credits. At 3 credits/draft this is ~25 drafts.
+ * Do not surface a countdown in the UI (users hoard instead of trying).
+ */
+export const TRIAL_CREDITS = 75;
+
+/** Approximate draft capacity from a credit allowance (for marketing copy). */
+export function approxDraftsFromCredits(credits: number): number {
+  return Math.floor(credits / CREDIT_COSTS.draft);
+}
 
 /**
  * Fully-loaded cost per credit (LLM + infra amortized).
@@ -62,6 +79,7 @@ function buildPlan(
 ): Plan {
   const priceMonthly = monthlyPriceUsd(partial.credits);
   const listMonthly = monthlyPriceUsd(partial.credits, SELL_MULTIPLIER);
+  const drafts = approxDraftsFromCredits(partial.credits);
   return {
     id: partial.id,
     name: partial.name,
@@ -73,7 +91,8 @@ function buildPlan(
     listMonthly,
     savePct: Math.round((1 - priceMonthly / listMonthly) * 100),
     features: [
-      `${partial.credits.toLocaleString("en-US")} AI credits / month`,
+      `~${drafts.toLocaleString("en-US")} AI drafts / month`,
+      "Unlimited triage & labels",
       ...partial.featureExtras,
     ],
   };
@@ -83,13 +102,14 @@ export const PLANS: Record<PlanId, Plan> = {
   pilot: buildPlan({
     id: "pilot",
     name: "Pilot",
-    tagline: "For focused inboxes",
+    tagline: "For technical founders",
     credits: 400,
     maxAccounts: 5,
+    popular: true,
     featureExtras: [
-      "Smart Gmail triage & labels",
+      "Dev notification triage (CI, Sentry, bots)",
       "Voice-matched reply drafts",
-      "Daily brief & AI inbox chat",
+      "Daily brief with incidents & deadlines",
       "Plain-English rules",
       "Up to 5 Gmail accounts",
     ],
@@ -97,10 +117,9 @@ export const PLANS: Record<PlanId, Plan> = {
   wingman: buildPlan({
     id: "wingman",
     name: "Wingman",
-    tagline: "For busy Gmail users",
+    tagline: "For heavier inboxes",
     credits: 1200,
     maxAccounts: 10,
-    popular: true,
     featureExtras: [
       "Everything in Pilot",
       "Up to 10 Gmail accounts",

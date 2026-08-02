@@ -82,6 +82,16 @@ export default async function TrainingPage({
 
       <section className="rounded-2xl border border-zinc-200 p-6">
         <h2 className="font-semibold">Tone</h2>
+        {voice ? (
+          <p className="mt-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-800">
+            Your learned voice profile wins. The preset below is ignored while a profile is
+            active — drafts follow the style card on the left.
+          </p>
+        ) : (
+          <p className="mt-2 text-xs text-zinc-500">
+            No voice profile yet — drafts use the tone preset until you train one.
+          </p>
+        )}
         <dl className="mt-3 space-y-2 text-sm">
           {prefs.tonePreset && (
             <div>

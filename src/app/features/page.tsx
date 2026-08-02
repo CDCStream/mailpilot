@@ -42,7 +42,7 @@ const SECTIONS = [
   {
     id: "credits",
     title: "Credit-based AI",
-    body: `Triage costs ${CREDIT_COSTS.triage} credit, a voice draft ${CREDIT_COSTS.draft}, a daily brief ${CREDIT_COSTS.brief}. See usage on your dashboard, top up when you need more (active plan required).`,
+    body: `Triage is unlimited and free. A voice draft costs ${CREDIT_COSTS.draft}, a daily brief ${CREDIT_COSTS.brief}. See usage on your dashboard; top up when you need more.`,
   },
   {
     id: "privacy",

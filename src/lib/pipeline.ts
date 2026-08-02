@@ -12,8 +12,9 @@ import {
 } from "@/lib/db";
 import { applyLabels, createReplyDraft, getMessageMeta } from "@/lib/gmail";
 import { classifyEmail, generateReplyDraft } from "@/lib/ai";
+import { detectDevNotification, shouldBlockDraft } from "@/lib/dev-notifications";
 import { applyRules } from "@/lib/rules-engine";
-import { consumeCredits } from "@/lib/usage";
+import { consumeCredits, underTriageFairUse } from "@/lib/usage";
 
 export type PipelineContext = {
   gmail: gmail_v1.Gmail;
@@ -79,17 +80,54 @@ export async function processInboxMessage(
   if (inserted.length === 0) return { status: "skipped", reason: "already processed" };
   const rowId = inserted[0].id;
 
-  if (!opts.free && !(await consumeCredits(ctx.user.id, "triage"))) {
-    return { status: "skipped", reason: "monthly AI credit limit reached" };
+  // Triage is free (cost 0); fair-use ceiling is the only hard stop for AI classify.
+  if (!opts.free) {
+    if (!(await underTriageFairUse(ctx.user.id))) {
+      return { status: "skipped", reason: "monthly triage fair-use limit reached" };
+    }
+    await consumeCredits(ctx.user.id, "triage"); // no-op at cost 0; keeps metering hook
   }
 
-  const classification = await classifyEmail({
+  const devSignal = detectDevNotification({
     from: meta.from,
-    to: meta.to,
+    fromEmail: meta.fromEmail,
     subject: meta.subject,
     bodyExcerpt: meta.bodyExcerpt,
-    summaryLanguage: prefs.summaryLanguage,
   });
+
+  // Silent bots (Dependabot etc.): archive + label without spending an LLM call.
+  let classification = {
+    category: (devSignal?.category ?? "fyi") as Category,
+    needs_reply: false,
+    urgent: false,
+    summary: devSignal?.summaryHint ?? meta.subject,
+  };
+
+  if (devSignal?.kind !== "silent_archive") {
+    classification = await classifyEmail({
+      from: meta.from,
+      to: meta.to,
+      subject: meta.subject,
+      bodyExcerpt: meta.bodyExcerpt,
+      summaryLanguage: prefs.summaryLanguage,
+    });
+    if (devSignal?.category) classification.category = devSignal.category;
+    if (devSignal?.summaryHint) classification.summary = devSignal.summaryHint;
+    if (devSignal?.kind === "human_reply") {
+      classification.needs_reply = true;
+      classification.category = "to_respond";
+    }
+    if (
+      devSignal?.kind === "action_no_draft" ||
+      devSignal?.kind === "deadline_no_draft"
+    ) {
+      classification.needs_reply = false; // action item, not a prose reply
+      classification.category = "to_respond";
+    }
+    if (devSignal?.kind === "incident" || devSignal?.kind === "noreply_no_draft") {
+      classification.needs_reply = false;
+    }
+  }
 
   const outcome = applyRules(ctx.rules, {
     fromEmail: meta.fromEmail,
@@ -97,6 +135,10 @@ export async function processInboxMessage(
     bodyExcerpt: meta.bodyExcerpt,
     category: classification.category,
   });
+
+  if (devSignal?.forceArchive) outcome.forceArchive = true;
+  if (devSignal?.skipDraft) outcome.skipDraft = true;
+  if (devSignal?.category) outcome.category = devSignal.category;
 
   // --- Apply Gmail label operations (skipped when respecting a user label) ---
   const labelMap = ctx.account.labelMap ?? {};
@@ -122,11 +164,20 @@ export async function processInboxMessage(
   // --- Voice draft for emails that need a reply ---
   let draftId: string | null = null;
   const draftStyle = prefs.draftStyle ?? "everything";
+  const blockedDraft =
+    shouldBlockDraft({
+      fromEmail: meta.fromEmail,
+      from: meta.from,
+      category: outcome.category,
+      listUnsubscribe: meta.listUnsubscribe,
+    }) ||
+    Boolean(devSignal?.skipDraft) ||
+    outcome.skipDraft;
   const wantsDraft =
     outcome.category === "to_respond" &&
     classification.needs_reply &&
     prefs.draftsEnabled &&
-    !outcome.skipDraft &&
+    !blockedDraft &&
     draftStyle !== "manual" &&
     (draftStyle === "everything" || classification.urgent);
 
@@ -135,7 +186,8 @@ export async function processInboxMessage(
       const body = await generateReplyDraft({
         userName: ctx.user.name ?? ctx.account.email,
         voiceProfile: ctx.user.voiceProfile,
-        toneInstructions: prefs.toneInstructions,
+        // Voice profile wins over onboarding preset; only pass freeform extras when no profile.
+        toneInstructions: ctx.user.voiceProfile ? "" : prefs.toneInstructions,
         from: meta.from,
         subject: meta.subject,
         bodyExcerpt: meta.bodyExcerpt,
@@ -167,6 +219,9 @@ export async function processInboxMessage(
         archived: shouldArchive,
         draftCreated: Boolean(draftId),
         ruleApplied: outcome.appliedRule,
+        ...(devSignal
+          ? { devSignal: devSignal.kind, briefTag: devSignal.briefTag }
+          : {}),
       },
     })
     .where(eq(messages.id, rowId));

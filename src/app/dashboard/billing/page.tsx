@@ -26,8 +26,11 @@ export default async function BillingPage({
   const sub = await db.query.subscriptions.findFirst({
     where: eq(subscriptions.userId, userId),
   });
+  const billingOn = billingEnabled();
   const status = sub?.status ?? "none";
-  const copy = STATUS_COPY[status] ?? STATUS_COPY.none;
+  const copy = !billingOn
+    ? { label: "Early access", cls: "bg-teal-100 text-teal-800" }
+    : (STATUS_COPY[status] ?? STATUS_COPY.none);
   const hasSubscription = status === "active" || status === "trialing" || status === "past_due";
   const planId = sub?.plan === "wingman" ? "wingman" : sub?.plan === "pilot" ? "pilot" : null;
   const plan = planId ? PLANS[planId] : null;
@@ -55,10 +58,10 @@ export default async function BillingPage({
         </p>
       )}
 
-      {!billingEnabled() && (
-        <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          Billing checks are disabled (BILLING_ENABLED=false). Credits use the Wingman
-          allowance for local testing.
+      {!billingOn && (
+        <p className="mt-6 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-800">
+          You&apos;re on <strong>early access</strong> — every feature is included with the full
+          Wingman allowance, free while we finish rolling out payments. No card needed.
         </p>
       )}
 
@@ -111,8 +114,8 @@ export default async function BillingPage({
             </span>
           </p>
           <p className="mt-2 text-xs text-zinc-400">
-            Triage = {CREDIT_COSTS.triage} · Draft = {CREDIT_COSTS.draft} · Brief ={" "}
-            {CREDIT_COSTS.brief} credits
+            Triage free · Draft = {CREDIT_COSTS.draft} · Brief = {CREDIT_COSTS.brief} · Ask ={" "}
+            {CREDIT_COSTS.ask}
           </p>
         </div>
 
@@ -122,9 +125,16 @@ export default async function BillingPage({
           </p>
         )}
 
-        <BillingButtons hasSubscription={hasSubscription} showPlanPicker={!hasSubscription} />
+        {billingOn ? (
+          <BillingButtons hasSubscription={hasSubscription} showPlanPicker={!hasSubscription} />
+        ) : (
+          <p className="mt-6 text-sm text-zinc-500">
+            Checkout opens when billing goes live. Until then, use Wingman freely — no card.
+          </p>
+        )}
       </div>
 
+      {billingOn && (
       <section>
         <h2 className="text-lg font-semibold">Top up credits</h2>
         <p className="mt-1 text-sm text-zinc-500">
@@ -134,9 +144,10 @@ export default async function BillingPage({
           <CreditTopupScroller signedIn hasActivePlan={hasSubscription} />
         </div>
       </section>
+      )}
       </div>
 
-      {!hasSubscription && (
+      {billingOn && !hasSubscription && (
         <div className="mt-10 grid gap-4 sm:grid-cols-2">
           {Object.values(PLANS).map((p) => (
             <div

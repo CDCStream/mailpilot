@@ -38,8 +38,8 @@ export async function CreditsBanner({ userId }: { userId: string }) {
     return (
       <div className="flex items-center justify-between gap-4 bg-rose-600 px-6 py-2.5 text-sm font-medium text-white lg:px-10">
         <p>
-          You&apos;re out of AI credits — new emails aren&apos;t being triaged or drafted until
-          your monthly refresh.
+          You&apos;re out of AI credits — drafts, briefs and Ask AI pause until your monthly
+          refresh. Triage keeps running.
         </p>
         <span className="text-rose-600">{cta("Add credits")}</span>
       </div>

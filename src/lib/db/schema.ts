@@ -186,6 +186,9 @@ export type MessageActions = {
   archived?: boolean;
   draftCreated?: boolean;
   ruleApplied?: string;
+  /** Developer-notification taxonomy match (see lib/dev-notifications). */
+  devSignal?: string;
+  briefTag?: "incident" | "deadline" | "action";
 };
 
 export const messages = pgTable(

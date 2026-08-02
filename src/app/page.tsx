@@ -10,15 +10,15 @@ import { CREDIT_COSTS, PLANS, TRIAL_CREDITS } from "@/lib/plans";
 const FAQ = [
   {
     q: "What's included in the free trial?",
-    a: `7 days with ${TRIAL_CREDITS} AI credits — smart triage, voice-matched drafts, daily brief, and plain-English rules. Cancel anytime before it converts.`,
+    a: "7 days free — unlimited triage, drafts for every mail that needs one, daily brief, and plain-English rules. No credit card required.",
   },
   {
     q: "How do AI credits work?",
-    a: `Triage costs ${CREDIT_COSTS.triage} credit, a voice draft ${CREDIT_COSTS.draft}, and a daily brief ${CREDIT_COSTS.brief}. Your plan refreshes credits each month; optional top-ups never expire and spend after your plan allowance.`,
+    a: `Triage is unlimited and free. Credits only meter the expensive stuff: a voice draft costs ${CREDIT_COSTS.draft}, a daily brief ${CREDIT_COSTS.brief}, Ask AI ${CREDIT_COSTS.ask}. Plans refresh monthly; optional top-ups never expire.`,
   },
   {
     q: "What happens when I run out of AI credits?",
-    a: "AI triage, drafts, and brief summaries pause until your next monthly refresh or you buy a top-up. Your Gmail stays untouched — we just stop spending until you have credits again.",
+    a: "Triage keeps running. Drafts, brief digests, and Ask AI pause until your next monthly refresh or you buy a top-up. Your Gmail stays untouched.",
   },
   {
     q: "Can I buy top-up credits without a plan?",
@@ -26,7 +26,7 @@ const FAQ = [
   },
   {
     q: "How much do plans cost?",
-    a: `Early-bird pricing for our first 100 customers: Pilot is $${PLANS.pilot.priceMonthly}/month (normally $${PLANS.pilot.listMonthly}) with ${PLANS.pilot.credits.toLocaleString("en-US")} credits and up to ${PLANS.pilot.maxAccounts} Gmail accounts. Wingman is $${PLANS.wingman.priceMonthly}/month (normally $${PLANS.wingman.listMonthly}) with ${PLANS.wingman.credits.toLocaleString("en-US")} credits and up to ${PLANS.wingman.maxAccounts} accounts. Your early-bird price stays locked in for as long as you keep your subscription.`,
+    a: `Early-bird pricing for our first 100 customers: Pilot is $${PLANS.pilot.priceMonthly}/month (normally $${PLANS.pilot.listMonthly}) — about ${Math.floor(PLANS.pilot.credits / CREDIT_COSTS.draft)} AI drafts/month, unlimited triage, up to ${PLANS.pilot.maxAccounts} Gmail accounts. Wingman is $${PLANS.wingman.priceMonthly}/month for heavier inboxes. Your early-bird price stays locked in for as long as you keep your subscription.`,
   },
   {
     q: "Is my email safe?",
@@ -38,7 +38,7 @@ const FAQ = [
   },
   {
     q: "Do I need a credit card to start?",
-    a: "Yes — the 7-day trial is card-backed via our payment provider so we can convert smoothly if you keep the product. Cancel in Billing before the trial ends and you won't be charged.",
+    a: "No. Start the 7-day trial with Google sign-in only — no card. Add payment later if you want to keep Wingman after the trial.",
   },
   {
     q: "Can I cancel anytime?",
@@ -158,8 +158,9 @@ export default async function LandingPage() {
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base text-zinc-600 sm:text-lg">
-            For busy Gmail users — founders, operators, execs — who get 50+ emails a day.
-            Replies sound like you, and everything happens inside Gmail. Nothing to install.
+            For technical founders drowning in CI alerts, GitHub noise, and newsletters —
+            with 8 emails that actually need a reply. Drafts sound like you. Nothing sends
+            without you.
           </p>
           <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/80 px-3 py-1 text-xs font-medium text-zinc-600 shadow-sm backdrop-blur">
             <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
@@ -196,7 +197,7 @@ export default async function LandingPage() {
             What Wingman does while you work
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-center text-zinc-600">
-            Triage, drafts, briefs, rules, and credits — built for busy Gmail users.
+            Triage bots without drafting them. Draft humans in your voice. Brief the incidents.
           </p>
           <div className="mt-14 grid gap-x-12 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f) => (
@@ -211,11 +212,11 @@ export default async function LandingPage() {
 
       <section id="pricing" className="border-t border-zinc-100 bg-zinc-50/80 py-24">
         <div className="mx-auto max-w-4xl px-6 text-center">
-          <h2 className="text-3xl font-bold tracking-tight">Credit-based pricing</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Pay for drafts, not triage</h2>
           <p className="mx-auto mt-3 max-w-lg text-zinc-600">
-            Pay for AI you actually use. Triage costs {CREDIT_COSTS.triage} credit, a voice draft{" "}
-            {CREDIT_COSTS.draft}, a daily brief {CREDIT_COSTS.brief}. Trial includes{" "}
-            {TRIAL_CREDITS} credits.
+            Unlimited triage is included. Credits only meter voice drafts ({CREDIT_COSTS.draft}),
+            daily briefs ({CREDIT_COSTS.brief}), and Ask AI ({CREDIT_COSTS.ask}). 7-day trial — no
+            card required.
           </p>
           <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-sm font-medium text-amber-800">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />

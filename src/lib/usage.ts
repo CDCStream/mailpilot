@@ -1,9 +1,10 @@
-import { and, eq, sql } from "drizzle-orm";
-import { db, creditUsage, subscriptions, users } from "@/lib/db";
+import { and, count, eq, gte, inArray, sql } from "drizzle-orm";
+import { db, creditUsage, emailAccounts, messages, subscriptions, users } from "@/lib/db";
 import { billingEnabled } from "@/lib/billing";
 import {
   CREDIT_COSTS,
   PLANS,
+  TRIAGE_FAIR_USE_MONTHLY,
   TRIAL_CREDITS,
   type CreditAction,
   type PlanId,
@@ -32,7 +33,8 @@ export async function resolveCreditLimit(userId: string): Promise<{
   planName: string;
 }> {
   if (!billingEnabled()) {
-    return { limit: PLANS.wingman.credits, plan: "dev", planName: "Dev (billing off)" };
+    // Never surface env/internal names ("dev", "BILLING_ENABLED") to the UI.
+    return { limit: PLANS.wingman.credits, plan: "dev", planName: "Early access" };
   }
 
   const sub = await db.query.subscriptions.findFirst({
@@ -54,14 +56,45 @@ export async function resolveCreditLimit(userId: string): Promise<{
 }
 
 /**
+ * Invisible monthly cap on AI-classified messages. Triage costs 0 credits,
+ * so this is the only abuse brake for free classification.
+ */
+export async function underTriageFairUse(userId: string): Promise<boolean> {
+  const accounts = await db.query.emailAccounts.findMany({
+    where: eq(emailAccounts.userId, userId),
+    columns: { id: true },
+  });
+  if (accounts.length === 0) return true;
+  const monthStart = new Date();
+  monthStart.setUTCDate(1);
+  monthStart.setUTCHours(0, 0, 0, 0);
+  const [row] = await db
+    .select({ n: count() })
+    .from(messages)
+    .where(
+      and(
+        inArray(
+          messages.accountId,
+          accounts.map((a) => a.id),
+        ),
+        gte(messages.createdAt, monthStart),
+      ),
+    );
+  return (row?.n ?? 0) < TRIAGE_FAIR_USE_MONTHLY;
+}
+
+/**
  * Spend credits: plan allowance first, then top-up wallet.
  * Returns false when neither pool can cover the cost.
+ * Cost-0 actions (triage) always succeed without touching balances.
  */
 export async function consumeCredits(
   userId: string,
   action: CreditAction,
 ): Promise<boolean> {
   const cost = CREDIT_COSTS[action];
+  if (cost <= 0) return true;
+
   const { limit: planLimit } = await resolveCreditLimit(userId);
   const period = currentPeriod();
 
