@@ -144,26 +144,29 @@ export default async function LandingPage() {
         />
 
         <div className="mx-auto max-w-4xl px-6 text-center">
-          <div className="mb-6 flex items-center justify-center gap-2.5">
-            <BrandLogo size={48} />
-            <span className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              Inbox Wingman
-            </span>
-          </div>
           <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-zinc-900 sm:text-5xl">
-            325 emails landed.
+            325 emails in two weeks.
             <br />
-            <span className="text-teal-700">8 actually needed you.</span>
+            <span className="text-teal-700">8 actually needed me.</span>
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base text-zinc-600 sm:text-lg">
-            Wingman sorts CI noise, newsletters, and bots — then drafts only the humans, in
-            your voice. Nothing moves or sends without you.
+            That was my inbox — a technical founder drowning in CI noise. I built Wingman to
+            sort it, then draft only the humans, in my voice. Nothing moves or sends without
+            you.
           </p>
-          <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/80 px-3 py-1 text-xs font-medium text-zinc-600 shadow-sm backdrop-blur">
-            <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
-            For technical founders who live in Gmail
+          <p className="mx-auto mt-4 max-w-xl text-sm text-zinc-500">
+            Vercel, GitHub, Sentry, Dependabot, no-reply — recognized, skipped, no draft, no
+            credit spent.
           </p>
-          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+          <p className="mt-5 text-sm font-medium text-zinc-600">
+            My last two weeks:{" "}
+            <span className="text-zinc-900">149 notifications</span>
+            {" · "}
+            <span className="text-zinc-900">111 newsletters</span>
+            {" · "}
+            <span className="text-teal-700">8 to respond</span>
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link
               href={cta}
               className="inline-flex items-center gap-2.5 rounded-full bg-zinc-900 px-7 py-3 text-base font-semibold text-white hover:bg-zinc-800"
@@ -175,12 +178,13 @@ export default async function LandingPage() {
               href="#demo"
               className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
             >
-              See the triage →
+              See it on a real inbox →
             </a>
           </div>
-          <p className="mt-4 text-xs text-zinc-500">
-            Free for 7 days · No credit card · Never sends without you
+          <p className="mt-5 text-sm font-semibold text-teal-800">
+            7 days free · No credit card required
           </p>
+          <p className="mt-1 text-xs text-zinc-500">Gmail only · Never sends without you</p>
         </div>
 
         <div id="demo" className="mx-auto mt-14 max-w-4xl px-6">
