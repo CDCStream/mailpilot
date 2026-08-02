@@ -63,8 +63,8 @@ export function SiteFooter() {
               <span className="font-semibold tracking-tight">Inbox Wingman</span>
             </Link>
             <p className="mt-3 text-sm leading-relaxed text-zinc-500">
-              AI email for technical founders. Triage bots, draft humans, brief incidents —
-              never send without you.
+              AI email for technical founders. Sort the noise, draft only humans, never send
+              without you.
             </p>
           </div>
           <div className="grid flex-1 grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5 lg:gap-6">

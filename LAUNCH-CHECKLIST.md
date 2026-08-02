@@ -7,6 +7,8 @@
 
 > ICP: **teknik kurucular / solo developer-founder**. Kendi inbox'ımız bu profil (325 mail → 149 notification / 111 newsletter / 8 To Respond). Asıl rakip Fyxer değil — kullanıcının kendi Gmail filtreleri. Cora yan yana brief kıyası için ayrı bakılacak.
 > İlke: bu kitleye Show HN tek atış — billing sızıntısı / ölü chat / 30sn donma affedilmez. Önce kalite, sonra ekonomi.
+>
+> **Rakip şikayet özeti (Trustpilot / Reddit / G2 / Cora board):** kategorinin #1 şikayeti = gereksiz auto-draft. Bizim P0 bot filtresi "geriden gelmek" değil — kategorinin çözemediği probleme ilk düzgün cevap. Sonrası hikâye: "vs auto-draft spam" (vs Gmail filters'a ek / yerine).
 
 ### Verilmiş kararlar
 
@@ -32,42 +34,63 @@
 | Adobe Sign / domain doğrulama | Deadline çıkar, draft yok |
 | noreply / LinkedIn invite / mailer-daemon | Draft yok |
 
+### Mesajlaşma kuralları (landing)
+
+| Yaz | Yazma |
+|-----|--------|
+| "Otomatik gönderenlere draft yazmaz. Vercel, GitHub, Sentry, Dependabot, no-reply — tanınır, atlanır." | "Gereksiz draft yok" (mutlak; bir sızıntıda yalancı) |
+| Hero = gürültü ayıklama: "325 mail. 8'i seni ilgilendiriyordu." Draft ikincil. | Hero'da draft'ı ana vaat yapmak (dev inbox'ında draft az = doğru, algı zayıf) |
+| Dashboard'da kendi draft outcome kartın (20–30 kullanıcı sonrası landing'e ekran görüntüsü) | "Draft başarısını ölçüp geliştiriyoruz" (süreç, sayı yok, şüpheci kitle sorar "kaç?") |
+| "Hiçbir maili gizlemez — Just label" · "14 günde kullanılmayan draft silinir" · "Kartsız trial" | Rakiplerin şikayet ettiği ama sende olmayan özelliği vaat etmek |
+
 ### P0 — bu hafta
 
-1. ✅ **Hard draft gate** — noreply/`reply+`/`notifications` · List-Unsubscribe · kategori ∈ {notification, newsletter, marketing, cold_email} → asla draft. + developer taxonomy.
-2. ✅ **Triage kredisiz** — `CREDIT_COSTS.triage: 0` + fair-use 3000/ay. Brief e-postasından kredi satırı kaldırıldı.
-3. ✅ **Billing UI sızıntısı** — canlıdaki `BILLING_ENABLED=false` / `Dev (billing off)` kaldırıldı → "Early access"; checkout/top-up gizlendi.
+1. ✅ **Hard draft gate** — kategori'nin #1 şikayeti (Cora/Serif/Fyxer auto-draft spam). Taxonomy + List-Unsubscribe + noreply.
+2. ✅ **Triage kredisiz** + brief'ten kredi satırı kaldırıldı.
+3. ✅ **Billing UI sızıntısı** → Early access; checkout gizli.
 4. ⬜ **AI Chat input** — serbest metin yazılamıyor.
-5. ⬜ **Mail açılış donması + boş gövde** — sync AI summary'yi render yolundan çıkar.
-6. ✅ **Voice/tone** — profil kazanır (Training sayfasında yazıyor); varsayılan direct.
-7. ✅ **Pricing/metin** — Pilot yıldız, unlimited triage, kartsız trial FAQ.
-8. ✅ **Demo verileri** — Fyxer kopyası kaldırıldı.
+5. ⬜ **Mail açılış donması + boş gövde**.
+6. ⬜ **"Neden draft yazmadım" görünürlüğü** — sessiz atlama yok; örn. "Vercel — otomatik gönderen, draft yazılmadı."
+7. ⬜ **Sağlık göstergesi sidebar'a** — last sync + 6 saatten eskiyse uyarı (Fyxer "sessizce öldü").
+8. ✅ **Voice/tone** · Pricing/metin · Demo verileri · Landing hero gürültü-öncelikli (bu sprint).
 
 ### P1 — bu ay
 
-- ⬜ **Draft outcome** — önce "hiç gönderilmedi" oranı; sonra SimHash (normalize, salt, ≥20 token). Sent-mail kullanımı OAuth gerekçesine şimdiden.
-- ⬜ **Taksonomi derinleştir** — brief incident bölümü, Sentry eşik, deadline çıkarma.
-- ⬜ **Gövde anlık render** (kalıcılaştırma yok) — "never stored" iddiasını bozmadan.
-- ⬜ **Kredi kartsız trial** Paddle'da da garantile.
-- ⬜ **İlk 10 referans** (teknik kurucu).
+- ⬜ **Draft outcome dashboard kartı** (önce "hiç gönderilmedi"; sonra SimHash). Landing'e sayı değil — kendi verin paneli. OAuth sent-mail gerekçesine şimdiden.
+- ⬜ **Kredi kartsız trial** Paddle'da silah olarak — Fyxer Trustpilot fatura hikâyelerine karşı konumlandırma.
+- ⬜ **Aktif thread'i geciktirme** — son 24s karşılıklı yazışma varsa brief'e alma, inbox'ta bırak (Cora time-shift).
+- ⬜ **Brief sadece bir şey değiştiyse** — boş gün = gönderme (ikinci newsletter tuzağı).
+- ⬜ **Wingman draft etiketi** — Gmail'de kullanıcının kendi taslaklarından ayır (Cora "taslaklarım kayboldu").
+- ⬜ **Taksonomi / gövde anlık render / 10 referans / Serif security incelemesi**.
 
 ### P2 — bu çeyrek
 
-- ⬜ **"vs Gmail filters"** içeriği (vs Fyxer değil).
-- ⬜ Follow-up tracking.
-- ⬜ "Bodies never stored" hero (okuma paneli + CASA sonrası).
-- ⬜ Wingman tier'ını yeniden değerlendir (ekip/ajans gelirse).
+- ⬜ **"vs auto-draft spam"** hikâyesi (vs Gmail filters'ın yanında veya yerine — rakip şikayet #1).
+- ⬜ **Onboarding: ilk 5 dk = ilk gerçek draft** — başka hiçbir şey (Cora "30+ dk anlama").
+- ⬜ Follow-up · CASA rozetleri (Serif modeli) · bodies-never-stored hero · Wingman tier revisit.
+
+### Rakip referansları
+
+| Ürün | Sayfalar |
+|------|----------|
+| **Fyxer** | [Home](https://www.fyxer.com/) · [Pricing](https://www.fyxer.com/pricing) · [Security](https://www.fyxer.com/security) · Trustpilot fatura/iptal şikayetleri |
+| **Cora** | [Home](https://cora.computer/) · feedback board (auto-draft spam, time-shift, brief=newsletter) |
+| **Serif** | [Home](https://www.serif.ai/) · [Pricing](https://www.serif.ai/pricing) · [Security](https://www.serif.ai/security) ⭐ bu ay tek odak |
+| **AI Emaily** | [Home](https://aiemaily.com/) · [Pricing](https://aiemaily.com/pricing) · [Compare](https://aiemaily.com/compare) · [Security](https://aiemaily.com/security) |
+
+Şikayet kaynakları: [eesel Fyxer](https://www.eesel.ai/blog/fyxer-ai-review) · Fyxer Trustpilot · Cora feedback / Stopping auto-drafts · Serif kullanıcı yorumları · Alkmist Fyxer review.
 
 ### Bilinçli ertelemeler
 
-- ~~vs Fyxer/Cora P1~~ → P2, ve vs Gmail filters öncelikli.
-- ~~Warm varsayılan~~ → terse/direct.
-- ~~Wingman'ı bu kitleye push~~ → Pilot tek yıldız.
+- ~~Landing'e "ölçüyoruz"~~ → dashboard outcome kartı; sayı 20–30 kullanıcı sonra.
+- ~~"Gereksiz draft yok" mutlak~~ → davranış cümlesi (otomatik gönderenlere yazmaz).
+- ~~vs Fyxer P1~~ → P2; önce vs auto-draft spam.
+- ~~Warm varsayılan / Wingman push / tüm rakip siteler~~ → terse · Pilot · sadece Serif security.
 
 ## 1. Lansman blokerleri (bunlar bitmeden gerçek kullanıcı alamayız)
 
 - 🔄 **Google OAuth doğrulaması** — Başvuru 29 Tem'da gönderildi (branding + gmail.modify gerekçesi + demo video). Google'ın dönüş e-postası bekleniyor.
-  - ⬜ **CASA Tier 2 sertifikasyonu** — Google'ın yönlendirme e-postası gelince denetçi firma seçilecek (TAC Security en yaygını, ~500-750$/yıl). Tarama + öz değerlendirme anketi.
+  - ⬜ **CASA Tier 2 sertifikasyonu** — Google'ın yönlendirme e-postası gelince denetçi firma seçilecek (TAC Security en yaygını, ~500-750$/yıl). Tarama + öz değerlendirme anketi. Rozet sunumu için şablon: [Serif Security](https://www.serif.ai/security) (CASA T2 + SOC 2 T2).
 - ⬜ **Paddle entegrasyonu** — CASA'ya geçerken paralel yapılacak.
   - ⬜ Sandbox hesabı aç (sandbox-login.paddle.com), API key + client token al
   - ⬜ Ürün/fiyatları API ile oluştur (Pilot, Wingman abonelikleri + kredi top-up)

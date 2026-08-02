@@ -52,40 +52,40 @@ const FAQ = [
 
 const FEATURES = [
   {
-    title: "Smart triage",
-    body: "Every incoming email is labeled inside Gmail — To Respond, FYI, Newsletter, Marketing, Notification, Cold Email — the moment it lands.",
+    title: "Noise first, drafts second",
+    body: "CI alerts, Sentry, Dependabot, newsletters — labeled and sorted. Automated senders are recognized and skipped for drafts, so credits aren't spent on bots.",
+  },
+  {
+    title: "Nothing moves without you",
+    body: "\"Just label\" mode keeps every message in your inbox. Respect my categories means Wingman won't override filters or labels you already set.",
   },
   {
     title: "Drafts in your voice",
-    body: "Learns your tone from sent mail and drops a ready-to-send reply into the thread. You review, tweak, and hit send. It never sends for you.",
+    body: "A transparent voice profile shows how Wingman thinks you write — then drafts only for real humans. You review and send. It never sends for you.",
   },
   {
-    title: "Ask your inbox",
-    body: "Chat with your whole inbox — \"what do I owe replies to?\", \"any invoices this week?\" — answered from your triaged mail, never invented.",
+    title: "Unused drafts clean themselves up",
+    body: "Send-ready drafts you don't use are removed from Gmail after 14 days, so your Drafts folder stays yours — not a pile of AI leftovers.",
   },
   {
     title: "Daily brief",
-    body: "One morning email: replies you owe, deadlines pulled from your mail, key takeaways from your newsletters, and bills & deliveries — every item linked straight to Gmail.",
+    body: "One morning email: replies you owe, deadlines from your mail, newsletter takeaways, bills & deliveries — each linked straight to Gmail.",
   },
   {
-    title: "Rules & templates",
-    body: "Write rules in plain English, or one-click templates: archive newsletters, skip cold-email drafts, star a VIP domain.",
+    title: "Ask your inbox",
+    body: "Chat with triaged mail — \"what do I owe replies to?\", \"any invoices this week?\" — answered from your inbox, never invented.",
   },
   {
-    title: "Multi-inbox Gmail",
-    body: "Connect up to 5 Gmail accounts on Pilot, or 10 on Wingman. One Wingman for every inbox you actually live in.",
+    title: "Rules in plain English",
+    body: "Skip drafts for a domain, archive newsletters, star a VIP — written as sentences, not filter syntax.",
   },
   {
-    title: "Credit-based AI",
-    body: "Triage, drafts, and briefs spend credits you can see. No surprise infinite bill — upgrade or top up when you need more.",
+    title: "Up to 5 Gmail accounts",
+    body: "Personal + work + side project on Pilot. One Wingman for every inbox you actually live in.",
   },
   {
-    title: "Credit top-ups",
-    body: "Need a burst for a busy week? Buy a pack anytime (with an active plan). Top-up credits never expire.",
-  },
-  {
-    title: "Private by design",
-    body: "We store labels and metadata, not your email bodies. Tokens are encrypted at rest and your mail is never used to train AI models.",
+    title: "Pay for drafts, not triage",
+    body: "Unlimited triage is included. Credits only meter voice drafts, briefs, and Ask AI. No card for the 7-day trial.",
   },
 ];
 
@@ -151,20 +151,17 @@ export default async function LandingPage() {
             </span>
           </div>
           <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-zinc-900 sm:text-5xl">
-            Too many emails?
+            325 emails landed.
             <br />
-            <span className="text-teal-700">
-              Let Wingman sort them, draft your replies, and brief you every morning.
-            </span>
+            <span className="text-teal-700">8 actually needed you.</span>
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base text-zinc-600 sm:text-lg">
-            For technical founders drowning in CI alerts, GitHub noise, and newsletters —
-            with 8 emails that actually need a reply. Drafts sound like you. Nothing sends
-            without you.
+            Wingman sorts CI noise, newsletters, and bots — then drafts only the humans, in
+            your voice. Nothing moves or sends without you.
           </p>
           <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/80 px-3 py-1 text-xs font-medium text-zinc-600 shadow-sm backdrop-blur">
             <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
-            Built for people who live in Gmail
+            For technical founders who live in Gmail
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link
@@ -178,11 +175,11 @@ export default async function LandingPage() {
               href="#demo"
               className="text-sm font-medium text-zinc-600 hover:text-zinc-900"
             >
-              Watch it draft →
+              See the triage →
             </a>
           </div>
           <p className="mt-4 text-xs text-zinc-500">
-            Free for 7 days · Gmail only · Never sends without you
+            Free for 7 days · No credit card · Never sends without you
           </p>
         </div>
 
@@ -194,10 +191,11 @@ export default async function LandingPage() {
       <section id="features" className="border-t border-zinc-100 py-24">
         <div className="mx-auto max-w-5xl px-6">
           <h2 className="text-center text-3xl font-bold tracking-tight">
-            What Wingman does while you work
+            Built against the complaints others ignore
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-center text-zinc-600">
-            Triage bots without drafting them. Draft humans in your voice. Brief the incidents.
+            Auto-draft spam, moved mail, and a Drafts folder full of leftovers — the three
+            things technical founders hate most about AI email tools.
           </p>
           <div className="mt-14 grid gap-x-12 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f) => (
