@@ -78,11 +78,13 @@ export default async function BillingPage({
               ) : null}
             </p>
             <p className="mt-1 text-sm text-zinc-500">
-              {status === "trialing"
-                ? `${TRIAL_CREDITS} credits during your 7-day trial`
-                : plan
-                  ? `${plan.credits.toLocaleString("en-US")} AI credits / month`
-                  : "Pick a plan to unlock triage & drafts"}
+              {!billingOn
+                ? `${PLANS.wingman.credits.toLocaleString("en-US")} AI credits / month · full Wingman allowance`
+                : status === "trialing"
+                  ? `${TRIAL_CREDITS} credits during your 7-day trial`
+                  : plan
+                    ? `${plan.credits.toLocaleString("en-US")} AI credits / month`
+                    : "Pick a plan to unlock triage & drafts"}
             </p>
           </div>
           <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${copy.cls}`}>

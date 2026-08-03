@@ -148,9 +148,9 @@ export function isPlanId(value: unknown): value is PlanId {
 }
 
 export function maxAccountsFor(
-  plan: PlanId | "trial" | "dev" | "none",
+  plan: PlanId | "trial" | "early_access" | "none",
 ): number {
-  if (plan === "wingman" || plan === "dev") return PLANS.wingman.maxAccounts;
+  if (plan === "wingman" || plan === "early_access") return PLANS.wingman.maxAccounts;
   if (plan === "pilot" || plan === "trial") return PLANS.pilot.maxAccounts;
   return 1;
 }

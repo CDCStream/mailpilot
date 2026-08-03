@@ -23,7 +23,7 @@ export type CreditBalance = {
   /** Purchased top-up wallet (never expires) */
   bonusCredits: number;
   remaining: number;
-  plan: PlanId | "trial" | "dev" | "none";
+  plan: PlanId | "trial" | "early_access" | "none";
   planName: string;
 };
 
@@ -33,8 +33,12 @@ export async function resolveCreditLimit(userId: string): Promise<{
   planName: string;
 }> {
   if (!billingEnabled()) {
-    // Never surface env/internal names ("dev", "BILLING_ENABLED") to the UI.
-    return { limit: PLANS.wingman.credits, plan: "dev", planName: "Early access" };
+    // Never surface env/internal names ("BILLING_ENABLED") to the UI.
+    return {
+      limit: PLANS.wingman.credits,
+      plan: "early_access",
+      planName: "Early access",
+    };
   }
 
   const sub = await db.query.subscriptions.findFirst({

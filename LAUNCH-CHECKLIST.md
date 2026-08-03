@@ -132,8 +132,13 @@
 
 ## 1. Lansman blokerleri (bunlar bitmeden gerçek kullanıcı alamayız)
 
-- 🔄 **Google OAuth doğrulaması** — Başvuru 29 Tem'da gönderildi (branding + gmail.modify gerekçesi + demo video). Google'ın dönüş e-postası bekleniyor.
-  - ⬜ **CASA Tier 2 sertifikasyonu** — Google'ın yönlendirme e-postası gelince denetçi firma seçilecek (TAC Security en yaygını, ~500-750$/yıl). Tarama + öz değerlendirme anketi. Rozet sunumu için şablon: [Serif Security](https://www.serif.ai/security) (CASA T2 + SOC 2 T2).
+- 🔄 **Google OAuth doğrulaması** — Google 2 Ağu'da CASA istedi. Deadline: **31 Ekim 2026**. Tamamlanınca maile yanıt + Console'da güncelle.
+  - ⬜ **CASA AL1 (eski Tier 2)** — zorunlu; AL2 (Tier 3) Marketplace badge için opsiyonel, şimdilik gerek yok.
+    1. ⬜ TAC Security veya başka [ADA-authorized lab](https://appdefensealliance.dev/casa) ile iletişime geç (TAC = Google preferred, indirimli)
+    2. ⬜ Self-assessment / tarama sürecini başlat (tipik 2–6 hafta)
+    3. ⬜ Lab raporunu/onayını al
+    4. ⬜ Google'ın `[Action Needed]` mailine **reply** ile “CASA AL1 completed / in progress” teyidi
+    5. ⬜ Rozet sunumu: [Serif Security](https://www.serif.ai/security) modeli → `/security`
 - ⬜ **Paddle entegrasyonu** — CASA'ya geçerken paralel yapılacak.
   - ⬜ Sandbox hesabı aç (sandbox-login.paddle.com), API key + client token al
   - ⬜ Ürün/fiyatları API ile oluştur (Pilot, Wingman abonelikleri + kredi top-up)

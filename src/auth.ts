@@ -12,7 +12,9 @@ const GMAIL_SCOPES = [
 ].join(" ");
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt" },
+  // CASA 2.2.3: stateless (non-revocable) JWTs must expire within 24h.
+  // Active users get transparently refreshed tokens; only 24h idle forces re-login.
+  session: { strategy: "jwt", maxAge: 60 * 60 * 24 },
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
