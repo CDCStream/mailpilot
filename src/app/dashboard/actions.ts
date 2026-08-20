@@ -263,6 +263,7 @@ export async function writeDraftForMessage(formData: FormData) {
     subject: meta.subject,
     bodyExcerpt: meta.bodyExcerpt,
   });
+  if (!row.summary || row.category !== "to_respond") return;
   if (
     signal?.skipDraft ||
     shouldBlockDraft({

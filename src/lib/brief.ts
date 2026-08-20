@@ -12,6 +12,13 @@ import { buildBriefDigest, type BriefDigest } from "@/lib/ai";
 import { gmailThreadUrl } from "@/lib/gmail";
 import { sendEmail } from "@/lib/resend";
 import { consumeCredits } from "@/lib/usage";
+import { briefDateKey } from "@/lib/brief-date";
+import { filterObligationDeadlines } from "@/lib/deadlines";
+import {
+  isNeedsYouCategory,
+  NEEDS_YOU_WINDOW_LABEL,
+  sortNeedsYou,
+} from "@/lib/needs-you";
 
 const CATEGORY_TITLES: Record<Category, string> = {
   to_respond: "To Respond",
@@ -20,6 +27,8 @@ const CATEGORY_TITLES: Record<Category, string> = {
   marketing: "Marketing",
   notification: "Notifications",
   cold_email: "Cold Email",
+  money: "Money",
+  security: "Security",
 };
 
 const EMPTY_DIGEST: BriefDigest = {
@@ -96,7 +105,15 @@ export async function buildAndSendBrief(
     limit: 200,
   });
 
-  const needsResponse = recent.filter((m) => m.category === "to_respond");
+  const briefDate = briefDateKey(prefs.timezone);
+  const already = await db.query.briefs.findFirst({
+    where: and(eq(briefs.userId, userId), eq(briefs.briefDate, briefDate)),
+  });
+  if (already) return false;
+
+  const needsResponse = sortNeedsYou(
+    recent.filter((m) => isNeedsYouCategory(m.category) && m.summary),
+  );
   if (recent.length === 0) return false;
 
   const counts = new Map<string, number>();
@@ -108,6 +125,10 @@ export async function buildAndSendBrief(
   // One AI call covers the overview, newsletter takeaways, deadlines and logistics.
   let digest = EMPTY_DIGEST;
   if (await consumeCredits(userId, "brief")) {
+    const obligations = recent
+      .filter((m) => m.category === "money" || m.category === "security")
+      .slice(0, 25)
+      .map(briefLine);
     const correspondence = recent
       .filter((m) => m.category === "to_respond" || m.category === "fyi")
       .slice(0, 25)
@@ -124,8 +145,13 @@ export async function buildAndSendBrief(
       correspondence,
       newsletters,
       notifications,
+      obligations,
       summaryLanguage: prefs.summaryLanguage,
     });
+    digest = {
+      ...digest,
+      deadlines: filterObligationDeadlines(digest.deadlines),
+    };
   }
 
   const respondRows = needsResponse
@@ -210,7 +236,7 @@ export async function buildAndSendBrief(
           respondRows
             ? sectionCard({
                 emoji: "✉️",
-                title: `Needs your response (${needsResponse.length})`,
+                title: `Needs you (${needsResponse.length}) — ${NEEDS_YOU_WINDOW_LABEL}`,
                 accent: "#fff1f2",
                 accentText: "#be123c",
                 body: respondRows,
@@ -275,7 +301,12 @@ export async function buildAndSendBrief(
   const subject = `Your inbox brief — ${subjectParts.join(", ")}`;
   // Save first — the dashboard copy must survive even if email delivery fails
   // (e.g. Resend key missing or the provider is down).
-  await db.insert(briefs).values({ userId, subject, html });
+  const inserted = await db
+    .insert(briefs)
+    .values({ userId, subject, html, briefDate })
+    .onConflictDoNothing({ target: [briefs.userId, briefs.briefDate] })
+    .returning({ id: briefs.id });
+  if (inserted.length === 0) return false;
   try {
     await sendEmail({ to: user.email, subject, html });
   } catch (e) {

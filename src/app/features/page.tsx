@@ -12,7 +12,7 @@ const SECTIONS = [
   {
     id: "triage",
     title: "Smart triage",
-    body: "Every incoming message is classified the moment it lands and labeled inside Gmail: To Respond, FYI, Newsletter, Marketing, Notification, Cold Email. Optional auto-archive for low-priority noise.",
+    body: "Every incoming message is classified the moment it lands and labeled inside Gmail: To Respond, FYI, Newsletter, Marketing, Notification, Cold Email, Money, Security. Optional auto-archive for low-priority noise.",
   },
   {
     id: "drafts",

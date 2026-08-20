@@ -18,6 +18,8 @@ export const CATEGORY_BADGES: Record<Category, string> = {
   marketing: "bg-orange-100 text-orange-700",
   notification: "bg-sky-100 text-sky-700",
   cold_email: "bg-zinc-100 text-zinc-500",
+  money: "bg-emerald-100 text-emerald-800",
+  security: "bg-red-100 text-red-800",
 };
 
 export const CATEGORY_NAMES: Record<Category, string> = {
@@ -27,6 +29,8 @@ export const CATEGORY_NAMES: Record<Category, string> = {
   marketing: "Marketing",
   notification: "Notification",
   cold_email: "Cold Email",
+  money: "Money",
+  security: "Security",
 };
 
 export const CATEGORY_DOTS: Record<Category, string> = {
@@ -36,6 +40,8 @@ export const CATEGORY_DOTS: Record<Category, string> = {
   marketing: "bg-orange-500",
   notification: "bg-sky-500",
   cold_email: "bg-zinc-400",
+  money: "bg-emerald-600",
+  security: "bg-red-600",
 };
 
 /** "Jane Doe <jane@x.com>" -> "Jane Doe" (falls back to the address). */

@@ -36,6 +36,13 @@
       "when": 1785002000000,
       "tag": "0004_bonus_credits",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785003000000,
+      "tag": "0005_triage_qa",
+      "breakpoints": true
     }
   ]
 }

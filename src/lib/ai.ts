@@ -44,9 +44,11 @@ async function jsonCompletion<T>(
   user: string,
   schema: z.ZodType<T>,
 ): Promise<T> {
+  const reasoningModel = /^(gpt-5|o[1-9])/i.test(model);
   const res = await openaiClient().chat.completions.create({
     model,
     response_format: { type: "json_object" },
+    ...(reasoningModel ? {} : { temperature: 0 }),
     messages: [
       { role: "system", content: system },
       { role: "user", content: user },
@@ -62,24 +64,40 @@ const classificationSchema = z.object({
   category: z.enum(CATEGORIES),
   needs_reply: z.boolean(),
   urgent: z.boolean().catch(false),
-  summary: z.string(),
+  summary: z.string().nullable().catch(null),
 });
 
-export type Classification = z.infer<typeof classificationSchema>;
+export type Classification = {
+  category: Category;
+  needs_reply: boolean;
+  urgent: boolean;
+  /** Null when the model/body failed — never invent an "action needed" line. */
+  summary: string | null;
+};
 
 const CLASSIFY_SYSTEM = `You are an expert assistant triaging a technical founder's inbox (CI, GitHub, Sentry, SaaS alerts, plus real human mail).
 Classify the email into exactly one category:
-- "to_respond": a real person is asking the user something, expects a reply, or a human is waiting (e.g. GitHub review requested). NOT for pure bots.
+- "to_respond": a REAL PERSON is asking the user something and expects a written email reply, or a human is waiting (e.g. GitHub review requested). NEVER for no-reply@, notifications@, newsletters, promotions, invoices, or the user's own tools emailing them.
 - "fyi": relevant human correspondence that requires no reply (confirmations from known contacts, cc'd threads, status updates).
-- "newsletter": editorial content the user subscribed to (digests, publications, blogs).
-- "marketing": promotional email from companies (sales, offers, product announcements).
-- "notification": automated transactional messages (receipts, deploy/CI alerts, Sentry, calendar, shipping, security codes, invoices, LinkedIn invites).
+- "newsletter": editorial content the user subscribed to (digests, publications, blogs). Has informational takeaways. Example: "AlphaSignal <news@alphasignal.ai> — Today's AI briefing".
+- "marketing": promotional email — sales, discounts, course launches, webinars, product pitches. Platform instructor promos (Udemy, Coursera) are ALWAYS marketing, never notification or to_respond. Examples: Netflix "new shows", Adobe "50% off", Udemy "5 Days Only: Lowest Prices", Cambly "book now and save".
+- "notification": automated operational messages that are NOT money and NOT security (shipping, calendar, CI success, LinkedIn invites, "your export is ready").
+- "money": payments, failed charges, invoices, receipts, subscription renewals, payouts, card expiry. Sources: Stripe, Cursor, Ahrefs, Vercel billing, banks. Example: "Cursor — $100.36 payment was unsuccessful".
+- "security": 2FA/password/token changes, new device or security key, access-token expiry, provider security alerts. Example: "[npm] Two-factor authentication disabled", "Google — Güvenlik uyarısı".
 - "cold_email": unsolicited outreach from a stranger trying to sell or pitch something.
+
+Disambiguation (worked examples):
+- Udemy instructor "on SALE" / coupon / bundle → marketing (not notification, not to_respond).
+- Netflix / Adobe promo → marketing. Cambly / Udemy promo → marketing. Same intent, same label.
+- Morning briefing / editorial digest with no CTA to buy → newsletter.
+- "Payment unsuccessful" / invoice / renewal → money (outranks notification).
+- "2FA disabled" / "security key added" / "tokens expiring" → security (outranks notification).
+- A person wrote from a personal or company mailbox asking a question → to_respond.
 
 Also return:
 - "needs_reply": true ONLY when a human expects a written email reply. False for bots, noreply@, e-sign portals, ticket assignments, CI/Sentry alerts — even if the user must act in another app.
 - "urgent": true only when the email needs a reply AND is time-sensitive or high-stakes (deadline, waiting client/boss, deal at risk, explicit ASAP). Routine questions are not urgent.
-- "summary": one sentence describing the email.
+- "summary": one sentence describing the email. Never claim the user must act unless the body clearly says so. If the body is empty or you cannot summarize, return null.
 Respond with JSON: {"category": ..., "needs_reply": ..., "urgent": ..., "summary": ...}`;
 
 export async function classifyEmail(input: {
@@ -88,14 +106,24 @@ export async function classifyEmail(input: {
   subject: string;
   bodyExcerpt: string;
   summaryLanguage?: SummaryLanguage;
+  messageId?: string;
 }): Promise<Classification> {
   const system = CLASSIFY_SYSTEM + languageInstruction(input.summaryLanguage, 'the "summary"');
-  const user = `From: ${input.from}\nTo: ${input.to}\nSubject: ${input.subject}\n\nBody (excerpt):\n${input.bodyExcerpt.slice(0, 1500)}`;
+  const excerpt = input.bodyExcerpt.trim();
+  const user = `From: ${input.from}\nTo: ${input.to}\nSubject: ${input.subject}\n\nBody (excerpt):\n${excerpt.slice(0, 1500) || "(empty)"}`;
   try {
-    return await jsonCompletion(CLASSIFY_MODEL, system, user, classificationSchema);
-  } catch {
-    // Fail safe: keep the email visible rather than mis-filing it.
-    return { category: "fyi", needs_reply: false, urgent: false, summary: input.subject };
+    const result = await jsonCompletion(CLASSIFY_MODEL, system, user, classificationSchema);
+    const summary = result.summary?.trim() ? result.summary.trim() : null;
+    return { ...result, summary };
+  } catch (err) {
+    console.error("classifyEmail failed", {
+      messageId: input.messageId ?? null,
+      from: input.from,
+      subject: input.subject,
+      bodyEmpty: excerpt.length === 0,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return { category: "fyi", needs_reply: false, urgent: false, summary: null };
   }
 }
 
@@ -261,13 +289,13 @@ const briefDigestSchema = z.object({
 
 export type BriefDigest = z.infer<typeof briefDigestSchema>;
 
-const BRIEF_DIGEST_SYSTEM = `You compile a morning email briefing. You get three groups of inbox items (one-line each): CORRESPONDENCE (real people), NEWSLETTERS (editorial/marketing content), NOTIFICATIONS (automated/transactional).
+const BRIEF_DIGEST_SYSTEM = `You compile a morning email briefing. You get four groups of inbox items (one-line each): OBLIGATIONS (money + security), CORRESPONDENCE (real people), NEWSLETTERS (editorial/marketing), NOTIFICATIONS (other automated mail).
 
 Produce JSON with:
-- "overview": 2-4 plain-text bullet lines (each starting with "• ") summarizing what matters most in CORRESPONDENCE today. Empty string if nothing notable.
-- "newsletterHighlights": up to 5 short takeaways worth knowing from NEWSLETTERS, so the user doesn't have to open them (e.g. "TechCrunch: OpenAI released X"). Skip pure promotions with no informational value. Empty array if none.
-- "deadlines": concrete dates/deadlines/asks extracted from ANY group, phrased as actions with the date (e.g. "Reply to Sarah about the contract by Friday", "Invoice #123 payment due Jul 30"). Only include real, explicit time commitments. Empty array if none.
-- "logistics": bills, receipts, order and delivery updates from NOTIFICATIONS (e.g. "Amazon order arriving today", "Netflix charged $15.99"). Empty array if none.
+- "overview": 2-4 plain-text bullet lines (each starting with "• ") summarizing what matters most. Lead with OBLIGATIONS (failed payments, security events), then CORRESPONDENCE. Never mention Inbox Wingman's own brief emails. Empty string if nothing notable.
+- "newsletterHighlights": up to 5 short takeaways from NEWSLETTERS. Sales, webinars, surveys, and free-trial countdowns belong HERE, not in deadlines. Empty array if none.
+- "deadlines": ONLY dates where the user faces a consequence — money moves, access is lost, a service degrades, or a person is waiting. Examples that QUALIFY: failed payment, token/2FA expiry, subscription renewal they must act on, a human's deadline. Examples that do NOT qualify: a sale ending, a webinar, a survey, a workshop, a BOGO code, "free access ends". Empty array if none.
+- "logistics": bills, receipts, order and delivery updates (e.g. "Amazon order arriving today", "Ahrefs renews Aug 26, Visa 1942"). Empty array if none.
 
 Rules: plain text only, no markdown. Never invent items. Keep every line under 140 characters.`;
 
@@ -275,6 +303,7 @@ export async function buildBriefDigest(input: {
   correspondence: string[];
   newsletters: string[];
   notifications: string[];
+  obligations?: string[];
   summaryLanguage?: SummaryLanguage;
 }): Promise<BriefDigest> {
   // "auto" makes no sense for a digest spanning many emails; fall back to English.
@@ -283,6 +312,7 @@ export async function buildBriefDigest(input: {
   const section = (title: string, items: string[]) =>
     `${title}:\n${items.length ? items.join("\n") : "(none)"}`;
   const user = [
+    section("OBLIGATIONS", (input.obligations ?? []).slice(0, 25)),
     section("CORRESPONDENCE", input.correspondence.slice(0, 25)),
     section("NEWSLETTERS", input.newsletters.slice(0, 25)),
     section("NOTIFICATIONS", input.notifications.slice(0, 25)),

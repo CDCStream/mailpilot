@@ -6,6 +6,11 @@ import { CATEGORY_NAMES } from "@/app/dashboard/categories";
 import { askInbox } from "@/lib/ai";
 import type { Category } from "@/lib/db";
 import { consumeCredits } from "@/lib/usage";
+import {
+  isNeedsYouCategory,
+  NEEDS_YOU_WINDOW_LABEL,
+  needsYouSince,
+} from "@/lib/needs-you";
 
 /** How many past turns feed the model as conversation memory. */
 const MEMORY_TURNS = 12;
@@ -48,8 +53,15 @@ export async function POST(req: Request) {
   const recent = await db.query.messages.findMany({
     where: and(inArray(messages.accountId, accountIds), gte(messages.receivedAt, since)),
     orderBy: [desc(messages.receivedAt)],
-    limit: 150,
+    limit: 80,
   });
+  const needsYouCount = recent.filter(
+    (m) =>
+      isNeedsYouCategory(m.category as Category) &&
+      m.summary &&
+      m.receivedAt &&
+      m.receivedAt >= needsYouSince(),
+  ).length;
 
   if (!(await consumeCredits(userId, "ask"))) {
     return NextResponse.json(
@@ -73,7 +85,11 @@ export async function POST(req: Request) {
 
   const answer = await askInbox({
     question,
-    context: lines.join("\n") || "(no recent inbox data)",
+    context: [
+      `Canonical "needs you" count: ${needsYouCount} (${NEEDS_YOU_WINDOW_LABEL}; Money + Security + To Respond with a real summary). If the user asks how many emails need them, use this number and state the window.`,
+      `Retrieval window for other questions: last 14 days, ${recent.length} rows (not the full mailbox).`,
+      lines.join("\n") || "(no recent inbox data)",
+    ].join("\n"),
     history,
   });
 

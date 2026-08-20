@@ -9,6 +9,8 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   marketing: "Wingman/Marketing",
   notification: "Wingman/Notification",
   cold_email: "Wingman/Cold Email",
+  money: "Wingman/Money",
+  security: "Wingman/Security",
 };
 
 export function getGmailClient(encryptedRefreshToken: string): gmail_v1.Gmail {
@@ -59,6 +61,9 @@ export type GmailMessageMeta = {
   references: string;
   /** Present on bulk / marketing / most automated mail — never draft these. */
   listUnsubscribe: string;
+  listId: string;
+  autoSubmitted: string;
+  precedence: string;
   labelIds: string[];
   isFromMe: boolean;
 };
@@ -221,6 +226,9 @@ export async function getMessageMeta(
       messageIdHeader: header(data.payload, "Message-ID"),
       references: header(data.payload, "References"),
       listUnsubscribe: header(data.payload, "List-Unsubscribe"),
+      listId: header(data.payload, "List-Id"),
+      autoSubmitted: header(data.payload, "Auto-Submitted"),
+      precedence: header(data.payload, "Precedence"),
       labelIds: data.labelIds ?? [],
       isFromMe: fromEmail === selfEmail.toLowerCase(),
     };

@@ -95,6 +95,7 @@ export function InboxChat({
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stage, setStage] = useState("Reading recent mail…");
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -108,6 +109,13 @@ export function InboxChat({
     setInput("");
     setTurns((prev) => [...prev, { role: "user", content: q }]);
     setBusy(true);
+    setStage("Reading recent mail…");
+    const stages = ["Reading recent mail…", "Finding matches…", "Writing an answer…"];
+    let i = 0;
+    const timer = window.setInterval(() => {
+      i = Math.min(i + 1, stages.length - 1);
+      setStage(stages[i]);
+    }, 2500);
     try {
       const res = await fetch("/api/ask", {
         method: "POST",
@@ -132,6 +140,7 @@ export function InboxChat({
       setTurns((prev) => prev.slice(0, -1));
       setInput(q);
     } finally {
+      window.clearInterval(timer);
       setBusy(false);
     }
   }
@@ -148,8 +157,8 @@ export function InboxChat({
             </span>
             <p className="mt-4 text-sm font-medium text-zinc-900">Ask anything about your inbox</p>
             <p className="mt-1 max-w-sm text-xs text-zinc-500">
-              Wingman answers from your triaged mail of the last 14 days — senders, subjects,
-              summaries and drafts.
+              Wingman answers from recent triaged mail (last 14 days). &quot;Needs you&quot;
+              counts use the last 24 hours.
             </p>
             <div className="mt-5 flex flex-wrap justify-center gap-2">
               {SUGGESTIONS.map((s) => (
@@ -185,7 +194,7 @@ export function InboxChat({
         {busy && (
           <div className="flex justify-start">
             <p className="rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2.5 text-sm text-zinc-400">
-              Thinking…
+              {stage}
             </p>
           </div>
         )}

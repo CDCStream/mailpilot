@@ -17,6 +17,8 @@ const CUSTOM_ARCHIVE_OPTIONS: { id: Category; label: string }[] = [
   { id: "notification", label: "Notifications" },
   { id: "cold_email", label: "Cold email" },
   { id: "fyi", label: "FYI" },
+  { id: "money", label: "Money" },
+  { id: "security", label: "Security" },
 ];
 import { maxAccountsFor } from "@/lib/plans";
 import { resolveCreditLimit } from "@/lib/usage";
@@ -279,6 +281,10 @@ export default async function SettingsPage({
           </label>
           <label className="mt-4 block text-sm">
             <span className="mb-1 block text-zinc-600">Extra tone instructions (optional)</span>
+            <span className="mb-2 block text-xs text-zinc-500">
+              Used only when you don&apos;t have a voice profile yet. Once AI Training builds a
+              profile from your sent mail, that profile wins over any Warm/Direct preset here.
+            </span>
             <textarea
               name="toneInstructions"
               defaultValue={prefs.toneInstructions}

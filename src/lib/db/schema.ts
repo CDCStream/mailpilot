@@ -17,6 +17,8 @@ export const CATEGORIES = [
   "marketing",
   "notification",
   "cold_email",
+  "money",
+  "security",
 ] as const;
 export type Category = (typeof CATEGORIES)[number];
 
@@ -32,7 +34,7 @@ export type VoiceProfile = {
 
 /**
  * What stays in the inbox after labeling:
- * focus = only To Respond + FYI stay; quiet = junk archived, notifications stay;
+ * focus = To Respond + FYI + Money + Security stay; quiet = junk archived;
  * label_only = nothing is moved; custom = user picks categories per toggle.
  */
 export type InboxMode = "focus" | "quiet" | "label_only" | "custom";
@@ -258,15 +260,37 @@ export const chatThreads = pgTable("chat_threads", {
 });
 
 /** Sent daily briefs, stored so the user can re-read them in the dashboard. */
-export const briefs = pgTable("briefs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  subject: text("subject").notNull(),
-  html: text("html").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const briefs = pgTable(
+  "briefs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    subject: text("subject").notNull(),
+    html: text("html").notNull(),
+    /** Local calendar date (YYYY-MM-DD) — unique with userId so the cron is idempotent. */
+    briefDate: text("brief_date"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("briefs_user_date_idx").on(t.userId, t.briefDate)],
+);
+
+/** Last known triage category per sender domain; user recategorizes pin the value. */
+export const senderCategoryCache = pgTable(
+  "sender_category_cache",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    senderDomain: text("sender_domain").notNull(),
+    category: text("category").$type<Category>().notNull(),
+    userOverride: boolean("user_override").notNull().default(false),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("sender_category_cache_user_domain_idx").on(t.userId, t.senderDomain)],
+);
 
 export const subscriptions = pgTable("subscriptions", {
   id: uuid("id").primaryKey().defaultRandom(),

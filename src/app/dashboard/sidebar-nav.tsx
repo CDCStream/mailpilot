@@ -38,7 +38,7 @@ function isActive(pathname: string, href: string): boolean {
 export function SidebarNav() {
   const pathname = usePathname();
   return (
-    <nav className="mt-8 flex-1 space-y-7 overflow-y-auto">
+    <nav className="mt-8 min-h-0 flex-1 space-y-7 overflow-y-auto">
       {GROUPS.map((group) => (
         <div key={group.title}>
           <p className="px-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">

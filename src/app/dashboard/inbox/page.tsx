@@ -27,6 +27,7 @@ import { BackfillBanner } from "../backfill-banner";
 import { SenderAvatar } from "../sender-avatar";
 import { SubmitButton } from "../submit-button";
 import { ImportOlderButton } from "./import-button";
+import { InboxVirtualList, type InboxListRow } from "./inbox-list";
 
 const PAGE_SIZE = 80;
 const MAX_LIMIT = 1000;
@@ -54,21 +55,6 @@ function inboxHref(filters: Filters, selected?: string): string {
 function initialOf(from: string): string {
   const c = from.trim().charAt(0).toUpperCase();
   return /[A-Z0-9ĞÜŞİÖÇ]/.test(c) ? c : "@";
-}
-
-/** Paints occurrences of the search term yellow, like every mail client does. */
-function highlight(text: string, term: string): ReactNode {
-  if (!term) return text;
-  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return text.split(new RegExp(`(${escaped})`, "gi")).map((part, i) =>
-    part.toLowerCase() === term.toLowerCase() ? (
-      <mark key={i} className="rounded-sm bg-yellow-200 px-0.5 text-inherit">
-        {part}
-      </mark>
-    ) : (
-      part
-    ),
-  );
 }
 
 /** Turns bare URLs in plain-text email bodies into clickable links. */
@@ -267,7 +253,7 @@ export default async function InboxPage({
     <div className="flex min-h-dvh flex-col bg-white lg:h-dvh lg:flex-row lg:overflow-hidden">
       {/* ---- List column ---- */}
       <div
-        className={`w-full flex-col border-zinc-100 lg:flex lg:w-[400px] lg:shrink-0 lg:border-r ${
+        className={`w-full min-h-0 flex-col border-zinc-100 lg:flex lg:h-full lg:w-[400px] lg:shrink-0 lg:border-r ${
           selected ? "hidden" : "flex"
         }`}
       >
@@ -281,6 +267,7 @@ export default async function InboxPage({
             <h1 className="text-xl font-bold tracking-tight">Inbox</h1>
             <span className="text-xs tabular-nums text-zinc-400">
               {totalCount} email{totalCount === 1 ? "" : "s"}
+              {category === "to_respond" ? " · all time" : ""}
             </span>
           </div>
 
@@ -298,6 +285,9 @@ export default async function InboxPage({
                 className={chip(category === c)}
               >
                 {CATEGORY_NAMES[c]}
+                {c === "to_respond" ? (
+                  <span className="ml-1 font-normal opacity-70">· all time</span>
+                ) : null}
               </Link>
             ))}
             <Link
@@ -354,7 +344,9 @@ export default async function InboxPage({
 
           <div className="mt-3 flex items-center justify-between gap-3">
             <ImportOlderButton />
-            <span className="shrink-0 text-[10px] text-zinc-400">max 300 · 1 credit each</span>
+            <span className="shrink-0 text-[10px] text-zinc-400">
+              max 300 · triage free
+            </span>
           </div>
         </div>
 
@@ -372,88 +364,41 @@ export default async function InboxPage({
             </p>
           </div>
         ) : (
-          <ul className="flex-1 divide-y divide-zinc-50 overflow-y-auto">
-            {visible.map((m) => {
-              const isSelected = m.id === selectedId;
+          <InboxVirtualList
+            rows={visible.map((m): InboxListRow => {
               const from = displayFrom(m.fromAddress);
-              return (
-                <li key={m.id}>
-                  <Link
-                    href={inboxHref(filters, m.id)}
-                    scroll={false}
-                    className={`flex gap-3 border-l-[3px] px-4 py-3 transition ${
-                      isSelected
-                        ? "border-teal-600 bg-teal-50/60"
-                        : "border-transparent hover:bg-zinc-50"
-                    }`}
-                  >
-                    <span className="mt-0.5">
-                      <SenderAvatar
-                        domain={senderDomain(m.fromAddress)}
-                        initial={initialOf(from)}
-                        colorClass={m.category ? CATEGORY_DOTS[m.category] : "bg-zinc-300"}
-                      />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-baseline justify-between gap-3">
-                        <span className="truncate text-sm font-semibold text-zinc-900">
-                          {highlight(from, fromFilter)}
-                        </span>
-                        <span className="shrink-0 text-[11px] text-zinc-400">
-                          {m.receivedAt?.toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          }) ?? ""}
-                        </span>
-                      </span>
-                      <span className="mt-0.5 block truncate text-[13px] text-zinc-600">
-                        {highlight(m.subject || "(no subject)", q)}
-                      </span>
-                      {q && m.snippet && (
-                        <span className="mt-0.5 line-clamp-2 block text-xs text-zinc-500">
-                          {highlight(m.snippet, q)}
-                        </span>
-                      )}
-                      <span className="mt-1.5 flex items-center gap-1.5">
-                        {m.category ? (
-                          <span
-                            className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${CATEGORY_BADGES[m.category]}`}
-                          >
-                            {CATEGORY_NAMES[m.category]}
-                          </span>
-                        ) : (
-                          <span className="rounded-md bg-zinc-50 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-400">
-                            processing
-                          </span>
-                        )}
-                        {m.actions?.draftCreated && (
-                          <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                            draft
-                          </span>
-                        )}
-                        {m.actions?.archived && (
-                          <span className="text-[10px] uppercase tracking-wide text-zinc-400">
-                            archived
-                          </span>
-                        )}
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              );
+              return {
+                id: m.id,
+                href: inboxHref(filters, m.id),
+                from,
+                subject: m.subject || "(no subject)",
+                snippet: m.snippet,
+                dateLabel:
+                  m.receivedAt?.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  }) ?? "",
+                category: m.category,
+                draft: Boolean(m.actions?.draftCreated),
+                archived: Boolean(m.actions?.archived),
+                domain: senderDomain(m.fromAddress),
+                initial: initialOf(from),
+              };
             })}
-            {totalCount > limit && limit < MAX_LIMIT && (
-              <li>
-                <Link
-                  href={inboxHref({ ...filters, limit: limit + PAGE_SIZE }, selectedId ?? undefined)}
-                  scroll={false}
-                  className="block px-4 py-3 text-center text-xs font-medium text-teal-700 hover:bg-teal-50/60"
-                >
-                  Show {Math.min(PAGE_SIZE, totalCount - limit)} more
-                </Link>
-              </li>
-            )}
-          </ul>
+            selectedId={selectedId}
+            fromFilter={fromFilter}
+            q={q}
+            moreHref={
+              totalCount > limit && limit < MAX_LIMIT
+                ? inboxHref({ ...filters, limit: limit + PAGE_SIZE }, selectedId ?? undefined)
+                : undefined
+            }
+            moreLabel={
+              totalCount > limit && limit < MAX_LIMIT
+                ? `Show ${Math.min(PAGE_SIZE, totalCount - limit)} more`
+                : undefined
+            }
+          />
         )}
       </div>
 
@@ -519,6 +464,11 @@ export default async function InboxPage({
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto px-6 py-6 lg:px-10">
+              {!selectedSummary && (
+                <div className="mb-4 rounded-2xl border border-zinc-200 bg-zinc-50 px-5 py-3 text-sm text-zinc-500">
+                  Summary unavailable
+                </div>
+              )}
               {selectedSummary && (
                 <div className="rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4">
                   <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-sky-700">

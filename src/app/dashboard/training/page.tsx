@@ -38,7 +38,8 @@ export default async function TrainingPage({
       <section className="rounded-2xl border border-zinc-200 p-6">
         <h2 className="font-semibold">Your voice profile</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Built from your sent mail; drafts are written against this profile.
+          Built from your sent mail. This profile always wins over the tone preset in
+          Settings — drafts follow the greeting, sign-off, and tone learned here.
         </p>
         {voice ? (
           <dl className="mt-4 space-y-2 text-sm">

@@ -13,6 +13,9 @@ import {
 import { applyLabels, createReplyDraft, getMessageMeta } from "@/lib/gmail";
 import { classifyEmail, generateReplyDraft } from "@/lib/ai";
 import { detectDevNotification, shouldBlockDraft } from "@/lib/dev-notifications";
+import { evaluateBotGate, isOwnAppSender } from "@/lib/bot-gate";
+import { clampCategory, preClassify } from "@/lib/pre-classify";
+import { cachedSenderCategory, rememberSenderCategory } from "@/lib/sender-cache";
 import { applyRules } from "@/lib/rules-engine";
 import { consumeCredits, underTriageFairUse } from "@/lib/usage";
 
@@ -54,6 +57,9 @@ export async function processInboxMessage(
   const meta = await getMessageMeta(ctx.gmail, messageId, ctx.account.email);
   if (!meta) return { status: "skipped", reason: "message gone" };
   if (meta.isFromMe) return { status: "skipped", reason: "own message" };
+  if (isOwnAppSender(meta.fromEmail)) {
+    return { status: "skipped", reason: "own-domain" };
+  }
 
   // "Respect my categories": if the user (or their own filters) already applied a
   // personal label to this message, we still import + classify it so it shows up
@@ -88,6 +94,35 @@ export async function processInboxMessage(
     await consumeCredits(ctx.user.id, "triage"); // no-op at cost 0; keeps metering hook
   }
 
+  const gate = evaluateBotGate({
+    from: meta.from,
+    fromEmail: meta.fromEmail,
+    subject: meta.subject,
+    bodyExcerpt: meta.bodyExcerpt,
+    headers: {
+      listUnsubscribe: meta.listUnsubscribe,
+      listId: meta.listId,
+      autoSubmitted: meta.autoSubmitted,
+      precedence: meta.precedence,
+    },
+  });
+  if (gate.skipIngest) return { status: "skipped", reason: gate.reason };
+
+  const pre = preClassify({
+    from: meta.from,
+    fromEmail: meta.fromEmail,
+    subject: meta.subject,
+    bodyExcerpt: meta.bodyExcerpt,
+    headers: {
+      listUnsubscribe: meta.listUnsubscribe,
+      listId: meta.listId,
+      autoSubmitted: meta.autoSubmitted,
+      precedence: meta.precedence,
+    },
+  });
+
+  const cached = await cachedSenderCategory(ctx.user.id, meta.fromEmail);
+
   const devSignal = detectDevNotification({
     from: meta.from,
     fromEmail: meta.fromEmail,
@@ -97,10 +132,10 @@ export async function processInboxMessage(
 
   // Silent bots (Dependabot etc.): archive + label without spending an LLM call.
   let classification = {
-    category: (devSignal?.category ?? "fyi") as Category,
+    category: (pre.category ?? cached ?? devSignal?.category ?? "fyi") as Category,
     needs_reply: false,
     urgent: false,
-    summary: devSignal?.summaryHint ?? meta.subject,
+    summary: (devSignal?.summaryHint ?? null) as string | null,
   };
 
   if (devSignal?.kind !== "silent_archive") {
@@ -110,24 +145,32 @@ export async function processInboxMessage(
       subject: meta.subject,
       bodyExcerpt: meta.bodyExcerpt,
       summaryLanguage: prefs.summaryLanguage,
+      messageId: meta.id,
     });
-    if (devSignal?.category) classification.category = devSignal.category;
-    if (devSignal?.summaryHint) classification.summary = devSignal.summaryHint;
-    if (devSignal?.kind === "human_reply") {
+    if (pre.skipLlmCategory && pre.category) classification.category = pre.category;
+    else if (cached) classification.category = cached;
+    if (devSignal?.category && !pre.category && !cached) {
+      classification.category = devSignal.category;
+    }
+    if (devSignal?.kind === "human_reply" && !pre.neverToRespond && classification.summary) {
       classification.needs_reply = true;
       classification.category = "to_respond";
     }
-    if (
-      devSignal?.kind === "action_no_draft" ||
-      devSignal?.kind === "deadline_no_draft"
-    ) {
-      classification.needs_reply = false; // action item, not a prose reply
+    if (devSignal?.kind === "action_no_draft" && !pre.neverToRespond && classification.summary) {
+      classification.needs_reply = false;
       classification.category = "to_respond";
     }
     if (devSignal?.kind === "incident" || devSignal?.kind === "noreply_no_draft") {
       classification.needs_reply = false;
     }
   }
+
+  classification.category = clampCategory({
+    category: classification.category,
+    summary: classification.summary,
+    gate: pre,
+  });
+  if (pre.neverToRespond) classification.needs_reply = false;
 
   const outcome = applyRules(ctx.rules, {
     fromEmail: meta.fromEmail,
@@ -138,7 +181,14 @@ export async function processInboxMessage(
 
   if (devSignal?.forceArchive) outcome.forceArchive = true;
   if (devSignal?.skipDraft) outcome.skipDraft = true;
-  if (devSignal?.category) outcome.category = devSignal.category;
+  if (pre.category) outcome.category = pre.category;
+  else if (cached) outcome.category = cached;
+  else if (devSignal?.category && !pre.neverToRespond) outcome.category = devSignal.category;
+  outcome.category = clampCategory({
+    category: outcome.category,
+    summary: classification.summary,
+    gate: pre,
+  });
 
   // --- Apply Gmail label operations (skipped when respecting a user label) ---
   const labelMap = ctx.account.labelMap ?? {};
@@ -173,13 +223,23 @@ export async function processInboxMessage(
     }) ||
     Boolean(devSignal?.skipDraft) ||
     outcome.skipDraft;
-  const wantsDraft =
-    outcome.category === "to_respond" &&
-    classification.needs_reply &&
-    prefs.draftsEnabled &&
-    !blockedDraft &&
-    draftStyle !== "manual" &&
-    (draftStyle === "everything" || classification.urgent);
+  const draftReasons: string[] = [];
+  if (outcome.category !== "to_respond") draftReasons.push(`category=${outcome.category}`);
+  if (!classification.needs_reply) draftReasons.push("needs_reply=false");
+  if (!classification.summary) draftReasons.push("summary=null");
+  if (!prefs.draftsEnabled) draftReasons.push("drafts_disabled");
+  if (blockedDraft) draftReasons.push("blocked_gate");
+  if (draftStyle === "manual") draftReasons.push("style=manual");
+  if (draftStyle === "important_only" && !classification.urgent) {
+    draftReasons.push("important_only_not_urgent");
+  }
+  const wantsDraft = draftReasons.length === 0;
+  console.info("draft-gate", {
+    messageId: meta.id,
+    from: meta.fromEmail,
+    allowed: wantsDraft,
+    reason: wantsDraft ? "eligible" : draftReasons.join(","),
+  });
 
   if (wantsDraft && (opts.free || (await consumeCredits(ctx.user.id, "draft")))) {
     try {
@@ -191,7 +251,7 @@ export async function processInboxMessage(
         from: meta.from,
         subject: meta.subject,
         bodyExcerpt: meta.bodyExcerpt,
-        summary: classification.summary,
+        summary: classification.summary ?? "",
       });
       if (body) {
         draftId = await createReplyDraft(ctx.gmail, {
@@ -225,6 +285,8 @@ export async function processInboxMessage(
       },
     })
     .where(eq(messages.id, rowId));
+
+  await rememberSenderCategory(ctx.user.id, meta.fromEmail, outcome.category);
 
   return { status: "processed", category: outcome.category, draftCreated: Boolean(draftId) };
 }

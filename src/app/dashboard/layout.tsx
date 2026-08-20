@@ -66,7 +66,7 @@ export default async function DashboardLayout({
         </Link>
         <div className="mt-6">{switcher}</div>
         <SidebarNav />
-        <div className="border-t border-zinc-200 px-3 pt-5">
+        <div className="shrink-0 border-t border-zinc-200 px-3 pt-5">
           <p className="truncate text-sm text-zinc-400">{session.user.email}</p>
           <div className="mt-2">{signOutForm}</div>
         </div>

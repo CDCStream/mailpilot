@@ -34,18 +34,29 @@ export default async function DraftsPage() {
   // Reply-worthy mail from the last 14 days that doesn't have a draft yet.
   const since = new Date();
   since.setDate(since.getDate() - 14);
-  const candidates = accountIds.length
+  const candidateRows = accountIds.length
     ? await db.query.messages.findMany({
         where: and(
           inArray(messages.accountId, accountIds),
           eq(messages.category, "to_respond"),
+          isNotNull(messages.summary),
           isNull(messages.draftId),
-          gte(messages.createdAt, since),
+          gte(messages.receivedAt, since),
         ),
         orderBy: [desc(messages.receivedAt)],
-        limit: 25,
+        limit: 80,
       })
     : [];
+  const seenThreads = new Set<string>();
+  const candidates = candidateRows.filter((m) => {
+    if (seenThreads.has(m.threadId)) return false;
+    seenThreads.add(m.threadId);
+    return true;
+  }).slice(0, 25);
+  const threadCounts = new Map<string, number>();
+  for (const m of candidateRows) {
+    threadCounts.set(m.threadId, (threadCounts.get(m.threadId) ?? 0) + 1);
+  }
 
   return (
     <div className="w-full px-6 py-10 lg:px-10">
@@ -59,7 +70,8 @@ export default async function DraftsPage() {
       <section>
         <h2 className="text-lg font-semibold">Waiting for a draft</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          &quot;To Respond&quot; emails from the last 14 days without a draft yet.
+          Reply-worthy threads from the last 14 days without a draft yet. Same Gmail
+          thread is listed once.
         </p>
         {candidates.length === 0 ? (
           <p className="mt-4 rounded-xl border border-dashed border-zinc-200 p-6 text-center text-sm text-zinc-500">
@@ -82,6 +94,9 @@ export default async function DraftsPage() {
                     {m.subject || "(no subject)"}
                   </span>
                   <span className="block truncate text-xs text-zinc-400">
+                    {(threadCounts.get(m.threadId) ?? 1) > 1
+                      ? `${threadCounts.get(m.threadId)} messages · `
+                      : ""}
                     {m.summary ?? m.snippet ?? ""}
                   </span>
                 </a>

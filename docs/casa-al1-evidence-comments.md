@@ -190,16 +190,59 @@ Stack: Next.js on Vercel, NextAuth (Google OAuth only), PostgreSQL (Supabase), A
 
 ---
 
-## Screenshot checklist (who takes what)
+## Upload map (48 req → file)
 
-| File idea | Who | Used for |
-|-----------|-----|----------|
-| Login page — Google only | Agent / you | 1.1.1, 1.2.1 |
-| Privacy or Security — token encryption | Agent / you | 1.1.3, 6.7.1 |
-| Homepage HTTPS padlock | You (browser chrome) | 4.1.1, 4.1.2 |
-| Cookies Secure + HttpOnly | You (logged in DevTools) | 2.3.1, 2.3.2 |
-| Sign out in dashboard | You (logged in) | 2.2.1 |
-| GCP OAuth redirect URIs | You (Cloud Console) | 3.2.2 |
-| After logout cookies cleared | You | 6.6.1 |
+Folder: `docs/casa-evidence-screenshots/` (gitignored). One uniquely named PNG per requirement.
+
+| Req | Upload file |
+|-----|-------------|
+| 1.1.1 | `casa-1.1.1-login-google-only.png` |
+| 1.1.2 | `casa-1.1.2-no-local-passwords-login.png` |
+| 1.1.3 | `casa-1.1.3-security-aes-gcm.png` |
+| 1.2.1 | `casa-1.2.1-no-default-credentials-login.png` |
+| 1.3.1 | `casa-1.3.1-no-app-oob-login.png` |
+| 1.3.2 | `casa-1.3.2-no-app-oob-login.png` |
+| 1.3.3 | `casa-1.3.3-no-app-oob-login.png` |
+| 1.3.4 | `casa-1.3.4-no-app-oob-login.png` |
+| 2.1.1 | `casa-2.1.1-session-jwt-cookies-not-url.png` |
+| 2.2.1 | `casa-2.2.1-dashboard-sign-out.png` |
+| 2.2.2 | `casa-2.2.2-no-local-password-reset-login.png` |
+| 2.2.3 | `casa-2.2.3-jwt-maxage-24h.png` |
+| 2.3.1 | `casa-2.3.1-cookies-secure-httponly.png` (+ optional `casa-2.3.1-set-cookie-headers.png` / `.txt`) |
+| 2.3.2 | `casa-2.3.2-cookies-httponly.png` |
+| 2.3.3 | `casa-2.3.3-session-cookie-not-static-api-secret.png` |
+| 2.3.4 | `casa-2.3.4-jwe-auth-secret-integrity.png` |
+| 2.4.1 | `casa-2.4.1-settings-delete-account-ui.png` (+ code: `casa-2.4.1-delete-account-email-confirm.png`) |
+| 3.1.1 | `casa-3.1.1-least-privilege-scopes.png` |
+| 3.1.2 | `casa-3.1.2-server-session-identity.png` |
+| 3.1.3 | `casa-3.1.3-fail-secure-unauthorized.png` |
+| 3.1.4 | `casa-3.1.4-idor-userId-filter.png` |
+| 3.1.5 | `casa-3.1.5-server-actions-csrf.png` |
+| 3.1.6 | `casa-3.1.6-directory-listing-disabled.png` |
+| 3.2.1 | `casa-3.2.1-oauth-auth-code-flow.png` |
+| 3.2.2 | `casa-3.2.2-gcp-oauth-redirect-uris.png` |
+| 3.3.1 | `casa-3.3.1-no-admin-console-login.png` |
+| 4.1.1 | `casa-4.1.1-https-homepage.png` (+ `casa-4.1.1-4.1.2-ssl-labs.png`) |
+| 4.1.2 | `casa-4.1.2-tls-certificate.png` (+ SSL Labs / checker) |
+| 4.1.3 | `casa-4.1.3-aes-256-gcm.png` |
+| 4.1.4 | `casa-4.1.4-aes-gcm-fail-secure.png` |
+| 5.1.1 | `casa-5.1.1-typed-params-formdata.png` |
+| 5.1.2 | `casa-5.1.2-redirect-allowlisted.png` |
+| 5.1.3 | `casa-5.1.3-no-eval-dynamic-code.png` |
+| 5.1.4 | `casa-5.1.4-react-default-escaping.png` |
+| 5.1.5 | `casa-5.1.5-ssrf-allowlisted-outbound.png` |
+| 5.1.6 | `casa-5.1.6-no-xpath-xml-login.png` |
+| 5.1.7 | `casa-5.1.7-securityheaders-scan.png` (+ `casa-5.1.7-csp-security-headers-code.png`) |
+| 5.1.8 | `casa-5.1.8-drizzle-parameterized.png` |
+| 5.1.9 | `casa-5.1.9-no-os-command-injection.png` |
+| 5.1.10 | `casa-5.1.10-no-lfi-rfi.png` |
+| 5.2.1 | `casa-5.2.1-no-general-file-upload.png` |
+| 6.1.1 | `casa-6.1.1-npm-audit.png` (+ `.txt`) |
+| 6.2.1 | `casa-6.2.1-no-debug-billing-early-access.png` |
+| 6.3.1 | `casa-6.3.1-session-not-origin-authz.png` |
+| 6.4.1 | `casa-6.4.1-dns-vercel-active.png` |
+| 6.5.1 | `casa-6.5.1-encrypt-refresh-token-no-log.png` |
+| 6.6.1 | `casa-6.6.1-after-logout-login-redirect.png` (+ `casa-6.6.1-session-null-after-logout.png`) |
+| 6.7.1 | `casa-6.7.1-security-aes-gcm.png` (+ privacy / crypto code PNGs) |
 
 Do **not** upload screenshots that show live secrets, `.env`, or raw tokens.

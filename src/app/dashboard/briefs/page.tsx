@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull } from "drizzle-orm";
 import { auth } from "@/auth";
 import {
   db,
@@ -11,6 +11,7 @@ import {
 import { CREDIT_COSTS } from "@/lib/plans";
 import { sendBriefNow, updateBriefHour } from "../actions";
 import { GenerateBriefButton } from "./generate-button";
+import { NEEDS_YOU_WINDOW_LABEL, needsYouSince } from "@/lib/needs-you";
 
 /** 6am–11pm, like a sensible send-time range. */
 const HOUR_OPTIONS = Array.from({ length: 18 }, (_, i) => i + 6);
@@ -34,16 +35,14 @@ export default async function BriefsPage() {
   });
   const accountIds = accounts.map((a) => a.id);
 
-  // Emails currently waiting on a reply (last 7 days).
-  const since = new Date();
-  since.setDate(since.getDate() - 7);
   const waiting = accountIds.length
     ? (
         await db.query.messages.findMany({
           where: and(
             inArray(messages.accountId, accountIds),
-            eq(messages.category, "to_respond"),
-            gte(messages.createdAt, since),
+            gte(messages.receivedAt, needsYouSince()),
+            isNotNull(messages.summary),
+            inArray(messages.category, ["money", "security", "to_respond"]),
           ),
           columns: { id: true },
         })
@@ -85,7 +84,7 @@ export default async function BriefsPage() {
         {/* Left: latest brief or empty state */}
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
-            {waiting.toLocaleString("en-US")} email{waiting === 1 ? "" : "s"} waiting on you
+            {waiting.toLocaleString("en-US")} need you — {NEEDS_YOU_WINDOW_LABEL}
           </p>
 
           {!latest ? (

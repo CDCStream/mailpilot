@@ -54,6 +54,8 @@ const NEVER_DRAFT_CATEGORIES = new Set<Category>([
   "newsletter",
   "marketing",
   "cold_email",
+  "money",
+  "security",
 ]);
 
 /**
@@ -204,23 +206,16 @@ export function detectDevNotification(input: Input): DevSignal | null {
     }
   }
 
-  // --- Adobe Sign / DocuSign / domain verification: deadline, no draft ---
-  if (
-    /(adobesign|adobe\.com|docusign\.net|docusign\.com|hello\.docusign)/i.test(domain) ||
-    /(signature|e-?sign|approve.*(document|agreement)|domain verification|verify your domain|dns verification)/i.test(
-      text,
-    )
-  ) {
-    if (
-      /(sign|signature|approv|verify|verification|action required|needs your)/i.test(text)
-    ) {
+  // --- Adobe Sign / DocuSign portals only (never match generic "sign" / "sale") ---
+  if (/(adobesign|docusign\.net|docusign\.com|hello\.docusign)/i.test(domain)) {
+    if (/(sign|signature|approv|action required)/i.test(`${input.subject} ${input.bodyExcerpt}`)) {
       return {
         kind: "deadline_no_draft",
-        category: "to_respond",
+        category: "notification",
         forceArchive: false,
         skipDraft: true,
         briefTag: "deadline",
-        summaryHint: `Action / signature needed: ${input.subject.slice(0, 120)}`,
+        summaryHint: input.subject.slice(0, 160) || "E-sign request.",
       };
     }
   }

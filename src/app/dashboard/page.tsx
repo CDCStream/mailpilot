@@ -11,6 +11,12 @@ import { AskWidget } from "./ask-widget";
 import { BackfillBanner } from "./backfill-banner";
 import { CATEGORY_BADGES, CATEGORY_DOTS, CATEGORY_NAMES, isBackfilling } from "./categories";
 import { WelcomeModal } from "./welcome-modal";
+import {
+  isNeedsYouCategory,
+  NEEDS_YOU_WINDOW_LABEL,
+  needsYouSince,
+  sortNeedsYou,
+} from "@/lib/needs-you";
 
 export default async function OverviewPage() {
   const session = await auth();
@@ -45,8 +51,15 @@ export default async function OverviewPage() {
   const triaged = recent.filter((m) => m.category);
   const emailByAccount = new Map(accounts.map((a) => [a.id, a.email]));
 
-  // "Needs you": reply-worthy mail, newest first, deep-linked into Gmail.
-  const needsYou = recent.filter((m) => m.category === "to_respond").slice(0, 8);
+  const needsYou = sortNeedsYou(
+    recent.filter(
+      (m) =>
+        isNeedsYouCategory(m.category) &&
+        m.summary &&
+        m.receivedAt &&
+        m.receivedAt >= needsYouSince(),
+    ),
+  ).slice(0, 8);
 
   // Triage mix over everything Wingman has processed — matches the all-time
   // "Emails triaged" counter (onboarding also imports mail older than 7 days).
@@ -178,9 +191,7 @@ export default async function OverviewPage() {
           <section>
             <div className="flex items-baseline justify-between">
               <h2 className="text-lg font-semibold">Needs you</h2>
-              <span className="text-xs text-zinc-400">
-                {needsYou.length > 0 ? "opens in Gmail" : ""}
-              </span>
+              <span className="text-xs text-zinc-400">{NEEDS_YOU_WINDOW_LABEL}</span>
             </div>
             {needsYou.length === 0 ? (
               <p className="mt-4 rounded-xl border border-dashed border-zinc-200 p-6 text-center text-sm text-zinc-500">
