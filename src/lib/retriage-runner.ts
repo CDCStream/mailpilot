@@ -1,8 +1,8 @@
 import { and, eq, inArray } from "drizzle-orm";
-import { db, emailAccounts, retriageJobs, rules, users } from "@/lib/db";
+import { db, emailAccounts, messages, retriageJobs, rules, users } from "@/lib/db";
 import { CLASSIFIER_VERSION, type RetriageScope } from "@/lib/classifier-version";
 import { getGmailClient } from "@/lib/gmail";
-import { processInboxMessage, type PipelineContext } from "@/lib/pipeline";
+import { retriageStoredRow, type PipelineContext } from "@/lib/pipeline";
 import { listRetriageTargets } from "@/lib/retriage-query";
 import { purgePoisonedSenderCache, relabelPoisonedLinkedInSecurity } from "@/lib/sender-cache";
 
@@ -43,8 +43,8 @@ async function loadContext(accountId: string): Promise<PipelineContext | null> {
 export async function runRetriageJob(
   jobId: string,
   userId: string,
-  targets?: { accountId: string; gmailId: string }[],
-): Promise<{ processed: number; cancelled?: boolean }> {
+  targets?: { accountId: string; gmailId: string; messageId?: string }[],
+): Promise<{ processed: number; cancelled?: boolean; changed?: number }> {
   try {
     await purgePoisonedSenderCache();
     await relabelPoisonedLinkedInSecurity();
@@ -82,6 +82,7 @@ export async function runRetriageJob(
     return { processed: 0 };
   }
 
+  let changed = 0;
   const startAt = Math.min(job.processed, listed.length);
   for (let i = startAt; i < listed.length; i += TRIAGE_CONCURRENCY) {
     const latest = await db.query.retriageJobs.findFirst({
@@ -107,9 +108,24 @@ export async function runRetriageJob(
     for (const [accountId, gmailIds] of byAccount) {
       const ctx = await loadContext(accountId);
       if (!ctx) continue;
-      await Promise.all(
-        gmailIds.map((id) => processInboxMessage(ctx, id, { free: true, overwrite: true })),
+      const rows = await db.query.messages.findMany({
+        where: and(eq(messages.accountId, accountId), inArray(messages.gmailMessageId, gmailIds)),
+      });
+      const results = await Promise.all(
+        rows.map(async (r) => {
+          try {
+            return await retriageStoredRow(ctx, r);
+          } catch (err) {
+            console.error("retriage row failed", { id: r.id, err });
+            return { status: "skipped" as const, reason: "error" };
+          }
+        }),
       );
+      for (const [idx, result] of results.entries()) {
+        if (result.status === "processed" && result.category !== rows[idx]?.category) {
+          changed += 1;
+        }
+      }
     }
 
     await db
@@ -117,6 +133,7 @@ export async function runRetriageJob(
       .set({
         processed: i + chunk.length,
         lastGmailMessageId: chunk.at(-1)?.gmailId ?? null,
+        error: `changed:${changed}`,
         updatedAt: new Date(),
       })
       .where(
@@ -130,6 +147,7 @@ export async function runRetriageJob(
       status: "done",
       processed: listed.length,
       total: listed.length,
+      error: `changed:${changed}`,
       updatedAt: new Date(),
     })
     .where(eq(retriageJobs.id, jobId));
@@ -138,5 +156,5 @@ export async function runRetriageJob(
     .set({ classifierVersion: CLASSIFIER_VERSION })
     .where(eq(users.id, userId));
 
-  return { processed: listed.length };
+  return { processed: listed.length, changed };
 }

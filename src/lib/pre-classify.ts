@@ -15,7 +15,7 @@ export type PreClassifyResult = GateResult & {
 };
 
 const MARKETING_FROM =
-  /udemy|udemymail|ideabrowser|alphasignal|semrush|dataquest|nvidia|zapier|cambly|coursera|skillshare|mailchimp|netflix|adobe\.com/i;
+  /udemy|udemymail|ideabrowser|alphasignal|semrush|dataquest|nvidia|zapier|cambly|coursera|skillshare|mailchimp|netflix|adobe\.com|oreilly|o'reilly/i;
 
 const MARKETING_SUBJECT =
   /(\bsale\b|sal+e+|coupon|kupon|bundle offer|lowest prices|%\s*off|discount|webinar|workshop|free (access|trial)|on sale|flash sale|limited time|last chance|bogo)/i;

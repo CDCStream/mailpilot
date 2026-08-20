@@ -23,7 +23,13 @@ export type SafeRetriageJob = {
   scope: string;
   processed: number;
   total: number;
+  changed: number | null;
 };
+
+function parseChanged(error: string | null | undefined): number | null {
+  const match = error?.match(/^changed:(\d+)$/);
+  return match ? Number(match[1]) : null;
+}
 
 export async function readLatestRetriageJob(userId: string): Promise<SafeRetriageJob | null> {
   try {
@@ -35,9 +41,17 @@ export async function readLatestRetriageJob(userId: string): Promise<SafeRetriag
         scope: true,
         processed: true,
         total: true,
+        error: true,
       },
     });
-    return job ?? null;
+    if (!job) return null;
+    return {
+      status: job.status,
+      scope: job.scope,
+      processed: job.processed ?? 0,
+      total: job.total ?? 0,
+      changed: parseChanged(job.error),
+    };
   } catch (err) {
     console.error("retriage_jobs table missing — run drizzle/0006_retriage_security.sql", err);
     return null;

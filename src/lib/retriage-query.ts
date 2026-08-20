@@ -2,7 +2,7 @@ import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db, emailAccounts, messages } from "@/lib/db";
 import { retriageSince, type RetriageScope } from "@/lib/classifier-version";
 
-export type RetriageTarget = { accountId: string; gmailId: string };
+export type RetriageTarget = { accountId: string; gmailId: string; messageId: string };
 
 /**
  * Already-imported messages for this user, by Gmail arrival time.
@@ -31,8 +31,12 @@ export async function listRetriageTargets(
         )
       : inAccounts,
     orderBy: [asc(messages.receivedAt), asc(messages.id)],
-    columns: { accountId: true, gmailMessageId: true },
+    columns: { id: true, accountId: true, gmailMessageId: true },
   });
 
-  return rows.map((r) => ({ accountId: r.accountId, gmailId: r.gmailMessageId }));
+  return rows.map((r) => ({
+    accountId: r.accountId,
+    gmailId: r.gmailMessageId,
+    messageId: r.id,
+  }));
 }

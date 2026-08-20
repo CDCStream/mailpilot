@@ -3,6 +3,7 @@ import { CLASSIFY_SYSTEM, handleClassifyFailure } from "@/lib/ai";
 import { canBeToRespond, isLinkedInSender } from "@/lib/bot-gate";
 import { retriageSince } from "@/lib/classifier-version";
 import { preClassify, resolveTriageCategory } from "@/lib/pre-classify";
+import { applyTriageGate, isLegacyActionSummary, sanitizeSummary } from "@/lib/triage";
 import {
   isUncacheableDomain,
   nextCacheState,
@@ -158,6 +159,61 @@ function snapshotFixtures() {
     },
   ];
 }
+
+describe("B-1 shared triage gate", () => {
+  it("blocks the remaining To Respond bots on stored From/subject alone", () => {
+    const blocked = [
+      {
+        from: "Udemy Instructor: Ligency <no-reply@e.udemymail.com>",
+        email: "no-reply@e.udemymail.com",
+        subject: "🔧 6 AI Agents … $9.99 Till Friday.",
+        expect: "marketing",
+      },
+      {
+        from: "Inbox Wingman <brief@inboxwingman.com>",
+        email: "brief@inboxwingman.com",
+        subject: "Your inbox brief — 6 to respond, 6 deadlines",
+        expect: "skip",
+      },
+      {
+        from: "jobs <vodafonepr-jobnotification@noreply12.jobs2web.com>",
+        email: "vodafonepr-jobnotification@noreply12.jobs2web.com",
+        subject: "New job notification",
+      },
+      {
+        from: "AlphaSignal <news@alphasignal.ai>",
+        email: "news@alphasignal.ai",
+        subject: "Claude Opus 5 hits 2x drug binder success rate",
+        expect: "newsletter",
+      },
+      {
+        from: "Ideabrowser <notifications@mail.ideabrowser.com>",
+        email: "notifications@mail.ideabrowser.com",
+        subject: "Simulated secret shopper for online stores",
+        expect: "marketing",
+      },
+      {
+        from: "LinkedIn <newsletters-noreply@linkedin.com>",
+        email: "newsletters-noreply@linkedin.com",
+        subject: "Don't miss conversations in AI, GenAI, LLMs…",
+        expect: "notification",
+      },
+    ] as const;
+
+    for (const m of blocked) {
+      const r = applyTriageGate({ from: m.from, fromEmail: m.email, subject: m.subject });
+      expect(r.neverToRespond || r.skipIngest, m.subject).toBe(true);
+      expect(r.category === "to_respond", m.subject).toBe(false);
+      if ("expect" in m && m.expect === "skip") expect(r.skipIngest).toBe(true);
+      if ("expect" in m && m.expect && m.expect !== "skip") expect(r.category).toBe(m.expect);
+    }
+  });
+
+  it("strips the Action / signature needed placeholder", () => {
+    expect(isLegacyActionSummary("Action / signature needed: Re: Veri sırası")).toBe(true);
+    expect(sanitizeSummary("Action / signature needed: Re: Veri sırası")).toBeNull();
+  });
+});
 
 describe("B-1 re-triage scope cutoff", () => {
   it("uses received-at days, never an invalid Date", () => {

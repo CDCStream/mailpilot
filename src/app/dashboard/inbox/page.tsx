@@ -29,6 +29,7 @@ import { SenderAvatar } from "../sender-avatar";
 import { SubmitButton } from "../submit-button";
 import { ImportOlderButton } from "./import-button";
 import { isSummaryUnavailable, SUMMARY_UNAVAILABLE_LABEL } from "@/lib/summary-display";
+import { isLegacyActionSummary } from "@/lib/triage";
 import { InboxVirtualList, type InboxListRow } from "./inbox-list";
 
 const PAGE_SIZE = 80;
@@ -164,7 +165,16 @@ export default async function InboxPage({
         limit,
       })
     : [];
-  const visible = rows;
+  const threadCounts = new Map<string, number>();
+  for (const m of rows) {
+    threadCounts.set(m.threadId, (threadCounts.get(m.threadId) ?? 0) + 1);
+  }
+  const seenThreads = new Set<string>();
+  const visible = rows.filter((m) => {
+    if (seenThreads.has(m.threadId)) return false;
+    seenThreads.add(m.threadId);
+    return true;
+  });
 
   // Real total for the current filter — the list itself is paginated.
   const [{ n: totalCount } = { n: 0 }] = accountIds.length
@@ -203,7 +213,11 @@ export default async function InboxPage({
           selectedDraftText = await getDraftText(gmail, selected.draftId);
         }
 
-        if (!selectedSummary && meta && (await consumeCredits(userId, "triage"))) {
+        if (
+          (isSummaryUnavailable(selectedSummary) || isLegacyActionSummary(selectedSummary)) &&
+          meta &&
+          (await consumeCredits(userId, "triage"))
+        ) {
           const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
           const classification = await classifyEmail({
             from: meta.from,
@@ -374,7 +388,10 @@ export default async function InboxPage({
                 href: inboxHref(filters, m.id),
                 from,
                 subject: m.subject || "(no subject)",
-                snippet: m.snippet,
+                snippet:
+                  (threadCounts.get(m.threadId) ?? 1) > 1
+                    ? `${threadCounts.get(m.threadId)} messages · ${m.snippet ?? ""}`
+                    : m.snippet,
                 dateLabel:
                   m.receivedAt?.toLocaleDateString("en-US", {
                     month: "short",

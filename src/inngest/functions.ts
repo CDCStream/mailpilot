@@ -22,7 +22,7 @@ import {
   startWatch,
 } from "@/lib/gmail";
 import { buildVoiceProfile } from "@/lib/ai";
-import { processInboxMessage, type PipelineContext } from "@/lib/pipeline";
+import { processInboxMessage, retriageStoredRow, type PipelineContext } from "@/lib/pipeline";
 import { listRetriageTargets } from "@/lib/retriage-query";
 import { purgePoisonedSenderCache, relabelPoisonedLinkedInSecurity } from "@/lib/sender-cache";
 import { buildAndSendBrief } from "@/lib/brief";
@@ -614,8 +614,17 @@ export const retriageHistory = inngest.createFunction(
         for (const [accountId, gmailIds] of byAccount) {
           const ctx = await loadContext(accountId);
           if (!ctx) continue;
+          const rows = await db.query.messages.findMany({
+            where: and(eq(messages.accountId, accountId), inArray(messages.gmailMessageId, gmailIds)),
+          });
           await Promise.all(
-            gmailIds.map((id) => processInboxMessage(ctx, id, { free: true, overwrite: true })),
+            rows.map(async (r) => {
+              try {
+                await retriageStoredRow(ctx, r);
+              } catch (err) {
+                console.error("retriage row failed", { id: r.id, err });
+              }
+            }),
           );
         }
 

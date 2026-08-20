@@ -68,6 +68,12 @@ const REGRESSION: Fixture[] = [
     expect: "marketing",
   },
   {
+    from: "O'Reilly <news@oreilly.com>",
+    email: "news@oreilly.com",
+    subject: "This week at O'Reilly",
+    expect: "newsletter",
+  },
+  {
     from: "Cambly <no-reply@cambly.com>",
     email: "no-reply@cambly.com",
     subject: "Your weekly lesson reminder — book now and save",

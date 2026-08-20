@@ -13,15 +13,16 @@ import {
 import { applyLabels, createReplyDraft, getMessageMeta } from "@/lib/gmail";
 import { classifyEmail, generateReplyDraft } from "@/lib/ai";
 import { detectDevNotification, shouldBlockDraft } from "@/lib/dev-notifications";
-import {
-  evaluateBotGate,
-  isAccountSecurityText,
-  isLinkedInSender,
-  isOwnAppSender,
-} from "@/lib/bot-gate";
-import { clampCategory, preClassify, resolveTriageCategory, senderDomain } from "@/lib/pre-classify";
+import { isAccountSecurityText, isLinkedInSender, isOwnAppSender } from "@/lib/bot-gate";
+import { senderDomain } from "@/lib/pre-classify";
 import { cachedSenderCategory, forgetSenderCategory, rememberSenderCategory } from "@/lib/sender-cache";
 import { isUncacheableDomain } from "@/lib/sender-cache-logic";
+import {
+  applyTriageGate,
+  finalizeTriageCategory,
+  gateInputFromStored,
+  sanitizeSummary,
+} from "@/lib/triage";
 import { applyRules } from "@/lib/rules-engine";
 import { consumeCredits, underTriageFairUse } from "@/lib/usage";
 
@@ -63,7 +64,15 @@ export async function processInboxMessage(
   const prefs = ctx.user.preferences ?? DEFAULT_PREFERENCES;
 
   const meta = await getMessageMeta(ctx.gmail, messageId, ctx.account.email);
-  if (!meta) return { status: "skipped", reason: "message gone" };
+  if (!meta) {
+    if (opts.overwrite) {
+      const existing = await db.query.messages.findFirst({
+        where: and(eq(messages.accountId, ctx.account.id), eq(messages.gmailMessageId, messageId)),
+      });
+      if (existing) return retriageStoredRow(ctx, existing);
+    }
+    return { status: "skipped", reason: "message gone" };
+  }
   if (meta.isFromMe) return { status: "skipped", reason: "own message" };
   if (isOwnAppSender(meta.fromEmail)) {
     if (opts.overwrite) {
@@ -125,7 +134,7 @@ export async function processInboxMessage(
     await consumeCredits(ctx.user.id, "triage"); // no-op at cost 0; keeps metering hook
   }
 
-  const gate = evaluateBotGate({
+  const pre = applyTriageGate({
     from: meta.from,
     fromEmail: meta.fromEmail,
     subject: meta.subject,
@@ -137,20 +146,16 @@ export async function processInboxMessage(
       precedence: meta.precedence,
     },
   });
-  if (gate.skipIngest) return { status: "skipped", reason: gate.reason };
-
-  const pre = preClassify({
-    from: meta.from,
-    fromEmail: meta.fromEmail,
-    subject: meta.subject,
-    bodyExcerpt: meta.bodyExcerpt,
-    headers: {
-      listUnsubscribe: meta.listUnsubscribe,
-      listId: meta.listId,
-      autoSubmitted: meta.autoSubmitted,
-      precedence: meta.precedence,
-    },
-  });
+  if (pre.skipIngest) {
+    if (opts.overwrite) {
+      await db
+        .update(messages)
+        .set({ category: "notification", summary: null })
+        .where(eq(messages.id, rowId));
+      return { status: "processed", category: "notification", draftCreated: false };
+    }
+    return { status: "skipped", reason: pre.reason };
+  }
 
   if (isUncacheableDomain(senderDomain(meta.fromEmail))) {
     await forgetSenderCategory(ctx.user.id, meta.fromEmail);
@@ -198,7 +203,8 @@ export async function processInboxMessage(
     }
   }
 
-  classification.category = resolveTriageCategory({
+  classification.summary = sanitizeSummary(classification.summary);
+  classification.category = finalizeTriageCategory({
     from: meta.from,
     fromEmail: meta.fromEmail,
     subject: meta.subject,
@@ -206,20 +212,7 @@ export async function processInboxMessage(
     pre,
     llmOrDefault: classification.category,
     cached,
-  });
-  classification.category = clampCategory({
-    category: classification.category,
     summary: classification.summary,
-    gate: pre,
-  });
-  classification.category = resolveTriageCategory({
-    from: meta.from,
-    fromEmail: meta.fromEmail,
-    subject: meta.subject,
-    bodyExcerpt: meta.bodyExcerpt,
-    pre,
-    llmOrDefault: classification.category,
-    cached: null,
   });
   if (pre.neverToRespond) classification.needs_reply = false;
 
@@ -232,7 +225,10 @@ export async function processInboxMessage(
 
   if (devSignal?.forceArchive) outcome.forceArchive = true;
   if (devSignal?.skipDraft) outcome.skipDraft = true;
-  outcome.category = resolveTriageCategory({
+  if (devSignal?.category && !pre.skipLlmCategory && !cached && !pre.neverToRespond) {
+    outcome.category = devSignal.category;
+  }
+  outcome.category = finalizeTriageCategory({
     from: meta.from,
     fromEmail: meta.fromEmail,
     subject: meta.subject,
@@ -240,23 +236,7 @@ export async function processInboxMessage(
     pre,
     llmOrDefault: outcome.category,
     cached,
-  });
-  if (devSignal?.category && !pre.skipLlmCategory && !cached && !pre.neverToRespond) {
-    outcome.category = devSignal.category;
-  }
-  outcome.category = clampCategory({
-    category: outcome.category,
     summary: classification.summary,
-    gate: pre,
-  });
-  outcome.category = resolveTriageCategory({
-    from: meta.from,
-    fromEmail: meta.fromEmail,
-    subject: meta.subject,
-    bodyExcerpt: meta.bodyExcerpt,
-    pre,
-    llmOrDefault: outcome.category,
-    cached: null,
   });
 
   // --- Apply Gmail label operations (skipped when respecting a user label) ---
@@ -373,4 +353,138 @@ export async function processInboxMessage(
   await rememberSenderCategory(ctx.user.id, meta.fromEmail, outcome.category);
 
   return { status: "processed", category: outcome.category, draftCreated: Boolean(draftId) };
+}
+
+type StoredMessage = {
+  id: string;
+  gmailMessageId: string;
+  fromAddress: string | null;
+  subject: string | null;
+  snippet: string | null;
+  category: Category | null;
+  summary: string | null;
+};
+
+/**
+ * Re-triage a row already in the database. Uses stored From/subject/snippet so
+ * the bot gate still runs when Gmail is unreachable, and always re-summarizes.
+ */
+export async function retriageStoredRow(
+  ctx: PipelineContext,
+  row: StoredMessage,
+): Promise<ProcessResult> {
+  const prefs = ctx.user.preferences ?? DEFAULT_PREFERENCES;
+  const stored = gateInputFromStored(row);
+  const meta = await getMessageMeta(ctx.gmail, row.gmailMessageId, ctx.account.email);
+  const from = meta?.from ?? stored.from;
+  const fromEmail = meta?.fromEmail ?? stored.fromEmail;
+  const subject = meta?.subject ?? stored.subject ?? "";
+  const bodyExcerpt = meta?.bodyExcerpt || stored.bodyExcerpt || "";
+
+  const pre = applyTriageGate({
+    from,
+    fromEmail,
+    subject,
+    bodyExcerpt,
+    headers: meta
+      ? {
+          listUnsubscribe: meta.listUnsubscribe,
+          listId: meta.listId,
+          autoSubmitted: meta.autoSubmitted,
+          precedence: meta.precedence,
+        }
+      : undefined,
+  });
+
+  if (pre.skipIngest || isOwnAppSender(fromEmail)) {
+    await db
+      .update(messages)
+      .set({ category: "notification", summary: null })
+      .where(eq(messages.id, row.id));
+    return { status: "processed", category: "notification", draftCreated: false };
+  }
+
+  if (isUncacheableDomain(senderDomain(fromEmail))) {
+    await forgetSenderCategory(ctx.user.id, fromEmail);
+  }
+  const cached = await cachedSenderCategory(ctx.user.id, fromEmail);
+
+  const classification = await classifyEmail({
+    from,
+    to: meta?.to ?? "",
+    subject,
+    bodyExcerpt,
+    summaryLanguage: prefs.summaryLanguage,
+    messageId: row.gmailMessageId,
+  });
+  classification.summary = sanitizeSummary(classification.summary);
+  classification.category = finalizeTriageCategory({
+    from,
+    fromEmail,
+    subject,
+    bodyExcerpt,
+    pre,
+    llmOrDefault: classification.category,
+    cached,
+    summary: classification.summary,
+  });
+  if (pre.neverToRespond) classification.needs_reply = false;
+
+  const outcome = applyRules(ctx.rules, {
+    fromEmail,
+    subject,
+    bodyExcerpt,
+    category: classification.category,
+  });
+  outcome.category = finalizeTriageCategory({
+    from,
+    fromEmail,
+    subject,
+    bodyExcerpt,
+    pre,
+    llmOrDefault: outcome.category,
+    cached,
+    summary: classification.summary,
+  });
+  if (
+    isLinkedInSender(fromEmail, from) &&
+    outcome.category === "security" &&
+    !isAccountSecurityText(subject, bodyExcerpt, fromEmail)
+  ) {
+    outcome.category = "notification";
+  }
+
+  if (meta) {
+    const labelMap = ctx.account.labelMap ?? {};
+    const addLabelIds: string[] = [];
+    const removeLabelIds: string[] = [];
+    if (row.category && row.category !== outcome.category && labelMap[row.category]) {
+      removeLabelIds.push(labelMap[row.category]);
+    }
+    if (labelMap[outcome.category]) addLabelIds.push(labelMap[outcome.category]);
+    if (addLabelIds.length || removeLabelIds.length) {
+      try {
+        await applyLabels(ctx.gmail, meta.id, addLabelIds, removeLabelIds);
+      } catch (err) {
+        console.error("retriage label update failed", { messageId: meta.id, err });
+      }
+    }
+  }
+
+  await db
+    .update(messages)
+    .set({
+      category: outcome.category,
+      summary: classification.summary,
+      actions: {
+        labeled: outcome.category,
+        archived: false,
+        draftCreated: false,
+        retriaged: true,
+      },
+    })
+    .where(eq(messages.id, row.id));
+
+  await rememberSenderCategory(ctx.user.id, fromEmail, outcome.category);
+  return { status: "processed", category: outcome.category, draftCreated: false };
 }

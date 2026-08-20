@@ -193,6 +193,7 @@ export type MessageActions = {
   /** Developer-notification taxonomy match (see lib/dev-notifications). */
   devSignal?: string;
   briefTag?: "incident" | "deadline" | "action";
+  retriaged?: boolean;
 };
 
 export const messages = pgTable(

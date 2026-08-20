@@ -10,6 +10,7 @@ type Job = {
   scope: string;
   processed: number;
   total: number;
+  changed?: number | null;
 } | null;
 
 export function RetriagePanel({
@@ -93,7 +94,10 @@ export function RetriagePanel({
             Start re-triage
           </PendingButton>
           {job?.status === "done" && job.total > 0 && (
-            <span className="text-xs text-zinc-500">Last run finished ({job.processed} messages).</span>
+            <span className="text-xs text-zinc-500">
+              Re-triaged {job.processed} messages
+              {job.changed != null ? ` · ${job.changed} changed` : ""}
+            </span>
           )}
           {job?.status === "cancelled" && (
             <span className="text-xs text-zinc-500">Last run cancelled at {job.processed}.</span>

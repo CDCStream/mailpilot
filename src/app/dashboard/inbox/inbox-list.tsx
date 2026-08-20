@@ -119,7 +119,7 @@ export function InboxVirtualList({
                   <span className="mt-0.5 block truncate text-[13px] text-zinc-600">
                     {highlight(m.subject, q)}
                   </span>
-                  {q && m.snippet && (
+                  {m.snippet && (q || m.snippet.includes("messages ·")) && (
                     <span className="mt-0.5 line-clamp-2 block text-xs text-zinc-500">
                       {highlight(m.snippet, q)}
                     </span>
