@@ -109,28 +109,46 @@ const MONEY_RE =
 
 /** Must be about the user's own account — never a job title that happens to say "Security". */
 const SECURITY_RE =
-  /(two-factor|2fa|mfa|security (alert|advisory|key was|code for your)|g[uü]venlik uyar[ıi]s[ıi]|access tokens? expir|password (changed|reset)|new (device|sign-in) (detected|on your)|sign-in detected|login from a new|granular access token|couldn't sign you in|suspicious (sign-?in|login))/i;
+  /(two-factor|2fa|mfa|security (alert|advisory|key was|code for your)|g[uü]venlik uyar[ıi]s[ıi]|access tokens? expir|password (changed|reset)|new (device|sign-in) (detected|on your|to your)|sign-in detected|login from a new|granular access token|couldn't sign you in|suspicious (sign-?in|login))/i;
+
+/** Mixed-intent social networks — a domain cache must never label the whole mailbox. */
+export function isLinkedInSender(fromEmail: string, from = ""): boolean {
+  const email = fromEmail.toLowerCase();
+  const display = from.toLowerCase();
+  return (
+    email.includes("linkedin.com") ||
+    email.endsWith("@linkedin.com") ||
+    /\bvia linkedin\b/.test(display)
+  );
+}
+
+export function isAccountSecurityText(subject: string, bodyExcerpt = "", fromEmail = ""): boolean {
+  return SECURITY_RE.test(`${fromEmail} ${subject} ${bodyExcerpt}`);
+}
 
 /** LinkedIn (and similar) job-alert machines — never a security event. */
 export function isJobAlert(from: string, fromEmail: string, subject = ""): boolean {
   const blob = `${from} ${fromEmail} ${subject}`.toLowerCase();
   if (/jobalerts?(?:-noreply)?@|job.?alerts/i.test(blob)) return true;
-  if (/linkedin\.com/i.test(fromEmail) && /job alert|jobs? you may|new jobs? for you/i.test(blob)) {
+  if (/linkedin\.com/i.test(fromEmail) && /job alert|jobs? you may|new jobs? for you|similar to /i.test(blob)) {
     return true;
   }
   return false;
 }
 
-/** A human support agent replying on a thread the user opened. */
+const SUPPORT_LOCAL = new Set(["support", "hello", "team", "help"]);
+
+/** A human support agent replying on a thread the user opened. Role inboxes are not bots. */
 export function isHumanSupportReply(from: string, fromEmail: string, subject = ""): boolean {
   if (isBotSender(fromEmail, from)) return false;
   if (isJobAlert(from, fromEmail, subject)) return false;
   if (isOwnAppSender(fromEmail)) return false;
+  if (isLinkedInSender(fromEmail, from)) return false;
   const local = localPart(fromEmail);
   const replied = /^(re|fw|fwd)\s*:/i.test(subject.trim());
   const supportish =
-    local === "support" ||
-    /^support[-+.]/i.test(local) ||
+    SUPPORT_LOCAL.has(local) ||
+    /^(support|hello|team|help)[-+.]/i.test(local) ||
     /\bsupport\b/i.test(from);
   return replied && supportish;
 }
@@ -143,6 +161,9 @@ export function detectObligationCategory(
   from = "",
 ): Category | null {
   if (isJobAlert(from, fromEmail, subject)) return null;
+  if (isLinkedInSender(fromEmail, from) && !isAccountSecurityText(subject, bodyExcerpt, fromEmail)) {
+    return null;
+  }
   const text = `${fromEmail} ${subject} ${bodyExcerpt}`;
   if (SECURITY_RE.test(text)) return "security";
   if (MONEY_RE.test(text)) return "money";
@@ -165,7 +186,20 @@ export function evaluateBotGate(input: GateInput): GateResult {
     };
   }
 
-  if (isJobAlert(input.from, email, input.subject ?? "")) {
+  const subject = input.subject ?? "";
+  const body = input.bodyExcerpt ?? "";
+  if (isLinkedInSender(email, input.from)) {
+    const ownAccount =
+      isAccountSecurityText(subject, body, email) && !isJobAlert(input.from, email, subject);
+    return {
+      skipIngest: false,
+      neverToRespond: true,
+      category: ownAccount ? "security" : "notification",
+      reason: ownAccount ? "security-heuristic" : "linkedin",
+    };
+  }
+
+  if (isJobAlert(input.from, email, subject)) {
     return {
       skipIngest: false,
       neverToRespond: true,

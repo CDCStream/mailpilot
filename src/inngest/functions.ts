@@ -23,6 +23,7 @@ import {
 } from "@/lib/gmail";
 import { buildVoiceProfile } from "@/lib/ai";
 import { processInboxMessage, type PipelineContext } from "@/lib/pipeline";
+import { purgePoisonedSenderCache } from "@/lib/sender-cache";
 import { buildAndSendBrief } from "@/lib/brief";
 import { hasActiveAccess } from "@/lib/billing";
 
@@ -558,6 +559,12 @@ export const retriageHistory = inngest.createFunction(
   },
   async ({ event, step }) => {
     const { userId, jobId } = event.data as { userId: string; jobId: string };
+
+    await step.run("purge-poisoned-cache", async () => {
+      const removed = await purgePoisonedSenderCache();
+      console.info("retriage purged poisoned sender cache", { removed });
+      return removed;
+    });
 
     const listed = await step.run("list-messages", async () => {
       const job = await db.query.retriageJobs.findFirst({

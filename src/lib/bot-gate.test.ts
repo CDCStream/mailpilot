@@ -111,6 +111,12 @@ const REGRESSION: Fixture[] = [
     expect: "money",
   },
   {
+    from: "Eleven Labs Inc. <billing@elevenlabs.io>",
+    email: "billing@elevenlabs.io",
+    subject: "Your receipt #2800-2448-2367",
+    expect: "money",
+  },
+  {
     from: "npm <noreply@npmjs.com>",
     email: "noreply@npmjs.com",
     subject: "[npm] Two-factor authentication disabled",

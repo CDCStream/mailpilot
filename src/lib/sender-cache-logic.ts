@@ -3,6 +3,23 @@ import type { Category } from "@/lib/db/schema";
 export const CACHE_MIN_SAMPLES = 3;
 export const NEVER_CACHE_CATEGORIES = new Set<Category>(["money", "security"]);
 
+/** High-volume mixed-intent networks — one sample must never label the whole domain. */
+export function isUncacheableDomain(domain: string): boolean {
+  const d = domain.toLowerCase().replace(/^www\./, "");
+  return (
+    d === "linkedin.com" ||
+    d.endsWith(".linkedin.com") ||
+    d === "facebook.com" ||
+    d.endsWith(".facebook.com") ||
+    d === "instagram.com" ||
+    d.endsWith(".instagram.com") ||
+    d === "twitter.com" ||
+    d.endsWith(".twitter.com") ||
+    d === "x.com" ||
+    d.endsWith(".x.com")
+  );
+}
+
 export type CacheRow = {
   category: Category;
   sampleCount: number;
@@ -12,8 +29,8 @@ export type CacheRow = {
 /** Money/Security are never applied from cache — always classify them fresh. */
 export function shouldApplyCachedCategory(row: CacheRow | null | undefined): Category | null {
   if (!row) return null;
-  if (row.userOverride) return row.category;
   if (NEVER_CACHE_CATEGORIES.has(row.category)) return null;
+  if (row.userOverride) return row.category;
   if (row.sampleCount < CACHE_MIN_SAMPLES) return null;
   return row.category;
 }

@@ -28,6 +28,7 @@ import { BackfillBanner } from "../backfill-banner";
 import { SenderAvatar } from "../sender-avatar";
 import { SubmitButton } from "../submit-button";
 import { ImportOlderButton } from "./import-button";
+import { isSummaryUnavailable, SUMMARY_UNAVAILABLE_LABEL } from "@/lib/summary-display";
 import { InboxVirtualList, type InboxListRow } from "./inbox-list";
 
 const PAGE_SIZE = 80;
@@ -459,12 +460,12 @@ export default async function InboxPage({
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto px-6 py-6 lg:px-10">
-              {!selectedSummary && (
+              {isSummaryUnavailable(selectedSummary) && (
                 <div className="mb-4 rounded-2xl border border-zinc-200 bg-zinc-50 px-5 py-3 text-sm text-zinc-500">
-                  Summary unavailable
+                  {SUMMARY_UNAVAILABLE_LABEL}
                 </div>
               )}
-              {selectedSummary && (
+              {!isSummaryUnavailable(selectedSummary) && (
                 <div className="rounded-2xl border border-sky-200 bg-sky-50/70 px-5 py-4">
                   <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-sky-700">
                     <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2">

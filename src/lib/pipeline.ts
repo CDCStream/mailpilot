@@ -14,8 +14,9 @@ import { applyLabels, createReplyDraft, getMessageMeta } from "@/lib/gmail";
 import { classifyEmail, generateReplyDraft } from "@/lib/ai";
 import { detectDevNotification, shouldBlockDraft } from "@/lib/dev-notifications";
 import { evaluateBotGate, isOwnAppSender } from "@/lib/bot-gate";
-import { clampCategory, preClassify } from "@/lib/pre-classify";
-import { cachedSenderCategory, rememberSenderCategory } from "@/lib/sender-cache";
+import { clampCategory, preClassify, resolveTriageCategory, senderDomain } from "@/lib/pre-classify";
+import { cachedSenderCategory, forgetSenderCategory, rememberSenderCategory } from "@/lib/sender-cache";
+import { isUncacheableDomain } from "@/lib/sender-cache-logic";
 import { applyRules } from "@/lib/rules-engine";
 import { consumeCredits, underTriageFairUse } from "@/lib/usage";
 
@@ -146,6 +147,10 @@ export async function processInboxMessage(
     },
   });
 
+  if (isUncacheableDomain(senderDomain(meta.fromEmail))) {
+    await forgetSenderCategory(ctx.user.id, meta.fromEmail);
+  }
+
   const cached = await cachedSenderCategory(ctx.user.id, meta.fromEmail);
 
   const devSignal = detectDevNotification({
@@ -172,9 +177,7 @@ export async function processInboxMessage(
       summaryLanguage: prefs.summaryLanguage,
       messageId: meta.id,
     });
-    if (pre.skipLlmCategory && pre.category) classification.category = pre.category;
-    else if (cached) classification.category = cached;
-    if (devSignal?.category && !pre.category && !cached) {
+    if (devSignal?.category && !pre.skipLlmCategory && !cached) {
       classification.category = devSignal.category;
     }
     if (devSignal?.kind === "human_reply" && !pre.neverToRespond && classification.summary) {
@@ -190,10 +193,28 @@ export async function processInboxMessage(
     }
   }
 
+  classification.category = resolveTriageCategory({
+    from: meta.from,
+    fromEmail: meta.fromEmail,
+    subject: meta.subject,
+    bodyExcerpt: meta.bodyExcerpt,
+    pre,
+    llmOrDefault: classification.category,
+    cached,
+  });
   classification.category = clampCategory({
     category: classification.category,
     summary: classification.summary,
     gate: pre,
+  });
+  classification.category = resolveTriageCategory({
+    from: meta.from,
+    fromEmail: meta.fromEmail,
+    subject: meta.subject,
+    bodyExcerpt: meta.bodyExcerpt,
+    pre,
+    llmOrDefault: classification.category,
+    cached: null,
   });
   if (pre.neverToRespond) classification.needs_reply = false;
 
@@ -206,13 +227,31 @@ export async function processInboxMessage(
 
   if (devSignal?.forceArchive) outcome.forceArchive = true;
   if (devSignal?.skipDraft) outcome.skipDraft = true;
-  if (pre.category) outcome.category = pre.category;
-  else if (cached) outcome.category = cached;
-  else if (devSignal?.category && !pre.neverToRespond) outcome.category = devSignal.category;
+  outcome.category = resolveTriageCategory({
+    from: meta.from,
+    fromEmail: meta.fromEmail,
+    subject: meta.subject,
+    bodyExcerpt: meta.bodyExcerpt,
+    pre,
+    llmOrDefault: outcome.category,
+    cached,
+  });
+  if (devSignal?.category && !pre.skipLlmCategory && !cached && !pre.neverToRespond) {
+    outcome.category = devSignal.category;
+  }
   outcome.category = clampCategory({
     category: outcome.category,
     summary: classification.summary,
     gate: pre,
+  });
+  outcome.category = resolveTriageCategory({
+    from: meta.from,
+    fromEmail: meta.fromEmail,
+    subject: meta.subject,
+    bodyExcerpt: meta.bodyExcerpt,
+    pre,
+    llmOrDefault: outcome.category,
+    cached: null,
   });
 
   // --- Apply Gmail label operations (skipped when respecting a user label) ---

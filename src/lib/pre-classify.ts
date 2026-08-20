@@ -1,8 +1,10 @@
 import type { Category } from "@/lib/db/schema";
 import {
   evaluateBotGate,
+  isAccountSecurityText,
   isHumanSupportReply,
   isJobAlert,
+  isLinkedInSender,
   type GateInput,
   type GateResult,
 } from "@/lib/bot-gate";
@@ -40,12 +42,21 @@ export function preClassify(input: GateInput): PreClassifyResult {
     };
   }
 
-  if (isJobAlert(input.from, input.fromEmail, input.subject ?? "") || gate.reason === "job-alert") {
+  if (
+    isLinkedInSender(input.fromEmail, input.from) ||
+    gate.reason === "linkedin" ||
+    isJobAlert(input.from, input.fromEmail, input.subject ?? "") ||
+    gate.reason === "job-alert"
+  ) {
+    const ownAccount =
+      isLinkedInSender(input.fromEmail, input.from) &&
+      isAccountSecurityText(input.subject ?? "", input.bodyExcerpt ?? "", input.fromEmail) &&
+      !isJobAlert(input.from, input.fromEmail, input.subject ?? "");
     return {
       ...gate,
       neverToRespond: true,
-      category: "notification",
-      reason: "job-alert",
+      category: ownAccount ? "security" : "notification",
+      reason: ownAccount ? "security-heuristic" : gate.reason === "job-alert" ? "job-alert" : "linkedin",
       skipLlmCategory: true,
     };
   }
@@ -97,4 +108,28 @@ export function clampCategory(opts: {
 
 export function senderDomain(email: string): string {
   return (email.split("@")[1] ?? "").toLowerCase().replace(/\.+$/, "");
+}
+
+/**
+ * Final category after cache + LLM. Hard rules always win so a poisoned
+ * domain cache cannot stamp LinkedIn as Security or a support reply as FYI.
+ */
+export function resolveTriageCategory(opts: {
+  from: string;
+  fromEmail: string;
+  subject: string;
+  bodyExcerpt?: string;
+  pre: PreClassifyResult;
+  llmOrDefault: Category;
+  cached: Category | null;
+}): Category {
+  const body = opts.bodyExcerpt ?? "";
+  if (isHumanSupportReply(opts.from, opts.fromEmail, opts.subject)) return "to_respond";
+  if (isJobAlert(opts.from, opts.fromEmail, opts.subject)) return "notification";
+  if (isLinkedInSender(opts.fromEmail, opts.from)) {
+    return isAccountSecurityText(opts.subject, body, opts.fromEmail) ? "security" : "notification";
+  }
+  if (opts.pre.skipLlmCategory && opts.pre.category) return opts.pre.category;
+  if (opts.cached && opts.cached !== "money" && opts.cached !== "security") return opts.cached;
+  return opts.llmOrDefault;
 }
