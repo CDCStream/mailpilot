@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { CLASSIFY_SYSTEM, handleClassifyFailure } from "@/lib/ai";
-import { canBeToRespond } from "@/lib/bot-gate";
+import { canBeToRespond, isLinkedInSender } from "@/lib/bot-gate";
+import { retriageSince } from "@/lib/classifier-version";
 import { preClassify, resolveTriageCategory } from "@/lib/pre-classify";
 import {
   isUncacheableDomain,
@@ -158,7 +159,22 @@ function snapshotFixtures() {
   ];
 }
 
+describe("B-1 re-triage scope cutoff", () => {
+  it("uses received-at days, never an invalid Date", () => {
+    const now = new Date("2026-08-20T12:00:00.000Z");
+    const since7 = retriageSince("7", now);
+    expect(since7?.toISOString()).toBe("2026-08-13T12:00:00.000Z");
+    expect(retriageSince("all", now)).toBeNull();
+    expect(Number.isNaN(since7?.getTime())).toBe(false);
+  });
+});
+
 describe("R-1 LinkedIn is never Security", () => {
+  it("treats lnkd.in and via-LinkedIn display names as LinkedIn", () => {
+    expect(isLinkedInSender("alerts@lnkd.in", "LinkedIn")).toBe(true);
+    expect(isLinkedInSender("gabriela@mail.com", "Gabriela via LinkedIn")).toBe(true);
+  });
+
   it("keeps the Vercel sign-in as Security", () => {
     const r = predicted(
       "Vercel <noreply@ct.vercel.com>",

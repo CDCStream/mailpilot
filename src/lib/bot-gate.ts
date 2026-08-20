@@ -113,13 +113,8 @@ const SECURITY_RE =
 
 /** Mixed-intent social networks — a domain cache must never label the whole mailbox. */
 export function isLinkedInSender(fromEmail: string, from = ""): boolean {
-  const email = fromEmail.toLowerCase();
-  const display = from.toLowerCase();
-  return (
-    email.includes("linkedin.com") ||
-    email.endsWith("@linkedin.com") ||
-    /\bvia linkedin\b/.test(display)
-  );
+  const blob = `${from} ${fromEmail}`.toLowerCase();
+  return /linkedin\.com|lnkd\.in|\bvia linkedin\b/.test(blob);
 }
 
 export function isAccountSecurityText(subject: string, bodyExcerpt = "", fromEmail = ""): boolean {

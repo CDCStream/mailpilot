@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, lt, or } from "drizzle-orm";
 import { requireUserId, signOut } from "@/auth";
 import {
   db,
@@ -25,7 +26,9 @@ import {
   type UserPreferences,
 } from "@/lib/db";
 import { RETRIAGE_SCOPES, type RetriageScope } from "@/lib/classifier-version";
-import { forgetSenderCategory } from "@/lib/sender-cache";
+import { listRetriageTargets } from "@/lib/retriage-query";
+import { runRetriageJob } from "@/lib/retriage-runner";
+import { forgetSenderCategory, purgePoisonedSenderCache, relabelPoisonedLinkedInSecurity } from "@/lib/sender-cache";
 import { buildVoiceProfile, generateReplyDraft, parseRule } from "@/lib/ai";
 import { buildAndSendBrief } from "@/lib/brief";
 import { getStripe } from "@/lib/billing";
@@ -447,6 +450,23 @@ export async function startRetriage(formData: FormData) {
     ? (scopeRaw as RetriageScope)
     : "30";
 
+  // A previous run that never listed messages stays queued at 0/0 and blocks
+  // a new start. Expire those so the user is not stuck on Cancel forever.
+  const staleBefore = new Date(Date.now() - 15_000);
+  await db
+    .update(retriageJobs)
+    .set({ status: "cancelled", error: "stale", updatedAt: new Date() })
+    .where(
+      and(
+        eq(retriageJobs.userId, userId),
+        inArray(retriageJobs.status, ["queued", "running", "cancel_requested"]),
+        or(
+          and(eq(retriageJobs.total, 0), eq(retriageJobs.processed, 0), lt(retriageJobs.createdAt, staleBefore)),
+          lt(retriageJobs.updatedAt, new Date(Date.now() - 30 * 60 * 1000)),
+        ),
+      ),
+    );
+
   const active = await db.query.retriageJobs.findFirst({
     where: and(
       eq(retriageJobs.userId, userId),
@@ -458,15 +478,56 @@ export async function startRetriage(formData: FormData) {
     return;
   }
 
+  try {
+    await purgePoisonedSenderCache();
+    await relabelPoisonedLinkedInSecurity();
+  } catch (err) {
+    console.error("retriage pre-start repair failed", err);
+  }
+
+  const targets = await listRetriageTargets(userId, scope);
   const [job] = await db
     .insert(retriageJobs)
-    .values({ userId, scope, status: "queued" })
+    .values({
+      userId,
+      scope,
+      status: targets.length === 0 ? "done" : "queued",
+      total: targets.length,
+      processed: 0,
+    })
     .returning({ id: retriageJobs.id });
 
-  await inngest.send({
-    name: "app/user.retriage",
-    data: { userId, jobId: job.id },
+  if (targets.length === 0) {
+    revalidatePath("/dashboard/settings");
+    return;
+  }
+
+  try {
+    await inngest.send({
+      name: "app/user.retriage",
+      data: { userId, jobId: job.id },
+    });
+  } catch (err) {
+    console.error("retriage inngest send failed", err);
+  }
+
+  // If Inngest never picks the event up, do the work in-process so the
+  // denominator is not stuck at 0 and labels actually move.
+  after(async () => {
+    await new Promise((r) => setTimeout(r, 12_000));
+    const current = await db.query.retriageJobs.findFirst({
+      where: eq(retriageJobs.id, job.id),
+    });
+    if (
+      current &&
+      current.processed === 0 &&
+      current.lastGmailMessageId !== "__started__" &&
+      (current.status === "queued" || current.status === "running")
+    ) {
+      await runRetriageJob(job.id, userId, targets);
+    }
   });
+
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
 }

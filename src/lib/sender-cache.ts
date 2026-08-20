@@ -1,5 +1,5 @@
-import { and, eq, or, like } from "drizzle-orm";
-import { db, senderCategoryCache, type Category } from "@/lib/db";
+import { and, eq, or, like, ilike } from "drizzle-orm";
+import { db, messages, senderCategoryCache, type Category } from "@/lib/db";
 import { senderDomain } from "@/lib/pre-classify";
 import { nextCacheState, shouldApplyCachedCategory, isUncacheableDomain } from "@/lib/sender-cache-logic";
 
@@ -101,14 +101,15 @@ export async function forgetSenderCategory(userId: string, fromEmail: string): P
   }
 }
 
-/** One-off: drop every LinkedIn / Money / Security cache row so a poisoned domain cannot spread. */
+/** Drop every LinkedIn / Money / Security cache row so a poisoned domain cannot spread. */
 export async function purgePoisonedSenderCache(): Promise<number> {
   try {
     const gone = await db
       .delete(senderCategoryCache)
       .where(
         or(
-          like(senderCategoryCache.senderDomain, "%linkedin.com"),
+          like(senderCategoryCache.senderDomain, "%linkedin%"),
+          like(senderCategoryCache.senderDomain, "%lnkd.in%"),
           eq(senderCategoryCache.category, "money"),
           eq(senderCategoryCache.category, "security"),
         ),
@@ -117,6 +118,26 @@ export async function purgePoisonedSenderCache(): Promise<number> {
     return gone.length;
   } catch (err) {
     console.error("sender cache purge failed", err);
+    return 0;
+  }
+}
+
+/** Immediate repair: LinkedIn mail must not sit in Security even before re-triage finishes. */
+export async function relabelPoisonedLinkedInSecurity(): Promise<number> {
+  try {
+    const gone = await db
+      .update(messages)
+      .set({ category: "notification" })
+      .where(
+        and(
+          eq(messages.category, "security"),
+          or(ilike(messages.fromAddress, "%linkedin%"), ilike(messages.fromAddress, "%lnkd.in%")),
+        ),
+      )
+      .returning({ id: messages.id });
+    return gone.length;
+  } catch (err) {
+    console.error("linkedin security relabel failed", err);
     return 0;
   }
 }

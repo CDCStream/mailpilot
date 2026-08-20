@@ -57,6 +57,13 @@
       "when": 1785005000000,
       "tag": "0007_purge_linkedin_cache",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785006000000,
+      "tag": "0008_retriage_scope_linkedin",
+      "breakpoints": true
     }
   ]
 }

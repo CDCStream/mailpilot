@@ -20,8 +20,12 @@ export function RetriagePanel({
   staleClassifier: boolean;
 }) {
   const router = useRouter();
-  const running =
-    job && (job.status === "queued" || job.status === "running" || job.status === "cancel_requested");
+  const emptyRange = Boolean(job && job.total === 0 && job.status !== "cancelled");
+  const running = Boolean(
+    job &&
+      job.total > 0 &&
+      (job.status === "queued" || job.status === "running" || job.status === "cancel_requested"),
+  );
 
   useEffect(() => {
     if (!running) return;
@@ -42,6 +46,9 @@ export function RetriagePanel({
         <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
           Triage rules were updated. Re-run on your history so old labels match the new classifier.
         </p>
+      )}
+      {emptyRange && job?.status === "done" && (
+        <p className="mt-4 text-sm text-zinc-600">No messages in this range</p>
       )}
       {running && job ? (
         <div className="mt-4">
@@ -85,7 +92,7 @@ export function RetriagePanel({
           >
             Start re-triage
           </PendingButton>
-          {job?.status === "done" && (
+          {job?.status === "done" && job.total > 0 && (
             <span className="text-xs text-zinc-500">Last run finished ({job.processed} messages).</span>
           )}
           {job?.status === "cancelled" && (

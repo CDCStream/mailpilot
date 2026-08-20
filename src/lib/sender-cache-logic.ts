@@ -9,6 +9,8 @@ export function isUncacheableDomain(domain: string): boolean {
   return (
     d === "linkedin.com" ||
     d.endsWith(".linkedin.com") ||
+    d === "lnkd.in" ||
+    d.endsWith(".lnkd.in") ||
     d === "facebook.com" ||
     d.endsWith(".facebook.com") ||
     d === "instagram.com" ||

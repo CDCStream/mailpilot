@@ -13,7 +13,12 @@ import {
 import { applyLabels, createReplyDraft, getMessageMeta } from "@/lib/gmail";
 import { classifyEmail, generateReplyDraft } from "@/lib/ai";
 import { detectDevNotification, shouldBlockDraft } from "@/lib/dev-notifications";
-import { evaluateBotGate, isOwnAppSender } from "@/lib/bot-gate";
+import {
+  evaluateBotGate,
+  isAccountSecurityText,
+  isLinkedInSender,
+  isOwnAppSender,
+} from "@/lib/bot-gate";
 import { clampCategory, preClassify, resolveTriageCategory, senderDomain } from "@/lib/pre-classify";
 import { cachedSenderCategory, forgetSenderCategory, rememberSenderCategory } from "@/lib/sender-cache";
 import { isUncacheableDomain } from "@/lib/sender-cache-logic";
@@ -337,6 +342,14 @@ export async function processInboxMessage(
     } catch (err) {
       console.error("draft generation failed", { messageId: meta.id, err });
     }
+  }
+
+  if (
+    isLinkedInSender(meta.fromEmail, meta.from) &&
+    outcome.category === "security" &&
+    !isAccountSecurityText(meta.subject, meta.bodyExcerpt, meta.fromEmail)
+  ) {
+    outcome.category = "notification";
   }
 
   await db

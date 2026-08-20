@@ -9,7 +9,7 @@ import {
   users,
   DEFAULT_PREFERENCES,
 } from "@/lib/db";
-import { CLASSIFIER_VERSION, retriageSince, type RetriageScope } from "@/lib/classifier-version";
+import { CLASSIFIER_VERSION, type RetriageScope } from "@/lib/classifier-version";
 import {
   deleteDraft,
   ensureLabels,
@@ -23,7 +23,8 @@ import {
 } from "@/lib/gmail";
 import { buildVoiceProfile } from "@/lib/ai";
 import { processInboxMessage, type PipelineContext } from "@/lib/pipeline";
-import { purgePoisonedSenderCache } from "@/lib/sender-cache";
+import { listRetriageTargets } from "@/lib/retriage-query";
+import { purgePoisonedSenderCache, relabelPoisonedLinkedInSecurity } from "@/lib/sender-cache";
 import { buildAndSendBrief } from "@/lib/brief";
 import { hasActiveAccess } from "@/lib/billing";
 
@@ -560,46 +561,33 @@ export const retriageHistory = inngest.createFunction(
   async ({ event, step }) => {
     const { userId, jobId } = event.data as { userId: string; jobId: string };
 
-    await step.run("purge-poisoned-cache", async () => {
-      const removed = await purgePoisonedSenderCache();
-      console.info("retriage purged poisoned sender cache", { removed });
-      return removed;
-    });
-
     const listed = await step.run("list-messages", async () => {
+      try {
+        await purgePoisonedSenderCache();
+        await relabelPoisonedLinkedInSecurity();
+      } catch (err) {
+        console.error("retriage cache purge failed", err);
+      }
+
       const job = await db.query.retriageJobs.findFirst({
         where: and(eq(retriageJobs.id, jobId), eq(retriageJobs.userId, userId)),
       });
-      if (!job || job.status === "cancelled") return [] as { accountId: string; gmailId: string }[];
-
-      const accounts = await db.query.emailAccounts.findMany({
-        where: eq(emailAccounts.userId, userId),
-      });
-      const accountIds = accounts.map((a) => a.id);
-      if (accountIds.length === 0) {
-        await db
-          .update(retriageJobs)
-          .set({ status: "done", total: 0, processed: 0, updatedAt: new Date() })
-          .where(eq(retriageJobs.id, jobId));
-        return [];
+      if (!job || job.status === "cancelled" || job.status === "done") {
+        return [] as { accountId: string; gmailId: string }[];
       }
 
-      const since = retriageSince(job.scope as RetriageScope);
-      const conditions = [inArray(messages.accountId, accountIds)];
-      if (since) conditions.push(gte(messages.receivedAt, since));
-
-      const rows = await db.query.messages.findMany({
-        where: and(...conditions),
-        orderBy: [asc(messages.receivedAt), asc(messages.id)],
-        columns: { accountId: true, gmailMessageId: true },
-      });
-
+      const rows = await listRetriageTargets(userId, job.scope as RetriageScope);
       await db
         .update(retriageJobs)
-        .set({ status: "running", total: rows.length, updatedAt: new Date() })
+        .set({
+          status: rows.length === 0 ? "done" : "running",
+          total: rows.length,
+          processed: rows.length === 0 ? 0 : job.processed,
+          lastGmailMessageId: "__started__",
+          updatedAt: new Date(),
+        })
         .where(eq(retriageJobs.id, jobId));
-
-      return rows.map((r) => ({ accountId: r.accountId, gmailId: r.gmailMessageId }));
+      return rows;
     });
 
     for (let i = 0; i < listed.length; i += TRIAGE_CONCURRENCY) {
@@ -615,6 +603,7 @@ export const retriageHistory = inngest.createFunction(
             .where(eq(retriageJobs.id, jobId));
           return "cancel" as const;
         }
+        if (job.processed > i) return "ok" as const;
 
         const byAccount = new Map<string, string[]>();
         for (const item of chunk) {
@@ -649,6 +638,7 @@ export const retriageHistory = inngest.createFunction(
         .set({
           status: "done",
           processed: listed.length,
+          total: listed.length,
           updatedAt: new Date(),
         })
         .where(eq(retriageJobs.id, jobId));
