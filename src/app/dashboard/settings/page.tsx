@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import {
   db,
   emailAccounts,
-  retriageJobs,
   users,
   DEFAULT_PREFERENCES,
   SUMMARY_LANGUAGES,
@@ -28,6 +27,7 @@ import { PendingButton } from "../pending-button";
 import { DeleteAccountSection } from "./delete-account";
 import { RetriagePanel } from "./retriage-panel";
 import { CLASSIFIER_VERSION } from "@/lib/classifier-version";
+import { readClassifierVersion, readLatestRetriageJob } from "@/lib/schema-compat";
 
 export default async function SettingsPage({
   searchParams,
@@ -37,7 +37,20 @@ export default async function SettingsPage({
   const session = await auth();
   const userId = session!.user.id;
   const sp = await searchParams;
-  const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: {
+      id: true,
+      email: true,
+      name: true,
+      image: true,
+      voiceProfile: true,
+      preferences: true,
+      bonusCredits: true,
+      onboardedAt: true,
+      createdAt: true,
+    },
+  });
   const prefs = user?.preferences ?? DEFAULT_PREFERENCES;
   const accounts = await db.query.emailAccounts.findMany({
     where: eq(emailAccounts.userId, userId),
@@ -51,10 +64,8 @@ export default async function SettingsPage({
   const error = typeof sp.error === "string" ? sp.error : null;
   const saved = sp.saved === "1";
 
-  const latestJob = await db.query.retriageJobs.findFirst({
-    where: eq(retriageJobs.userId, userId),
-    orderBy: [desc(retriageJobs.createdAt)],
-  });
+  const classifierVersion = await readClassifierVersion(userId);
+  const latestJob = await readLatestRetriageJob(userId);
 
   return (
     <div className="w-full px-6 py-10 lg:px-10">
@@ -90,7 +101,7 @@ export default async function SettingsPage({
       )}
 
       <RetriagePanel
-        staleClassifier={user?.classifierVersion !== CLASSIFIER_VERSION}
+        staleClassifier={classifierVersion !== CLASSIFIER_VERSION}
         job={
           latestJob
             ? {

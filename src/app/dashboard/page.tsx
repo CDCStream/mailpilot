@@ -12,6 +12,7 @@ import { BackfillBanner } from "./backfill-banner";
 import { CATEGORY_BADGES, CATEGORY_DOTS, CATEGORY_NAMES, isBackfilling } from "./categories";
 import { WelcomeModal } from "./welcome-modal";
 import { CLASSIFIER_VERSION } from "@/lib/classifier-version";
+import { readClassifierVersion } from "@/lib/schema-compat";
 import {
   isNeedsYouCategory,
   NEEDS_YOU_WINDOW_LABEL,
@@ -23,8 +24,22 @@ export default async function OverviewPage() {
   const session = await auth();
   const userId = session!.user.id;
 
-  const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: {
+      id: true,
+      email: true,
+      name: true,
+      image: true,
+      voiceProfile: true,
+      preferences: true,
+      bonusCredits: true,
+      onboardedAt: true,
+      createdAt: true,
+    },
+  });
   if (!user?.onboardedAt) redirect("/onboarding");
+  const classifierVersion = await readClassifierVersion(userId);
 
   const allAccounts = await db.query.emailAccounts.findMany({
     where: eq(emailAccounts.userId, userId),
@@ -114,7 +129,7 @@ export default async function OverviewPage() {
   return (
     <div className="w-full px-6 py-10 lg:px-10">
       <WelcomeModal />
-      {user.classifierVersion !== CLASSIFIER_VERSION && (
+      {classifierVersion !== CLASSIFIER_VERSION && (
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           Triage rules were updated. Old labels stay frozen until you{" "}
           <Link href="/dashboard/settings" className="font-semibold underline">
