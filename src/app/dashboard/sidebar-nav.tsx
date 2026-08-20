@@ -38,7 +38,7 @@ function isActive(pathname: string, href: string): boolean {
 export function SidebarNav() {
   const pathname = usePathname();
   return (
-    <nav className="mt-8 min-h-0 flex-1 space-y-7 overflow-y-auto">
+    <nav className="mt-8 min-h-0 flex-1 space-y-7 overflow-y-auto pb-4 [scrollbar-width:thin] [scrollbar-color:rgb(212_212_216)_transparent]">
       {GROUPS.map((group) => (
         <div key={group.title}>
           <p className="px-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">

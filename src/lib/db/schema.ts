@@ -154,6 +154,8 @@ export const users = pgTable("users", {
   /** Purchased top-up credits that never expire (spent after plan allowance). */
   bonusCredits: integer("bonus_credits").notNull().default(0),
   onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
+  /** Last classifier prompt/gate version the user's history was run against. */
+  classifierVersion: text("classifier_version"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -286,11 +288,30 @@ export const senderCategoryCache = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     senderDomain: text("sender_domain").notNull(),
     category: text("category").$type<Category>().notNull(),
+    /** Consecutive agreeing samples. Applied only at 3+; money/security never cached. */
+    sampleCount: integer("sample_count").notNull().default(0),
     userOverride: boolean("user_override").notNull().default(false),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("sender_category_cache_user_domain_idx").on(t.userId, t.senderDomain)],
 );
+
+export type RetriageStatus = "queued" | "running" | "cancel_requested" | "done" | "cancelled";
+
+export const retriageJobs = pgTable("retriage_jobs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  scope: text("scope").notNull(),
+  status: text("status").$type<RetriageStatus>().notNull().default("queued"),
+  processed: integer("processed").notNull().default(0),
+  total: integer("total").notNull().default(0),
+  lastGmailMessageId: text("last_gmail_message_id"),
+  error: text("error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const subscriptions = pgTable("subscriptions", {
   id: uuid("id").primaryKey().defaultRandom(),

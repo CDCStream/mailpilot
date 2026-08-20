@@ -1,5 +1,11 @@
 import type { Category } from "@/lib/db/schema";
-import { evaluateBotGate, type GateInput, type GateResult } from "@/lib/bot-gate";
+import {
+  evaluateBotGate,
+  isHumanSupportReply,
+  isJobAlert,
+  type GateInput,
+  type GateResult,
+} from "@/lib/bot-gate";
 
 export type PreClassifyResult = GateResult & {
   /** When set, skip the LLM classification call (summary may still be requested). */
@@ -23,6 +29,27 @@ export function preClassify(input: GateInput): PreClassifyResult {
   if (gate.skipIngest) {
     return { ...gate, skipLlmCategory: true };
   }
+
+  if (isHumanSupportReply(input.from, input.fromEmail, input.subject ?? "")) {
+    return {
+      skipIngest: false,
+      neverToRespond: false,
+      category: "to_respond",
+      reason: "support-reply",
+      skipLlmCategory: true,
+    };
+  }
+
+  if (isJobAlert(input.from, input.fromEmail, input.subject ?? "") || gate.reason === "job-alert") {
+    return {
+      ...gate,
+      neverToRespond: true,
+      category: "notification",
+      reason: "job-alert",
+      skipLlmCategory: true,
+    };
+  }
+
   if (gate.category) {
     return { ...gate, skipLlmCategory: true };
   }

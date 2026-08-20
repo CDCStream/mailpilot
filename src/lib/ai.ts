@@ -75,7 +75,7 @@ export type Classification = {
   summary: string | null;
 };
 
-const CLASSIFY_SYSTEM = `You are an expert assistant triaging a technical founder's inbox (CI, GitHub, Sentry, SaaS alerts, plus real human mail).
+export const CLASSIFY_SYSTEM = `You are an expert assistant triaging a technical founder's inbox (CI, GitHub, Sentry, SaaS alerts, plus real human mail).
 Classify the email into exactly one category:
 - "to_respond": a REAL PERSON is asking the user something and expects a written email reply, or a human is waiting (e.g. GitHub review requested). NEVER for no-reply@, notifications@, newsletters, promotions, invoices, or the user's own tools emailing them.
 - "fyi": relevant human correspondence that requires no reply (confirmations from known contacts, cc'd threads, status updates).
@@ -83,7 +83,7 @@ Classify the email into exactly one category:
 - "marketing": promotional email — sales, discounts, course launches, webinars, product pitches. Platform instructor promos (Udemy, Coursera) are ALWAYS marketing, never notification or to_respond. Examples: Netflix "new shows", Adobe "50% off", Udemy "5 Days Only: Lowest Prices", Cambly "book now and save".
 - "notification": automated operational messages that are NOT money and NOT security (shipping, calendar, CI success, LinkedIn invites, "your export is ready").
 - "money": payments, failed charges, invoices, receipts, subscription renewals, payouts, card expiry. Sources: Stripe, Cursor, Ahrefs, Vercel billing, banks. Example: "Cursor — $100.36 payment was unsuccessful".
-- "security": 2FA/password/token changes, new device or security key, access-token expiry, provider security alerts. Example: "[npm] Two-factor authentication disabled", "Google — Güvenlik uyarısı".
+- "security": ONLY events about the user's OWN account — sign-in, 2FA/MFA change, password or token change, new device or key, access-token expiry, provider security advisory. Example: "Vercel — New sign-in detected on your Vercel account", "[npm] Two-factor authentication disabled". NEVER a job posting, newsletter, or marketing email that happens to contain the word "security". Negative example: LinkedIn Job Alerts — "Security Architecture Professionals at Trendyol Group" is NOTIFICATION, not security.
 - "cold_email": unsolicited outreach from a stranger trying to sell or pitch something.
 
 Disambiguation (worked examples):
@@ -91,8 +91,10 @@ Disambiguation (worked examples):
 - Netflix / Adobe promo → marketing. Cambly / Udemy promo → marketing. Same intent, same label.
 - Morning briefing / editorial digest with no CTA to buy → newsletter.
 - "Payment unsuccessful" / invoice / renewal → money (outranks notification).
-- "2FA disabled" / "security key added" / "tokens expiring" → security (outranks notification).
+- "2FA disabled" / "security key added" / "tokens expiring" / "New sign-in detected on your Vercel account" → security (outranks notification).
+- LinkedIn Job Alerts ("Security Architecture Professionals at Trendyol Group", "Data Scientist at Rollic") → notification. Classify on sender intent, not job-title keywords.
 - A person wrote from a personal or company mailbox asking a question → to_respond.
+- A human support agent replying on a thread the user opened (e.g. Captapi Support <support@captapi.com> "Re: tiktok-transcript timed out") → to_respond, not fyi.
 
 Also return:
 - "needs_reply": true ONLY when a human expects a written email reply. False for bots, noreply@, e-sign portals, ticket assignments, CI/Sentry alerts — even if the user must act in another app.
@@ -116,15 +118,33 @@ export async function classifyEmail(input: {
     const summary = result.summary?.trim() ? result.summary.trim() : null;
     return { ...result, summary };
   } catch (err) {
-    console.error("classifyEmail failed", {
+    return handleClassifyFailure({
       messageId: input.messageId ?? null,
       from: input.from,
       subject: input.subject,
       bodyEmpty: excerpt.length === 0,
-      error: err instanceof Error ? err.message : String(err),
+      error: err,
     });
-    return { category: "fyi", needs_reply: false, urgent: false, summary: null };
   }
+}
+
+/** Logged, null-summary fallback. Never asserts that the user must act. */
+export function handleClassifyFailure(input: {
+  messageId: string | null;
+  from: string;
+  subject: string;
+  bodyEmpty: boolean;
+  error: unknown;
+}): Classification {
+  const cause = input.error instanceof Error ? input.error.message : String(input.error);
+  console.error("classifyEmail failed", {
+    messageId: input.messageId,
+    from: input.from,
+    subject: input.subject,
+    bodyEmpty: input.bodyEmpty,
+    error: cause,
+  });
+  return { category: "fyi", needs_reply: false, urgent: false, summary: null };
 }
 
 // ---------- Voice profile ----------

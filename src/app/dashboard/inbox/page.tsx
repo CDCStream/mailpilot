@@ -15,6 +15,7 @@ import {
 import { consumeCredits } from "@/lib/usage";
 import { getActiveAccountId } from "../active-account";
 import { writeDraftForMessage } from "../actions";
+import { RecategorizeSelect } from "./recategorize-select";
 import {
   CATEGORY_BADGES,
   CATEGORY_DOTS,
@@ -433,13 +434,7 @@ export default async function InboxPage({
                 <h2 className="min-w-0 truncate text-xl font-bold tracking-tight text-zinc-900">
                   {selected.subject || "(no subject)"}
                 </h2>
-                {selected.category && (
-                  <span
-                    className={`mt-1 shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${CATEGORY_BADGES[selected.category]}`}
-                  >
-                    {CATEGORY_NAMES[selected.category]}
-                  </span>
-                )}
+                <RecategorizeSelect messageId={selected.id} category={selected.category} />
               </div>
               <div className="mt-3 flex items-center gap-3">
                 <SenderAvatar

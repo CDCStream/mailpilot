@@ -1,13 +1,15 @@
-import { and, eq, isNotNull, lt } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
 import { inngest } from "./client";
 import {
   db,
   emailAccounts,
   messages,
+  retriageJobs,
   rules,
   users,
   DEFAULT_PREFERENCES,
 } from "@/lib/db";
+import { CLASSIFIER_VERSION, retriageSince, type RetriageScope } from "@/lib/classifier-version";
 import {
   deleteDraft,
   ensureLabels,
@@ -28,6 +30,9 @@ const MAX_MESSAGES_PER_RUN = 20;
 
 /** Fyxer-style cap: an import batch never triages more than this many emails. */
 export const BACKFILL_MAX = 300;
+
+/** Concurrent classify/summarize workers per backfill or re-triage batch. */
+const TRIAGE_CONCURRENCY = 8;
 
 /** How far back the automatic import after connecting goes. */
 export const BACKFILL_DAYS = 5;
@@ -146,7 +151,7 @@ export const accountConnected = inngest.createFunction(
       if (!account) return;
       await db
         .update(users)
-        .set({ onboardedAt: new Date() })
+        .set({ onboardedAt: new Date(), classifierVersion: CLASSIFIER_VERSION })
         .where(eq(users.id, account.userId));
     });
 
@@ -209,11 +214,14 @@ export const backfillAccount = inngest.createFunction(
       return listInboxIdsByQuery(ctx.gmail, q, BACKFILL_MAX);
     });
 
-    for (const messageId of ids) {
-      await step.run(`triage-${messageId}`, async () => {
+    for (let i = 0; i < ids.length; i += TRIAGE_CONCURRENCY) {
+      const chunk = ids.slice(i, i + TRIAGE_CONCURRENCY);
+      await step.run(`triage-batch-${i}`, async () => {
         const ctx = await loadContext(accountId);
         if (!ctx) return;
-        await processInboxMessage(ctx, messageId, { free: free === true });
+        await Promise.all(
+          chunk.map((messageId) => processInboxMessage(ctx, messageId, { free: free === true })),
+        );
       });
     }
 
@@ -540,6 +548,113 @@ export const weeklyVoiceRetrain = inngest.createFunction(
   },
 );
 
+/** Re-runs classification + summary on already-imported history. */
+export const retriageHistory = inngest.createFunction(
+  {
+    id: "retriage-history",
+    retries: 0,
+    concurrency: { key: "event.data.userId", limit: 1 },
+    triggers: { event: "app/user.retriage" },
+  },
+  async ({ event, step }) => {
+    const { userId, jobId } = event.data as { userId: string; jobId: string };
+
+    const listed = await step.run("list-messages", async () => {
+      const job = await db.query.retriageJobs.findFirst({
+        where: and(eq(retriageJobs.id, jobId), eq(retriageJobs.userId, userId)),
+      });
+      if (!job || job.status === "cancelled") return [] as { accountId: string; gmailId: string }[];
+
+      const accounts = await db.query.emailAccounts.findMany({
+        where: eq(emailAccounts.userId, userId),
+      });
+      const accountIds = accounts.map((a) => a.id);
+      if (accountIds.length === 0) {
+        await db
+          .update(retriageJobs)
+          .set({ status: "done", total: 0, processed: 0, updatedAt: new Date() })
+          .where(eq(retriageJobs.id, jobId));
+        return [];
+      }
+
+      const since = retriageSince(job.scope as RetriageScope);
+      const conditions = [inArray(messages.accountId, accountIds)];
+      if (since) conditions.push(gte(messages.receivedAt, since));
+
+      const rows = await db.query.messages.findMany({
+        where: and(...conditions),
+        orderBy: [asc(messages.receivedAt), asc(messages.id)],
+        columns: { accountId: true, gmailMessageId: true },
+      });
+
+      await db
+        .update(retriageJobs)
+        .set({ status: "running", total: rows.length, updatedAt: new Date() })
+        .where(eq(retriageJobs.id, jobId));
+
+      return rows.map((r) => ({ accountId: r.accountId, gmailId: r.gmailMessageId }));
+    });
+
+    for (let i = 0; i < listed.length; i += TRIAGE_CONCURRENCY) {
+      const chunk = listed.slice(i, i + TRIAGE_CONCURRENCY);
+      const outcome = await step.run(`retriage-batch-${i}`, async () => {
+        const job = await db.query.retriageJobs.findFirst({
+          where: eq(retriageJobs.id, jobId),
+        });
+        if (!job || job.status === "cancel_requested" || job.status === "cancelled") {
+          await db
+            .update(retriageJobs)
+            .set({ status: "cancelled", updatedAt: new Date() })
+            .where(eq(retriageJobs.id, jobId));
+          return "cancel" as const;
+        }
+
+        const byAccount = new Map<string, string[]>();
+        for (const item of chunk) {
+          const list = byAccount.get(item.accountId) ?? [];
+          list.push(item.gmailId);
+          byAccount.set(item.accountId, list);
+        }
+        for (const [accountId, gmailIds] of byAccount) {
+          const ctx = await loadContext(accountId);
+          if (!ctx) continue;
+          await Promise.all(
+            gmailIds.map((id) => processInboxMessage(ctx, id, { free: true, overwrite: true })),
+          );
+        }
+
+        await db
+          .update(retriageJobs)
+          .set({
+            processed: i + chunk.length,
+            lastGmailMessageId: chunk.at(-1)?.gmailId ?? null,
+            updatedAt: new Date(),
+          })
+          .where(eq(retriageJobs.id, jobId));
+        return "ok" as const;
+      });
+      if (outcome === "cancel") return { cancelled: true, processed: i };
+    }
+
+    await step.run("finish", async () => {
+      await db
+        .update(retriageJobs)
+        .set({
+          status: "done",
+          processed: listed.length,
+          updatedAt: new Date(),
+        })
+        .where(eq(retriageJobs.id, jobId));
+      await db
+        .update(users)
+        .set({ classifierVersion: CLASSIFIER_VERSION })
+        .where(eq(users.id, userId));
+    });
+
+    return { processed: listed.length };
+  },
+);
+
 export const functions = [
   accountConnected,
   backfillAccount,
@@ -549,4 +664,5 @@ export const functions = [
   dailyBrief,
   cleanupStaleDrafts,
   weeklyVoiceRetrain,
+  retriageHistory,
 ];

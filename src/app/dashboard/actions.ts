@@ -10,6 +10,7 @@ import {
   chatThreads,
   emailAccounts,
   messages,
+  retriageJobs,
   rules,
   subscriptions,
   users,
@@ -23,12 +24,15 @@ import {
   type SummaryLanguage,
   type UserPreferences,
 } from "@/lib/db";
+import { RETRIAGE_SCOPES, type RetriageScope } from "@/lib/classifier-version";
+import { forgetSenderCategory } from "@/lib/sender-cache";
 import { buildVoiceProfile, generateReplyDraft, parseRule } from "@/lib/ai";
 import { buildAndSendBrief } from "@/lib/brief";
 import { getStripe } from "@/lib/billing";
 import { decryptSecret } from "@/lib/crypto";
 import { detectDevNotification, shouldBlockDraft } from "@/lib/dev-notifications";
 import {
+  applyLabels,
   createReplyDraft,
   getGmailClient,
   getMessageMeta,
@@ -434,4 +438,95 @@ export async function rebuildVoiceProfile() {
   await db.update(users).set({ voiceProfile: profile }).where(eq(users.id, userId));
   revalidatePath("/dashboard/training");
   redirect(`/dashboard/training?retrained=${samples.length}`);
+}
+
+export async function startRetriage(formData: FormData) {
+  const userId = await requireUserId();
+  const scopeRaw = String(formData.get("scope") ?? "30");
+  const scope: RetriageScope = (RETRIAGE_SCOPES as readonly string[]).includes(scopeRaw)
+    ? (scopeRaw as RetriageScope)
+    : "30";
+
+  const active = await db.query.retriageJobs.findFirst({
+    where: and(
+      eq(retriageJobs.userId, userId),
+      inArray(retriageJobs.status, ["queued", "running", "cancel_requested"]),
+    ),
+  });
+  if (active) {
+    revalidatePath("/dashboard/settings");
+    return;
+  }
+
+  const [job] = await db
+    .insert(retriageJobs)
+    .values({ userId, scope, status: "queued" })
+    .returning({ id: retriageJobs.id });
+
+  await inngest.send({
+    name: "app/user.retriage",
+    data: { userId, jobId: job.id },
+  });
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard");
+}
+
+export async function cancelRetriage() {
+  const userId = await requireUserId();
+  await db
+    .update(retriageJobs)
+    .set({ status: "cancel_requested", updatedAt: new Date() })
+    .where(
+      and(
+        eq(retriageJobs.userId, userId),
+        inArray(retriageJobs.status, ["queued", "running"]),
+      ),
+    );
+  revalidatePath("/dashboard/settings");
+}
+
+export async function recategorizeMessage(formData: FormData) {
+  const userId = await requireUserId();
+  const messageId = String(formData.get("messageId") ?? "");
+  const category = String(formData.get("category") ?? "");
+  if (!messageId || !(CATEGORIES as readonly string[]).includes(category)) return;
+
+  const accounts = await db.query.emailAccounts.findMany({
+    where: eq(emailAccounts.userId, userId),
+  });
+  const row = await db.query.messages.findFirst({
+    where: and(
+      eq(messages.id, messageId),
+      inArray(messages.accountId, accounts.map((a) => a.id)),
+    ),
+  });
+  if (!row) return;
+  const account = accounts.find((a) => a.id === row.accountId);
+  if (!account) return;
+
+  const next = category as Category;
+  const labelMap = account.labelMap ?? {};
+  const add: string[] = [];
+  const remove: string[] = [];
+  if (row.category && row.category !== next && labelMap[row.category]) {
+    remove.push(labelMap[row.category]);
+  }
+  if (labelMap[next]) add.push(labelMap[next]);
+  if (add.length || remove.length) {
+    try {
+      await applyLabels(getGmailClient(account.refreshTokenEnc), row.gmailMessageId, add, remove);
+    } catch (err) {
+      console.error("recategorize labels failed", err);
+    }
+  }
+
+  await db.update(messages).set({ category: next }).where(eq(messages.id, row.id));
+
+  const email =
+    /<([^>]+)>/.exec(row.fromAddress ?? "")?.[1]?.toLowerCase() ??
+    (row.fromAddress ?? "").toLowerCase();
+  await forgetSenderCategory(userId, email);
+
+  revalidatePath("/dashboard/inbox");
+  revalidatePath("/dashboard");
 }

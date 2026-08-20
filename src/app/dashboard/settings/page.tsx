@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import {
   db,
   emailAccounts,
+  retriageJobs,
   users,
   DEFAULT_PREFERENCES,
   SUMMARY_LANGUAGES,
@@ -25,6 +26,8 @@ import { resolveCreditLimit } from "@/lib/usage";
 import { disconnectAccount, updatePreferences } from "../actions";
 import { PendingButton } from "../pending-button";
 import { DeleteAccountSection } from "./delete-account";
+import { RetriagePanel } from "./retriage-panel";
+import { CLASSIFIER_VERSION } from "@/lib/classifier-version";
 
 export default async function SettingsPage({
   searchParams,
@@ -47,6 +50,11 @@ export default async function SettingsPage({
   const setupDeferred = sp.setup === "deferred";
   const error = typeof sp.error === "string" ? sp.error : null;
   const saved = sp.saved === "1";
+
+  const latestJob = await db.query.retriageJobs.findFirst({
+    where: eq(retriageJobs.userId, userId),
+    orderBy: [desc(retriageJobs.createdAt)],
+  });
 
   return (
     <div className="w-full px-6 py-10 lg:px-10">
@@ -80,6 +88,20 @@ export default async function SettingsPage({
           Couldn&apos;t connect that Gmail ({error.replaceAll("_", " ")}). Try again.
         </p>
       )}
+
+      <RetriagePanel
+        staleClassifier={user?.classifierVersion !== CLASSIFIER_VERSION}
+        job={
+          latestJob
+            ? {
+                status: latestJob.status,
+                scope: latestJob.scope,
+                processed: latestJob.processed,
+                total: latestJob.total,
+              }
+            : null
+        }
+      />
 
       <section className="mt-8 rounded-2xl border border-zinc-200 p-6">
         <div className="flex items-start justify-between gap-4">

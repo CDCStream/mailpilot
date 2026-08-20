@@ -107,15 +107,42 @@ function hasBulkHeaders(headers: GateHeaders | undefined): { bulk: boolean; news
 const MONEY_RE =
   /(payment.{0,48}(unsuccessful|failed|couldn't process|could not process)|(couldn't|could not) process payment|failed payment|invoice|receipt|subscription.{0,24}renew|card (expir|declin)|visa ending|charged to|payout|past due|billing)/i;
 
+/** Must be about the user's own account — never a job title that happens to say "Security". */
 const SECURITY_RE =
-  /(two-factor|2fa|security (alert|key|code)|g[uü]venlik uyar[ıi]s[ıi]|access tokens? expir|password (changed|reset)|new (device|sign-in)|login from|granular access token)/i;
+  /(two-factor|2fa|mfa|security (alert|advisory|key was|code for your)|g[uü]venlik uyar[ıi]s[ıi]|access tokens? expir|password (changed|reset)|new (device|sign-in) (detected|on your)|sign-in detected|login from a new|granular access token|couldn't sign you in|suspicious (sign-?in|login))/i;
+
+/** LinkedIn (and similar) job-alert machines — never a security event. */
+export function isJobAlert(from: string, fromEmail: string, subject = ""): boolean {
+  const blob = `${from} ${fromEmail} ${subject}`.toLowerCase();
+  if (/jobalerts?(?:-noreply)?@|job.?alerts/i.test(blob)) return true;
+  if (/linkedin\.com/i.test(fromEmail) && /job alert|jobs? you may|new jobs? for you/i.test(blob)) {
+    return true;
+  }
+  return false;
+}
+
+/** A human support agent replying on a thread the user opened. */
+export function isHumanSupportReply(from: string, fromEmail: string, subject = ""): boolean {
+  if (isBotSender(fromEmail, from)) return false;
+  if (isJobAlert(from, fromEmail, subject)) return false;
+  if (isOwnAppSender(fromEmail)) return false;
+  const local = localPart(fromEmail);
+  const replied = /^(re|fw|fwd)\s*:/i.test(subject.trim());
+  const supportish =
+    local === "support" ||
+    /^support[-+.]/i.test(local) ||
+    /\bsupport\b/i.test(from);
+  return replied && supportish;
+}
 
 /** Subject/body heuristics that outrank generic notification. */
 export function detectObligationCategory(
   subject: string,
   bodyExcerpt: string,
   fromEmail: string,
+  from = "",
 ): Category | null {
+  if (isJobAlert(from, fromEmail, subject)) return null;
   const text = `${fromEmail} ${subject} ${bodyExcerpt}`;
   if (SECURITY_RE.test(text)) return "security";
   if (MONEY_RE.test(text)) return "money";
@@ -138,10 +165,20 @@ export function evaluateBotGate(input: GateInput): GateResult {
     };
   }
 
+  if (isJobAlert(input.from, email, input.subject ?? "")) {
+    return {
+      skipIngest: false,
+      neverToRespond: true,
+      category: "notification",
+      reason: "job-alert",
+    };
+  }
+
   const obligation = detectObligationCategory(
     input.subject ?? "",
     input.bodyExcerpt ?? "",
     email,
+    input.from,
   );
   const { bulk, newsletter } = hasBulkHeaders(input.headers);
   const bot = isBotSender(email, input.from);

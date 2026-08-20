@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { gmail_v1 } from "googleapis";
 import {
   db,
@@ -41,6 +41,8 @@ export type ProcessOptions = {
    * account, whose cost is baked into plan pricing instead of the user's credits.
    */
   free?: boolean;
+  /** Re-classify an already-stored message (history re-triage). */
+  overwrite?: boolean;
 };
 
 /**
@@ -58,6 +60,18 @@ export async function processInboxMessage(
   if (!meta) return { status: "skipped", reason: "message gone" };
   if (meta.isFromMe) return { status: "skipped", reason: "own message" };
   if (isOwnAppSender(meta.fromEmail)) {
+    if (opts.overwrite) {
+      const existing = await db.query.messages.findFirst({
+        where: and(eq(messages.accountId, ctx.account.id), eq(messages.gmailMessageId, meta.id)),
+      });
+      if (existing) {
+        await db
+          .update(messages)
+          .set({ category: "notification", summary: null })
+          .where(eq(messages.id, existing.id));
+        return { status: "processed", category: "notification", draftCreated: false };
+      }
+    }
     return { status: "skipped", reason: "own-domain" };
   }
 
@@ -69,22 +83,33 @@ export async function processInboxMessage(
     (prefs.respectUserLabels ?? true) &&
     meta.labelIds.some((id) => id.startsWith("Label_") && !wingmanLabelIds.has(id));
 
-  // Dedupe: claim the message row first; bail if another run already handled it.
-  const inserted = await db
-    .insert(messages)
-    .values({
-      accountId: ctx.account.id,
-      gmailMessageId: meta.id,
-      threadId: meta.threadId,
-      fromAddress: meta.from,
-      subject: meta.subject,
-      snippet: meta.snippet.slice(0, 200),
-      receivedAt: meta.date,
-    })
-    .onConflictDoNothing()
-    .returning({ id: messages.id });
-  if (inserted.length === 0) return { status: "skipped", reason: "already processed" };
-  const rowId = inserted[0].id;
+  let rowId: string;
+  let existingCategory: Category | null = null;
+  if (opts.overwrite) {
+    const existing = await db.query.messages.findFirst({
+      where: and(eq(messages.accountId, ctx.account.id), eq(messages.gmailMessageId, meta.id)),
+    });
+    if (!existing) return { status: "skipped", reason: "not in history" };
+    rowId = existing.id;
+    existingCategory = existing.category;
+  } else {
+    // Dedupe: claim the message row first; bail if another run already handled it.
+    const inserted = await db
+      .insert(messages)
+      .values({
+        accountId: ctx.account.id,
+        gmailMessageId: meta.id,
+        threadId: meta.threadId,
+        fromAddress: meta.from,
+        subject: meta.subject,
+        snippet: meta.snippet.slice(0, 200),
+        receivedAt: meta.date,
+      })
+      .onConflictDoNothing()
+      .returning({ id: messages.id });
+    if (inserted.length === 0) return { status: "skipped", reason: "already processed" };
+    rowId = inserted[0].id;
+  }
 
   // Triage is free (cost 0); fair-use ceiling is the only hard stop for AI classify.
   if (!opts.free) {
@@ -196,6 +221,13 @@ export async function processInboxMessage(
   const removeLabelIds: string[] = [];
 
   if (!hasUserLabel) {
+    if (
+      existingCategory &&
+      existingCategory !== outcome.category &&
+      labelMap[existingCategory]
+    ) {
+      removeLabelIds.push(labelMap[existingCategory]);
+    }
     const categoryLabelId = labelMap[outcome.category];
     if (categoryLabelId) addLabelIds.push(categoryLabelId);
     if (outcome.star) addLabelIds.push("STARRED");
@@ -233,7 +265,7 @@ export async function processInboxMessage(
   if (draftStyle === "important_only" && !classification.urgent) {
     draftReasons.push("important_only_not_urgent");
   }
-  const wantsDraft = draftReasons.length === 0;
+  const wantsDraft = draftReasons.length === 0 && !opts.overwrite;
   console.info("draft-gate", {
     messageId: meta.id,
     from: meta.fromEmail,

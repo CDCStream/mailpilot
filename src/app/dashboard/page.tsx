@@ -11,6 +11,7 @@ import { AskWidget } from "./ask-widget";
 import { BackfillBanner } from "./backfill-banner";
 import { CATEGORY_BADGES, CATEGORY_DOTS, CATEGORY_NAMES, isBackfilling } from "./categories";
 import { WelcomeModal } from "./welcome-modal";
+import { CLASSIFIER_VERSION } from "@/lib/classifier-version";
 import {
   isNeedsYouCategory,
   NEEDS_YOU_WINDOW_LABEL,
@@ -113,6 +114,15 @@ export default async function OverviewPage() {
   return (
     <div className="w-full px-6 py-10 lg:px-10">
       <WelcomeModal />
+      {user.classifierVersion !== CLASSIFIER_VERSION && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          Triage rules were updated. Old labels stay frozen until you{" "}
+          <Link href="/dashboard/settings" className="font-semibold underline">
+            re-run triage on your history
+          </Link>
+          .
+        </div>
+      )}
       {isBackfilling(accounts) && (
         <div className="mb-6">
           <BackfillBanner />
