@@ -41,6 +41,14 @@ export function sanitizeSummary(summary: string | null | undefined): string | nu
   return trimmed;
 }
 
+/** Summarizer already decided nothing is needed — don't draft, don't keep in To Respond. */
+export function isNoActionSummary(summary: string | null | undefined): boolean {
+  if (!summary) return false;
+  return /no action required|no action needed|no reply (needed|required|necessary)|acknowledgement\/thanks|acknowledgment\/thanks|reacted with .{1,24} (to the |on the )|thanks,? no (reply|action)/i.test(
+    summary,
+  );
+}
+
 export function gateInputFromStored(row: {
   fromAddress: string | null;
   subject: string | null;
@@ -91,7 +99,7 @@ export function finalizeTriageCategory(opts: {
     summary: opts.summary,
     gate: opts.pre,
   });
-  return resolveTriageCategory({
+  category = resolveTriageCategory({
     from: opts.from,
     fromEmail: opts.fromEmail,
     subject: opts.subject,
@@ -100,4 +108,6 @@ export function finalizeTriageCategory(opts: {
     llmOrDefault: category,
     cached: null,
   });
+  if (category === "to_respond" && isNoActionSummary(opts.summary)) return "fyi";
+  return category;
 }

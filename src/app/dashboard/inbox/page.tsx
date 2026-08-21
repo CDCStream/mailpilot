@@ -14,7 +14,7 @@ import {
 } from "@/lib/gmail";
 import { consumeCredits } from "@/lib/usage";
 import { getActiveAccountId } from "../active-account";
-import { writeDraftForMessage } from "../actions";
+import { WriteDraftButton } from "../write-draft-button";
 import { RecategorizeSelect } from "./recategorize-select";
 import {
   CATEGORY_BADGES,
@@ -26,7 +26,6 @@ import {
 } from "../categories";
 import { BackfillBanner } from "../backfill-banner";
 import { SenderAvatar } from "../sender-avatar";
-import { SubmitButton } from "../submit-button";
 import { ImportOlderButton } from "./import-button";
 import { isSummaryUnavailable, SUMMARY_UNAVAILABLE_LABEL } from "@/lib/summary-display";
 import { isLegacyActionSummary } from "@/lib/triage";
@@ -582,18 +581,16 @@ export default async function InboxPage({
                   Draft ready — open in Gmail
                 </a>
               ) : (
-                <form action={writeDraftForMessage}>
-                  <input type="hidden" name="messageId" value={selected.id} />
-                  <SubmitButton
-                    pendingLabel="Writing your draft…"
-                    className="inline-flex items-center gap-2 rounded-full bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"
-                  >
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 3v3m0 12v3m9-9h-3M6 12H3m14.5-6.5-2 2m-7 7-2 2m11 0-2-2m-7-7-2-2" strokeLinecap="round" />
-                    </svg>
-                    Draft a reply with AI
-                  </SubmitButton>
-                </form>
+                <WriteDraftButton
+                  messageId={selected.id}
+                  pendingLabel="Writing your draft…"
+                  className="inline-flex items-center gap-2 rounded-full bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 disabled:opacity-70"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 3v3m0 12v3m9-9h-3M6 12H3m14.5-6.5-2 2m-7 7-2 2m11 0-2-2m-7-7-2-2" strokeLinecap="round" />
+                  </svg>
+                  Draft a reply with AI
+                </WriteDraftButton>
               )}
             </div>
           </>

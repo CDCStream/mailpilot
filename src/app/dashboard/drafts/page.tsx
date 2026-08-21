@@ -4,9 +4,10 @@ import { db, emailAccounts, messages } from "@/lib/db";
 import { gmailThreadUrl } from "@/lib/gmail";
 import { CREDIT_COSTS } from "@/lib/plans";
 import { getActiveAccountId } from "../active-account";
-import { writeDraftForMessage } from "../actions";
+import { DraftTicker } from "../draft-ticker";
+import { WriteDraftButton } from "../write-draft-button";
 import { displayFrom } from "../categories";
-import { PendingButton } from "../pending-button";
+import { isNoActionSummary } from "@/lib/triage";
 
 export default async function DraftsPage() {
   const session = await auth();
@@ -49,6 +50,7 @@ export default async function DraftsPage() {
     : [];
   const seenThreads = new Set<string>();
   const candidates = candidateRows.filter((m) => {
+    if (isNoActionSummary(m.summary)) return false;
     if (seenThreads.has(m.threadId)) return false;
     seenThreads.add(m.threadId);
     return true;
@@ -60,6 +62,7 @@ export default async function DraftsPage() {
 
   return (
     <div className="w-full px-6 py-10 lg:px-10">
+      <DraftTicker pending={candidates.length > 0} />
       <h1 className="text-2xl font-bold">Drafts</h1>
       <p className="mt-1 text-sm text-zinc-500">
         Replies Wingman has already written for you, plus reply-worthy emails you can draft on
@@ -106,15 +109,12 @@ export default async function DraftsPage() {
                     day: "numeric",
                   }) ?? ""}
                 </span>
-                <form action={writeDraftForMessage} className="shrink-0">
-                  <input type="hidden" name="messageId" value={m.id} />
-                  <PendingButton
-                    pendingText="Writing…"
-                    className="rounded-full bg-teal-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    Write draft
-                  </PendingButton>
-                </form>
+                <WriteDraftButton
+                  messageId={m.id}
+                  className="shrink-0 rounded-full bg-teal-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  Write draft
+                </WriteDraftButton>
               </li>
             ))}
           </ul>

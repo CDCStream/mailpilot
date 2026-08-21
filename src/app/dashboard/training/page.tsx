@@ -2,8 +2,8 @@ import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db, users, DEFAULT_PREFERENCES, TONE_PRESET_INSTRUCTIONS } from "@/lib/db";
-import { rebuildVoiceProfile, toggleAutoRetrainVoice } from "../actions";
-import { PendingButton } from "../pending-button";
+import { toggleAutoRetrainVoice } from "../actions";
+import { RetrainButton } from "./retrain-button";
 import { VoiceTrainer } from "./voice-trainer";
 
 export default async function TrainingPage({
@@ -126,14 +126,7 @@ export default async function TrainingPage({
           most like you.
         </p>
         <div className="mt-4 flex flex-wrap items-start gap-3">
-          <form action={rebuildVoiceProfile}>
-            <PendingButton
-              pendingText="Re-learning from your sent mail… (~30s)"
-              className="rounded-full border border-zinc-300 px-5 py-2 text-sm font-medium hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Re-learn from recent sent mail
-            </PendingButton>
-          </form>
+          <RetrainButton />
         </div>
         <div className="mt-3">
           <VoiceTrainer />

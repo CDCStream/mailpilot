@@ -10,6 +10,7 @@ import { getActiveAccountId } from "./active-account";
 import { AskWidget } from "./ask-widget";
 import { BackfillBanner } from "./backfill-banner";
 import { CATEGORY_BADGES, CATEGORY_DOTS, CATEGORY_NAMES, isBackfilling } from "./categories";
+import { DraftTicker } from "./draft-ticker";
 import { WelcomeModal } from "./welcome-modal";
 import { CLASSIFIER_VERSION } from "@/lib/classifier-version";
 import { readClassifierVersion } from "@/lib/schema-compat";
@@ -126,8 +127,13 @@ export default async function OverviewPage() {
       ? Math.min(100, Math.round((credits.planUsed / credits.planLimit) * 100))
       : 0;
 
+  const waitingDrafts = recent.some(
+    (m) => m.category === "to_respond" && m.summary && !m.draftId && !m.actions?.draftSkipReason,
+  );
+
   return (
     <div className="w-full px-6 py-10 lg:px-10">
+      <DraftTicker pending={waitingDrafts} />
       <WelcomeModal />
       {classifierVersion !== CLASSIFIER_VERSION && (
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
@@ -167,7 +173,11 @@ export default async function OverviewPage() {
             [
               "Drafts written for you",
               totals.drafts,
-              `${recent.filter((m) => m.actions?.draftCreated).length} in the last 7 days`,
+              `${recent.filter((m) => m.actions?.draftCreated).length} in the last 7 days${
+                recent.filter((m) => m.actions?.draftSkipReason).length
+                  ? ` · ${recent.filter((m) => m.actions?.draftSkipReason).length} skipped`
+                  : ""
+              }`,
             ],
             [
               "Noise archived",

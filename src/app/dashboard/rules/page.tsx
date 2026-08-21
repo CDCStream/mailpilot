@@ -2,8 +2,9 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db, rules } from "@/lib/db";
 import { RULE_TEMPLATES } from "@/lib/rule-templates";
-import { addRule, addRuleTemplate, deleteRule, toggleRule } from "../actions";
+import { addRuleTemplate, deleteRule, toggleRule } from "../actions";
 import { PendingButton } from "../pending-button";
+import { AddRuleForm } from "./add-rule-form";
 
 export default async function RulesPage() {
   const session = await auth();
@@ -71,21 +72,7 @@ export default async function RulesPage() {
         </div>
       </section>
 
-      <form action={addRule} className="mt-10 flex gap-3">
-        <input
-          name="instruction"
-          required
-          maxLength={300}
-          placeholder='e.g. "Archive all receipts", "Never draft replies to newsletters from acme.com"'
-          className="flex-1 rounded-full border border-zinc-300 px-5 py-2.5 text-sm outline-none focus:border-teal-600"
-        />
-        <PendingButton
-          pendingText="Adding rule…"
-          className="shrink-0 rounded-full bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          Add rule
-        </PendingButton>
-      </form>
+      <AddRuleForm />
 
       {userRules.length === 0 ? (
         <p className="mt-8 rounded-xl border border-dashed border-zinc-200 p-8 text-center text-sm text-zinc-500">

@@ -24,20 +24,11 @@ import {
   type UserPreferences,
 } from "@/lib/db";
 import { forgetSenderCategory } from "@/lib/sender-cache";
-import { buildVoiceProfile, generateReplyDraft, parseRule } from "@/lib/ai";
 import { buildAndSendBrief } from "@/lib/brief";
 import { getStripe } from "@/lib/billing";
 import { decryptSecret } from "@/lib/crypto";
-import { detectDevNotification, shouldBlockDraft } from "@/lib/dev-notifications";
-import {
-  applyLabels,
-  createReplyDraft,
-  getGmailClient,
-  getMessageMeta,
-  listRecentSentTexts,
-} from "@/lib/gmail";
+import { applyLabels, getGmailClient } from "@/lib/gmail";
 import { RULE_TEMPLATES } from "@/lib/rule-templates";
-import { consumeCredits } from "@/lib/usage";
 import { inngest } from "@/inngest/client";
 import { ACTIVE_ACCOUNT_COOKIE } from "./active-account";
 
@@ -82,9 +73,9 @@ export async function updatePreferences(formData: FormData) {
 
   const rawStyle = String(formData.get("draftStyle") ?? "");
   const draftStyle: DraftStyle =
-    rawStyle === "important_only" || rawStyle === "manual"
+    rawStyle === "important_only" || rawStyle === "manual" || rawStyle === "always"
       ? (rawStyle as DraftStyle)
-      : "everything";
+      : "always";
 
   const rawLanguage = String(formData.get("summaryLanguage") ?? "");
   const summaryLanguage: SummaryLanguage =
@@ -99,6 +90,7 @@ export async function updatePreferences(formData: FormData) {
     archiveLowPriority: inboxMode !== "label_only",
     respectUserLabels: formData.get("respectUserLabels") === "on",
     draftStyle,
+    draftPolicyV2: true,
     summaryLanguage,
     draftCleanupDays: Math.min(
       90,
@@ -115,16 +107,6 @@ export async function updatePreferences(formData: FormData) {
   await db.update(users).set({ preferences: next }).where(eq(users.id, userId));
   revalidatePath("/dashboard/settings");
   redirect("/dashboard/settings?saved=1");
-}
-
-export async function addRule(formData: FormData) {
-  const userId = await requireUserId();
-  const instruction = String(formData.get("instruction") ?? "").trim();
-  if (!instruction || instruction.length > 300) return;
-
-  const parsed = await parseRule(instruction);
-  await db.insert(rules).values({ userId, instruction, parsed });
-  revalidatePath("/dashboard/rules");
 }
 
 export async function toggleRule(ruleId: string) {
@@ -231,83 +213,6 @@ export async function importOlderInbox() {
   revalidatePath("/dashboard/inbox");
 }
 
-/** Writes a voice-matched reply draft for one triaged email, on demand. */
-export async function writeDraftForMessage(formData: FormData) {
-  const userId = await requireUserId();
-  const messageId = String(formData.get("messageId") ?? "");
-  if (!messageId) return;
-
-  const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
-  if (!user) return;
-  const accounts = await db.query.emailAccounts.findMany({
-    where: eq(emailAccounts.userId, userId),
-  });
-  if (accounts.length === 0) return;
-
-  const row = await db.query.messages.findFirst({
-    where: and(
-      eq(messages.id, messageId),
-      inArray(messages.accountId, accounts.map((a) => a.id)),
-    ),
-  });
-  if (!row || row.draftId) return;
-  const account = accounts.find((a) => a.id === row.accountId);
-  if (!account) return;
-
-  const gmail = getGmailClient(account.refreshTokenEnc);
-  const meta = await getMessageMeta(gmail, row.gmailMessageId, account.email);
-  if (!meta) return;
-
-  // Same hard gates as the auto pipeline — never draft bots / bulk / wrong category.
-  const signal = detectDevNotification({
-    from: meta.from,
-    fromEmail: meta.fromEmail,
-    subject: meta.subject,
-    bodyExcerpt: meta.bodyExcerpt,
-  });
-  if (!row.summary || row.category !== "to_respond") return;
-  if (
-    signal?.skipDraft ||
-    shouldBlockDraft({
-      fromEmail: meta.fromEmail,
-      from: meta.from,
-      category: row.category,
-      listUnsubscribe: meta.listUnsubscribe,
-    })
-  ) {
-    return;
-  }
-
-  if (!(await consumeCredits(userId, "draft"))) return;
-
-  const prefs = user.preferences ?? DEFAULT_PREFERENCES;
-  const body = await generateReplyDraft({
-    userName: user.name ?? account.email,
-    voiceProfile: user.voiceProfile,
-    toneInstructions: user.voiceProfile ? "" : prefs.toneInstructions,
-    from: meta.from,
-    subject: meta.subject,
-    bodyExcerpt: meta.bodyExcerpt,
-    summary: row.summary ?? "",
-  });
-  if (!body) return;
-
-  const draftId = await createReplyDraft(gmail, {
-    threadId: row.threadId,
-    to: meta.from,
-    subject: meta.subject,
-    body,
-    inReplyTo: meta.messageIdHeader || undefined,
-    references: meta.references || undefined,
-  });
-
-  await db
-    .update(messages)
-    .set({ draftId, actions: { ...(row.actions ?? {}), draftCreated: true } })
-    .where(eq(messages.id, row.id));
-  revalidatePath("/dashboard/drafts");
-  revalidatePath("/dashboard/inbox");
-}
 
 export async function addRuleTemplate(formData: FormData) {
   const userId = await requireUserId();
@@ -421,21 +326,6 @@ export async function toggleAutoRetrainVoice() {
     })
     .where(eq(users.id, userId));
   revalidatePath("/dashboard/training");
-}
-
-export async function rebuildVoiceProfile() {
-  const userId = await requireUserId();
-  const account = await db.query.emailAccounts.findFirst({
-    where: and(eq(emailAccounts.userId, userId), eq(emailAccounts.status, "active")),
-  });
-  if (!account) return;
-
-  const gmail = getGmailClient(account.refreshTokenEnc);
-  const samples = await listRecentSentTexts(gmail, account.email, 40);
-  const profile = await buildVoiceProfile(samples);
-  await db.update(users).set({ voiceProfile: profile }).where(eq(users.id, userId));
-  revalidatePath("/dashboard/training");
-  redirect(`/dashboard/training?retrained=${samples.length}`);
 }
 
 export async function recategorizeMessage(formData: FormData) {

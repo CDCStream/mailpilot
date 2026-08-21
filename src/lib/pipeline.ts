@@ -21,9 +21,11 @@ import {
   applyTriageGate,
   finalizeTriageCategory,
   gateInputFromStored,
+  isNoActionSummary,
   sanitizeSummary,
 } from "@/lib/triage";
 import { applyRules } from "@/lib/rules-engine";
+import { resolveDraftStyle } from "@/lib/draft-style";
 import { consumeCredits, underTriageFairUse } from "@/lib/usage";
 
 export type PipelineContext = {
@@ -277,7 +279,7 @@ export async function processInboxMessage(
 
   // --- Voice draft for emails that need a reply ---
   let draftId: string | null = null;
-  const draftStyle = prefs.draftStyle ?? "everything";
+  const draftStyle = resolveDraftStyle(prefs);
   const blockedDraft =
     shouldBlockDraft({
       fromEmail: meta.fromEmail,
@@ -291,6 +293,7 @@ export async function processInboxMessage(
   if (outcome.category !== "to_respond") draftReasons.push(`category=${outcome.category}`);
   if (!classification.needs_reply) draftReasons.push("needs_reply=false");
   if (!classification.summary) draftReasons.push("summary=null");
+  if (isNoActionSummary(classification.summary)) draftReasons.push("no-action-summary");
   if (!prefs.draftsEnabled) draftReasons.push("drafts_disabled");
   if (blockedDraft) draftReasons.push("blocked_gate");
   if (draftStyle === "manual") draftReasons.push("style=manual");
@@ -346,6 +349,7 @@ export async function processInboxMessage(
         labeled: outcome.category,
         archived: shouldArchive,
         draftCreated: Boolean(draftId),
+        draftSkipReason: wantsDraft ? undefined : draftReasons.join(",") || undefined,
         ruleApplied: outcome.appliedRule,
         ...headerFlagsFromMeta({
           listUnsubscribe: meta.listUnsubscribe,
@@ -502,7 +506,7 @@ export async function retriageStoredRow(
   const arrived = row.receivedAt ?? row.createdAt ?? null;
   const recentEnough =
     arrived != null && Date.now() - arrived.getTime() <= 7 * 24 * 60 * 60 * 1000;
-  const draftStyle = prefs.draftStyle ?? "everything";
+  const draftStyle = resolveDraftStyle(prefs);
   const blockedDraft = shouldBlockDraft({
     fromEmail,
     from,
@@ -514,6 +518,7 @@ export async function retriageStoredRow(
     recentEnough &&
     outcome.category === "to_respond" &&
     Boolean(classification.summary) &&
+    !isNoActionSummary(classification.summary) &&
     classification.needs_reply &&
     prefs.draftsEnabled !== false &&
     draftStyle !== "manual" &&

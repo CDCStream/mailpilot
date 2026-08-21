@@ -47,8 +47,8 @@ export const INBOX_MODE_ARCHIVE: Record<InboxMode, Category[]> = {
   custom: [], // resolved from prefs.archiveCategories instead
 };
 
-/** When reply drafts are generated: every reply-worthy email, urgent ones only, or only on manual request. */
-export type DraftStyle = "everything" | "important_only" | "manual";
+/** When reply drafts are generated. `everything` is a legacy alias for `always`. */
+export type DraftStyle = "always" | "everything" | "important_only" | "manual";
 
 /** Self-described role picked during onboarding; used for smarter defaults. */
 export type Persona = "founder" | "agency" | "sales" | "support" | "personal";
@@ -91,8 +91,10 @@ export type UserPreferences = {
   archiveCategories?: Category[];
   /** Skip triage for emails the user already labeled themselves (default true). */
   respectUserLabels?: boolean;
-  /** Draft every reply-worthy email, or only urgent ones (default "everything"). */
+  /** Draft every To Respond email, only urgent ones, or only on manual request (default "always"). */
   draftStyle?: DraftStyle;
+  /** Set after the always-default migration; important_only is then an explicit opt-in. */
+  draftPolicyV2?: boolean;
   /** Delete unused Wingman drafts after N days; 0 disables (default 14). */
   draftCleanupDays?: number;
   /** Self-described role from onboarding. */
@@ -133,7 +135,8 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   inboxMode: "label_only",
   archiveCategories: [],
   respectUserLabels: true,
-  draftStyle: "everything",
+  draftStyle: "always",
+  draftPolicyV2: true,
   summaryLanguage: "en",
   draftCleanupDays: 14,
   draftsEnabled: true,
@@ -198,6 +201,9 @@ export type MessageActions = {
   isAutoSubmitted?: boolean;
   isBulkPrecedence?: boolean;
   hasListId?: boolean;
+  /** Why auto-draft was skipped — makes "0 drafts this week" explainable. */
+  draftSkipReason?: string;
+  draftRequested?: boolean;
 };
 
 export const messages = pgTable(

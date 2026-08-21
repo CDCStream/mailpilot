@@ -27,6 +27,7 @@ import { PendingButton } from "../pending-button";
 import { DeleteAccountSection } from "./delete-account";
 import { RetriagePanel } from "./retriage-panel";
 import { CLASSIFIER_VERSION } from "@/lib/classifier-version";
+import { persistDraftPolicy } from "@/lib/draft-writer";
 import { readClassifierVersion, readLatestRetriageJob } from "@/lib/schema-compat";
 
 export default async function SettingsPage({
@@ -51,7 +52,8 @@ export default async function SettingsPage({
       createdAt: true,
     },
   });
-  const prefs = user?.preferences ?? DEFAULT_PREFERENCES;
+  const persisted = await persistDraftPolicy(userId);
+  const prefs = persisted?.preferences ?? user?.preferences ?? DEFAULT_PREFERENCES;
   const accounts = await db.query.emailAccounts.findMany({
     where: eq(emailAccounts.userId, userId),
   });
@@ -278,16 +280,16 @@ export default async function SettingsPage({
             <select
               name="draftStyle"
               defaultValue={
-                !prefs.draftsEnabled ? "manual" : (prefs.draftStyle ?? "everything")
+                !prefs.draftsEnabled
+                  ? "manual"
+                  : prefs.draftStyle === "important_only" || prefs.draftStyle === "manual"
+                    ? prefs.draftStyle
+                    : "always"
               }
               className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-teal-600"
             >
-              <option value="everything">
-                Automatically, as soon as a &ldquo;To Respond&rdquo; email arrives
-              </option>
-              <option value="important_only">
-                Automatically, but only for urgent or high-stakes emails (saves credits)
-              </option>
+              <option value="always">Always — every &ldquo;To Respond&rdquo; email</option>
+              <option value="important_only">Only urgent or high-stakes emails</option>
               <option value="manual">
                 Only when I click &ldquo;Draft a reply with AI&rdquo; in the Inbox — never automatically
               </option>
