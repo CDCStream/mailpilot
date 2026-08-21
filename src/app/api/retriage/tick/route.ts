@@ -30,7 +30,20 @@ export async function POST() {
       return NextResponse.json({ status: "idle", processed: 0, total: 0, changed: 0 });
     }
     const result = await processRetriageBatch(job.id, userId);
-    return NextResponse.json(result);
+    const advanced = result.advanced ?? result.processed - job.processed;
+    if (result.status === "running" && advanced <= 0) {
+      console.error("retriage zero-progress", {
+        jobId: job.id,
+        processed: job.processed,
+        total: job.total,
+        batchIds: result.batchIds,
+      });
+      return NextResponse.json(
+        { ...result, advanced: 0, error: "zero-progress" },
+        { status: 409 },
+      );
+    }
+    return NextResponse.json({ ...result, advanced });
   } catch (err) {
     console.error("retriage tick failed", err);
     return NextResponse.json({ status: "failed", error: "tick-error" }, { status: 500 });

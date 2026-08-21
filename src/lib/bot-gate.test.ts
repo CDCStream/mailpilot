@@ -177,6 +177,42 @@ const REGRESSION: Fixture[] = [
     expect: "notification",
   },
   {
+    from: "Udemy <no-reply@e.udemymail.com>",
+    email: "no-reply@e.udemymail.com",
+    subject: "Fuat, still interested in Search Engine Optimization (SEO) prep?",
+    expect: "marketing",
+  },
+  {
+    from: "Netflix <info@mailer.netflix.com>",
+    email: "info@mailer.netflix.com",
+    subject: "Important: How to update your Netflix Household",
+    expect: "notification",
+  },
+  {
+    from: "Fyxer Privacy <privacy@fyxer.com>",
+    email: "privacy@fyxer.com",
+    subject: "An update on Fyxer's sub-processors",
+    expect: "notification",
+  },
+  {
+    from: "Filip at Tally <hello@tally.so>",
+    email: "hello@tally.so",
+    subject: "Notice of a data breach affecting your Tally account",
+    expect: "security",
+  },
+  {
+    from: "Link <noreply@link.com>",
+    email: "noreply@link.com",
+    subject: "New login from iOS (Mobile Safari)",
+    expect: "security",
+  },
+  {
+    from: "Similarweb <no-reply@similarweb.com>",
+    email: "no-reply@similarweb.com",
+    subject: "SimilarWeb Hesabı Giriş Doğrulaması",
+    expect: "security",
+  },
+  {
     from: "Vercel <noreply@ct.vercel.com>",
     email: "noreply@ct.vercel.com",
     subject: "Deployment failed",

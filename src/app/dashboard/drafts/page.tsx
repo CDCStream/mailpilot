@@ -7,6 +7,7 @@ import { getActiveAccountId } from "../active-account";
 import { DraftTicker } from "../draft-ticker";
 import { WriteDraftButton } from "../write-draft-button";
 import { displayFrom } from "../categories";
+import { draftedThreadIds, uniqueDraftsByThread } from "@/lib/thread-draft";
 import { isNoActionSummary } from "@/lib/triage";
 
 export default async function DraftsPage() {
@@ -24,13 +25,14 @@ export default async function DraftsPage() {
   const accountIds = accounts.map((a) => a.id);
   const emailByAccount = new Map(allAccounts.map((a) => [a.id, a.email]));
 
-  const written = accountIds.length
+  const writtenRows = accountIds.length
     ? await db.query.messages.findMany({
         where: and(inArray(messages.accountId, accountIds), isNotNull(messages.draftId)),
-        orderBy: [desc(messages.createdAt)],
-        limit: 50,
+        orderBy: [desc(messages.receivedAt)],
+        limit: 80,
       })
     : [];
+  const written = uniqueDraftsByThread(writtenRows);
 
   // Reply-worthy mail from the last 14 days that doesn't have a draft yet.
   const since = new Date();
@@ -48,10 +50,11 @@ export default async function DraftsPage() {
         limit: 80,
       })
     : [];
+  const alreadyDrafted = draftedThreadIds(writtenRows);
   const seenThreads = new Set<string>();
   const candidates = candidateRows.filter((m) => {
     if (isNoActionSummary(m.summary)) return false;
-    if (seenThreads.has(m.threadId)) return false;
+    if (alreadyDrafted.has(m.threadId) || seenThreads.has(m.threadId)) return false;
     seenThreads.add(m.threadId);
     return true;
   }).slice(0, 25);
@@ -124,7 +127,8 @@ export default async function DraftsPage() {
       <section>
         <h2 className="text-lg font-semibold">Drafts written for you</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Each one is sitting in the email&apos;s thread in Gmail — review, edit, and hit send.
+          One Wingman draft per Gmail thread — review, edit, and hit send. Same thread is listed
+          once.
         </p>
         {written.length === 0 ? (
           <p className="mt-4 rounded-xl border border-dashed border-zinc-200 p-6 text-center text-sm text-zinc-500">

@@ -83,7 +83,7 @@ Classify the email into exactly one category:
 - "marketing": promotional email — sales, discounts, course launches, webinars, product pitches. Platform instructor promos (Udemy, Coursera) are ALWAYS marketing, never notification or to_respond. Examples: Netflix "new shows", Adobe "50% off", Udemy "5 Days Only: Lowest Prices", Cambly "book now and save".
 - "notification": automated operational messages that are NOT money and NOT security (shipping, calendar, CI success, LinkedIn invites, "your export is ready").
 - "money": payments, failed charges, invoices, receipts, subscription renewals, payouts, card expiry. Sources: Stripe, Cursor, Ahrefs, Vercel billing, banks. Example: "Cursor — $100.36 payment was unsuccessful".
-- "security": ONLY when the message is about the user's OWN account at that provider: a sign-in on their account, MFA/2FA change on their account, password or token change, new device or key, token expiry, or a provider security advisory addressed to this user. Example: "Vercel — New sign-in detected on your Vercel account". A job posting, hiring notice, recruiting digest, connection request, or newsletter is NEVER security — those are not about the user's account, even if the body mentions MFA/2FA or the word "Security". Negatives: LinkedIn Job Alerts — "Security Architecture Professionals at Trendyol Group" is notification; LinkedIn — "Alpaca is hiring for a Remote role" is notification.
+- "security": ONLY an event on the user's OWN account — a sign-in, MFA/2FA change, credential or token change, new device or key, verification code, or a breach notification about their account. Example: "Vercel — New sign-in detected on your Vercel account"; "Tally — Notice of a data breach affecting your Tally account"; "Link — New login from iOS"; "Similarweb — Hesabı Giriş Doğrulaması". A policy update, a vendor's sub-processor list, a household/sharing how-to, a course promotion, a job posting, or a hiring notice is NEVER security — even if the word "Security", "Important", or "Privacy" appears. Negatives: Udemy — "still interested in Search Engine Optimization (SEO) prep?" is marketing; Netflix — "How to update your Netflix Household" is notification; Fyxer Privacy — "An update on Fyxer's sub-processors" is notification; LinkedIn Job Alerts — "Security Architecture Professionals at Trendyol Group" is notification; LinkedIn — "Alpaca is hiring for a Remote role" is notification.
 - "cold_email": unsolicited outreach from a stranger trying to sell or pitch something.
 
 Disambiguation (worked examples):
@@ -188,6 +188,7 @@ export async function generateReplyDraft(input: {
   subject: string;
   bodyExcerpt: string;
   summary: string;
+  threadContext?: string;
 }): Promise<string> {
   // Voice profile wins over onboarding presets. Without a profile, default terse
   // (technical-founder default) rather than warm corporate.
@@ -220,7 +221,9 @@ Rules:
       },
       {
         role: "user",
-        content: `Incoming email:\nFrom: ${input.from}\nSubject: ${input.subject}\n\n${input.bodyExcerpt}\n\n(One-line summary: ${input.summary})\n\nDraft the reply now.`,
+        content: `Incoming email:\nFrom: ${input.from}\nSubject: ${input.subject}\n\n${input.bodyExcerpt}\n\n(One-line summary: ${input.summary})${
+          input.threadContext ? `\n\nEarlier messages in this thread:\n${input.threadContext}` : ""
+        }\n\nDraft one reply to the whole thread now.`,
       },
     ],
   });

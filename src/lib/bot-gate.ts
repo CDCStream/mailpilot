@@ -138,9 +138,13 @@ function hasBulkHeaders(headers: GateHeaders | undefined): { bulk: boolean; news
 const MONEY_RE =
   /(payment.{0,48}(unsuccessful|failed|couldn't process|could not process)|(couldn't|could not) process payment|failed payment|invoice|receipt|subscription.{0,24}renew|card (expir|declin)|visa ending|charged to|payout|past due|billing)/i;
 
-/** Must be about the user's own account — never a job title that happens to say "Security". */
+/** Must be an event on the user's own account — never a job title or a policy memo. */
 const SECURITY_RE =
-  /(two-factor|2fa|mfa|security (alert|advisory|key was|code for your)|g[uü]venlik uyar[ıi]s[ıi]|access tokens? expir|password (changed|reset)|new (device|sign-in) (detected|on your|to your)|sign-in detected|login from a new|granular access token|couldn't sign you in|suspicious (sign-?in|login))/i;
+  /(two-factor|2fa|mfa|security (alert|advisory|key was|code for your)|g[uü]venlik uyar[ıi]s[ıi]|access tokens? expir|password (changed|reset)|new (device|sign-in|login) (detected|on your|to your|from)|sign-in detected|login from a new|granular access token|couldn't sign you in|suspicious (sign-?in|login)|data breach|breach affecting your|giri[sş] do[gğ]rulama|verification code)/i;
+
+/** Policy / promo / vendor-compliance copy that is not a security event. */
+const NOT_SECURITY_RE =
+  /(still interested|household|sub-processors?|privacy polic|cookie polic|terms of (use|service)|how to update your|seo prep|course (prep|launch)|an update on .{0,60}(privacy|sub-processor))/i;
 
 /** Mixed-intent social networks — a domain cache must never label the whole mailbox. */
 export function isLinkedInSender(fromEmail: string, from = ""): boolean {
@@ -156,7 +160,9 @@ export function isHiringNotice(from: string, fromEmail: string, subject = ""): b
 
 export function isAccountSecurityText(subject: string, bodyExcerpt = "", fromEmail = ""): boolean {
   if (isLinkedInSender(fromEmail) || isHiringNotice("", fromEmail, subject)) return false;
-  return SECURITY_RE.test(`${fromEmail} ${subject} ${bodyExcerpt}`);
+  const blob = `${fromEmail} ${subject} ${bodyExcerpt}`;
+  if (NOT_SECURITY_RE.test(blob)) return false;
+  return SECURITY_RE.test(blob);
 }
 
 /** LinkedIn (and similar) job-alert machines — never a security event. */
@@ -198,9 +204,8 @@ export function detectObligationCategory(
   if (isLinkedInSender(fromEmail, from) && !isAccountSecurityText(subject, bodyExcerpt, fromEmail)) {
     return null;
   }
-  const text = `${fromEmail} ${subject} ${bodyExcerpt}`;
-  if (SECURITY_RE.test(text)) return "security";
-  if (MONEY_RE.test(text)) return "money";
+  if (isAccountSecurityText(subject, bodyExcerpt, fromEmail)) return "security";
+  if (MONEY_RE.test(`${fromEmail} ${subject} ${bodyExcerpt}`)) return "money";
   return null;
 }
 

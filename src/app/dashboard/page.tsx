@@ -127,8 +127,14 @@ export default async function OverviewPage() {
       ? Math.min(100, Math.round((credits.planUsed / credits.planLimit) * 100))
       : 0;
 
+  const draftedThreads = new Set(recent.filter((m) => m.draftId).map((m) => m.threadId));
   const waitingDrafts = recent.some(
-    (m) => m.category === "to_respond" && m.summary && !m.draftId && !m.actions?.draftSkipReason,
+    (m) =>
+      m.category === "to_respond" &&
+      m.summary &&
+      !m.draftId &&
+      !draftedThreads.has(m.threadId) &&
+      !m.actions?.draftSkipReason,
   );
 
   return (

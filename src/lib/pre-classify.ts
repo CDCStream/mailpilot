@@ -1,6 +1,7 @@
 import type { Category } from "@/lib/db/schema";
 import {
   evaluateBotGate,
+  isAccountSecurityText,
   isHumanSupportReply,
   isJobAlert,
   isLinkedInSender,
@@ -17,7 +18,11 @@ const MARKETING_FROM =
   /udemy|udemymail|ideabrowser|alphasignal|semrush|dataquest|nvidia|zapier|cambly|coursera|skillshare|mailchimp|netflix|adobe\.com|oreilly|o'reilly/i;
 
 const MARKETING_SUBJECT =
-  /(\bsale\b|sal+e+|coupon|kupon|bundle offer|lowest prices|%\s*off|discount|webinar|workshop|free (access|trial)|on sale|flash sale|limited time|last chance|bogo)/i;
+  /(\bsale\b|sal+e+|coupon|kupon|bundle offer|lowest prices|%\s*off|discount|webinar|workshop|free (access|trial)|on sale|flash sale|limited time|last chance|bogo|still interested|seo prep)/i;
+
+/** Vendor policy / household / sub-processor notices — not a security event. */
+const ACCOUNT_POLICY_RE =
+  /(household|sub-processors?|privacy polic|an update on .{0,60}(privacy|sub-processor)|how to update your .{0,40}household)/i;
 
 const NEWSLETTER_FROM = /\b(news|newsletter|digest|briefing)@/i;
 
@@ -56,12 +61,26 @@ export function preClassify(input: GateInput): PreClassifyResult {
     };
   }
 
+  const from = `${input.from} ${input.fromEmail}`;
+  const subject = input.subject ?? "";
+  const body = input.bodyExcerpt ?? "";
+
+  if (
+    ACCOUNT_POLICY_RE.test(`${from} ${subject} ${body}`) &&
+    !isAccountSecurityText(subject, body, input.fromEmail)
+  ) {
+    return {
+      ...gate,
+      neverToRespond: true,
+      category: "notification",
+      reason: "account-policy",
+      skipLlmCategory: true,
+    };
+  }
+
   if (gate.category) {
     return { ...gate, skipLlmCategory: true };
   }
-
-  const from = `${input.from} ${input.fromEmail}`;
-  const subject = input.subject ?? "";
 
   if (NEWSLETTER_FROM.test(input.fromEmail) && !MARKETING_SUBJECT.test(subject)) {
     return {
@@ -121,6 +140,14 @@ export function resolveTriageCategory(opts: {
   if (isHumanSupportReply(opts.from, opts.fromEmail, opts.subject)) return "to_respond";
   if (isJobAlert(opts.from, opts.fromEmail, opts.subject)) return "notification";
   if (isLinkedInSender(opts.fromEmail, opts.from)) return "notification";
+  if (opts.pre.category === "marketing") return "marketing";
+  if (
+    (opts.llmOrDefault === "security" || opts.cached === "security" || opts.pre.category === "security") &&
+    !isAccountSecurityText(opts.subject, opts.bodyExcerpt ?? "", opts.fromEmail)
+  ) {
+    if (opts.pre.category && opts.pre.category !== "security") return opts.pre.category;
+    return "notification";
+  }
   if (opts.pre.skipLlmCategory && opts.pre.category) return opts.pre.category;
   if (opts.cached && opts.cached !== "money" && opts.cached !== "security") return opts.cached;
   return opts.llmOrDefault;

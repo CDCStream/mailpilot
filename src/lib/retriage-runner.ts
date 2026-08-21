@@ -19,7 +19,23 @@ export type RetriageBatchResult = {
   processed: number;
   total: number;
   changed: number;
+  advanced?: number;
+  batchIds?: string[];
 };
+
+async function withRowTimeout<T>(work: Promise<T>, ms = 15_000): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("row-timeout")), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 async function loadContext(accountId: string): Promise<PipelineContext | null> {
   const account = await db.query.emailAccounts.findFirst({
@@ -123,19 +139,27 @@ export async function processRetriageBatch(
 
     if (work.length === 0 || startAt >= work.length) {
       await finishJob(jobId, userId, work.length, total, changed);
-      return { status: "done", processed: work.length, total, changed };
+      return { status: "done", processed: work.length, total, changed, advanced: 0 };
     }
 
     await db
       .update(retriageJobs)
-      .set({
-        status: "running",
-        lastGmailMessageId: job.lastGmailMessageId ?? "__started__",
-        updatedAt: new Date(),
-      })
+      .set({ status: "running" })
       .where(and(eq(retriageJobs.id, jobId), inArray(retriageJobs.status, ["queued", "running"])));
 
     const chunk = nextRetriageSlice(work, startAt, RETRIAGE_BATCH_SIZE);
+    const batchIds = chunk.map((c) => c.gmailId);
+    console.info("retriage batch", { jobId, startAt, total, batchIds });
+    if (chunk.length === 0) {
+      console.error("retriage zero-progress empty chunk", { jobId, startAt, work: work.length, total });
+      await db
+        .update(retriageJobs)
+        .set({ status: "failed", error: "zero-progress", updatedAt: new Date() })
+        .where(and(eq(retriageJobs.id, jobId), inArray(retriageJobs.status, ["queued", "running"])));
+      return { status: "failed", processed: startAt, total, changed, advanced: 0, batchIds };
+    }
+
+    let processed = startAt;
     for (let i = 0; i < chunk.length; i += RETRIAGE_CONCURRENCY) {
       const latest = await db.query.retriageJobs.findFirst({
         where: eq(retriageJobs.id, jobId),
@@ -147,21 +171,16 @@ export async function processRetriageBatch(
           .where(eq(retriageJobs.id, jobId));
         return {
           status: "cancelled",
-          processed: startAt + i,
+          processed,
           total,
           changed,
-        };
-      }
-      if (latest.processed > startAt + i) {
-        return {
-          status: latest.processed >= total ? "done" : "running",
-          processed: latest.processed,
-          total: latest.total,
-          changed: parseRetriageChanged(latest.error) ?? changed,
+          advanced: processed - startAt,
+          batchIds,
         };
       }
 
       const wave = chunk.slice(i, i + RETRIAGE_CONCURRENCY);
+      console.info("retriage wave", { jobId, offset: processed, ids: wave.map((w) => w.gmailId) });
       const byAccount = new Map<string, string[]>();
       for (const item of wave) {
         const list = byAccount.get(item.accountId) ?? [];
@@ -170,18 +189,29 @@ export async function processRetriageBatch(
       }
       for (const [accountId, gmailIds] of byAccount) {
         const ctx = await loadContext(accountId);
-        if (!ctx) continue;
+        if (!ctx) {
+          console.error("retriage skip wave — no context", { jobId, accountId, gmailIds });
+          continue;
+        }
         const rows = await db.query.messages.findMany({
           where: and(eq(messages.accountId, accountId), inArray(messages.gmailMessageId, gmailIds)),
         });
         const results = await Promise.all(
           rows.map(async (r) => {
-            try {
-              return await retriageStoredRow(ctx, r);
-            } catch (err) {
-              console.error("retriage row failed", { id: r.id, err });
-              return { status: "skipped" as const, reason: "error" };
+            for (let attempt = 1; attempt <= 2; attempt += 1) {
+              try {
+                return await withRowTimeout(retriageStoredRow(ctx, r));
+              } catch (err) {
+                console.error("retriage row failed", {
+                  id: r.id,
+                  gmailId: r.gmailMessageId,
+                  attempt,
+                  err,
+                });
+                if (attempt === 2) return { status: "skipped" as const, reason: "error" };
+              }
             }
+            return { status: "skipped" as const, reason: "error" };
           }),
         );
         for (const [idx, result] of results.entries()) {
@@ -190,27 +220,34 @@ export async function processRetriageBatch(
           }
         }
       }
+
+      processed = startAt + i + wave.length;
+      await db
+        .update(retriageJobs)
+        .set({
+          status: "running",
+          processed,
+          lastGmailMessageId: wave.at(-1)?.gmailId ?? null,
+          error: `changed:${changed}`,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(retriageJobs.id, jobId), inArray(retriageJobs.status, ["queued", "running"])));
     }
 
-    const processed = startAt + chunk.length;
     const done = processed >= work.length;
     if (done) {
       await finishJob(jobId, userId, processed, total, changed);
-      return { status: "done", processed, total, changed };
+      return { status: "done", processed, total, changed, advanced: processed - startAt, batchIds };
     }
 
-    await db
-      .update(retriageJobs)
-      .set({
-        status: "running",
-        processed,
-        lastGmailMessageId: chunk.at(-1)?.gmailId ?? null,
-        error: `changed:${changed}`,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(retriageJobs.id, jobId), inArray(retriageJobs.status, ["queued", "running"])));
-
-    return { status: "running", processed, total, changed };
+    return {
+      status: "running",
+      processed,
+      total,
+      changed,
+      advanced: processed - startAt,
+      batchIds,
+    };
   } catch (err) {
     console.error("retriage batch failed", err);
     await db

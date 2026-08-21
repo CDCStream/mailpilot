@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import type { gmail_v1 } from "googleapis";
 import {
   db,
@@ -10,7 +10,7 @@ import {
   type UserPreferences,
   type VoiceProfile,
 } from "@/lib/db";
-import { applyLabels, createReplyDraft, getMessageMeta } from "@/lib/gmail";
+import { applyLabels, createReplyDraft, getMessageMeta, updateReplyDraft } from "@/lib/gmail";
 import { classifyEmail, generateReplyDraft } from "@/lib/ai";
 import { detectDevNotification, shouldBlockDraft } from "@/lib/dev-notifications";
 import { headerFlagsFromMeta, isLinkedInSender, isOwnAppSender } from "@/lib/bot-gate";
@@ -43,6 +43,37 @@ export type PipelineContext = {
 export type ProcessResult =
   | { status: "processed"; category: Category; draftCreated: boolean }
   | { status: "skipped"; reason: string };
+
+async function existingThreadDraftId(accountId: string, threadId: string): Promise<string | null> {
+  if (!threadId) return null;
+  const row = await db.query.messages.findFirst({
+    where: and(
+      eq(messages.accountId, accountId),
+      eq(messages.threadId, threadId),
+      isNotNull(messages.draftId),
+    ),
+    columns: { draftId: true },
+  });
+  return row?.draftId ?? null;
+}
+
+async function upsertGmailDraft(
+  ctx: PipelineContext,
+  existingDraftId: string | null,
+  payload: {
+    threadId: string;
+    to: string;
+    subject: string;
+    body: string;
+    inReplyTo?: string;
+    references?: string;
+  },
+): Promise<string> {
+  if (existingDraftId) {
+    return (await updateReplyDraft(ctx.gmail, existingDraftId, payload)) ?? createReplyDraft(ctx.gmail, payload);
+  }
+  return createReplyDraft(ctx.gmail, payload);
+}
 
 export type ProcessOptions = {
   /**
@@ -308,7 +339,12 @@ export async function processInboxMessage(
     reason: wantsDraft ? "eligible" : draftReasons.join(","),
   });
 
-  if (wantsDraft && (opts.free || (await consumeCredits(ctx.user.id, "draft")))) {
+  const existingThreadDraft = await existingThreadDraftId(ctx.account.id, meta.threadId);
+  if (existingThreadDraft) draftId = existingThreadDraft;
+  const mayWriteDraft =
+    wantsDraft &&
+    (existingThreadDraft || opts.free || (await consumeCredits(ctx.user.id, "draft")));
+  if (mayWriteDraft) {
     try {
       const body = await generateReplyDraft({
         userName: ctx.user.name ?? ctx.account.email,
@@ -321,7 +357,7 @@ export async function processInboxMessage(
         summary: classification.summary ?? "",
       });
       if (body) {
-        draftId = await createReplyDraft(ctx.gmail, {
+        draftId = await upsertGmailDraft(ctx, existingThreadDraft, {
           threadId: meta.threadId,
           to: meta.from,
           subject: meta.subject,
@@ -513,6 +549,8 @@ export async function retriageStoredRow(
     category: outcome.category,
     listUnsubscribe: meta?.listUnsubscribe,
   });
+  const existingThreadDraft = await existingThreadDraftId(ctx.account.id, row.threadId ?? meta?.threadId ?? "");
+  if (existingThreadDraft) draftId = existingThreadDraft;
   const canBackfillDraft =
     !draftId &&
     recentEnough &&
@@ -538,7 +576,7 @@ export async function retriageStoredRow(
           summary: classification.summary ?? "",
         });
         if (body) {
-          draftId = await createReplyDraft(ctx.gmail, {
+          draftId = await upsertGmailDraft(ctx, existingThreadDraft, {
             threadId: meta.threadId,
             to: from,
             subject,

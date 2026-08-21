@@ -427,6 +427,62 @@ describe("R-1 sender cache", () => {
   });
 });
 
+describe("C-3 Security is an account event", () => {
+  const negatives = [
+    {
+      from: "Udemy <no-reply@e.udemymail.com>",
+      email: "no-reply@e.udemymail.com",
+      subject: "Fuat, still interested in Search Engine Optimization (SEO) prep?",
+      expect: "marketing" as const,
+    },
+    {
+      from: "Netflix <info@mailer.netflix.com>",
+      email: "info@mailer.netflix.com",
+      subject: "Important: How to update your Netflix Household",
+      expect: "notification" as const,
+    },
+    {
+      from: "Fyxer Privacy <privacy@fyxer.com>",
+      email: "privacy@fyxer.com",
+      subject: "An update on Fyxer's sub-processors",
+      expect: "notification" as const,
+    },
+  ];
+
+  it("keeps Udemy / Netflix Household / Fyxer sub-processors out of Security", () => {
+    for (const m of negatives) {
+      const pre = predicted(m.from, m.email, m.subject);
+      expect(pre.category, m.subject).toBe(m.expect);
+      expect(
+        resolveTriageCategory({
+          from: m.from,
+          fromEmail: m.email,
+          subject: m.subject,
+          pre,
+          llmOrDefault: "security",
+          cached: "security",
+        }),
+        m.subject,
+      ).toBe(m.expect);
+    }
+    expect(CLASSIFY_SYSTEM).toContain("still interested in Search Engine Optimization");
+    expect(CLASSIFY_SYSTEM).toContain("Netflix Household");
+    expect(CLASSIFY_SYSTEM).toContain("sub-processors");
+  });
+
+  it("still labels real account events as Security", () => {
+    const kept = [
+      ["Filip at Tally <hello@tally.so>", "hello@tally.so", "Notice of a data breach affecting your Tally account"],
+      ["Link <noreply@link.com>", "noreply@link.com", "New login from iOS (Mobile Safari)"],
+      ["Similarweb <no-reply@similarweb.com>", "no-reply@similarweb.com", "SimilarWeb Hesabı Giriş Doğrulaması"],
+      ["npm <noreply@npmjs.com>", "noreply@npmjs.com", "[npm] Two-factor authentication disabled"],
+    ] as const;
+    for (const [from, email, subject] of kept) {
+      expect(predicted(from, email, subject).category, subject).toBe("security");
+    }
+  });
+});
+
 describe("R-3 summarizer failure", () => {
   it("does not contain the action-needed fallback string", () => {
     expect(CLASSIFY_SYSTEM.includes("Action / signature needed:")).toBe(false);

@@ -16,7 +16,7 @@ function failedCopy(error: string | null | undefined): string {
   if (error === "stale-timeout") {
     return "Re-triage stopped — no progress for 2 minutes. Try again.";
   }
-  if (error === "batch-error" || error === "tick-error") {
+  if (error === "batch-error" || error === "tick-error" || error === "zero-progress") {
     return "Re-triage hit an error mid-run. Try again — it resumes from the last committed batch.";
   }
   return "Re-triage failed. Try again.";
@@ -137,7 +137,7 @@ export function RetriagePanel({
           <p className="text-sm text-zinc-700">
             {job.status === "cancel_requested"
               ? "Cancelling after this batch…"
-              : `Re-triaging last ${job.scope === "all" ? "mail" : `${job.scope} days`} — ${job.processed} / ${job.total}`}
+              : `Re-triaging ${job.scope === "all" ? "all imported mail" : `last ${job.scope} days`} — ${job.processed} / ${job.total}`}
           </p>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100">
             <div className="h-full rounded-full bg-teal-600" style={{ width: `${pct}%` }} />

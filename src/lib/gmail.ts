@@ -424,6 +424,54 @@ export async function createReplyDraft(
   return data.id!;
 }
 
+/** Replaces an existing Wingman draft in-place so a thread never stacks copies. */
+export async function updateReplyDraft(
+  gmail: gmail_v1.Gmail,
+  draftId: string,
+  opts: {
+    threadId: string;
+    to: string;
+    subject: string;
+    body: string;
+    inReplyTo?: string;
+    references?: string;
+  },
+): Promise<string | null> {
+  const subject = opts.subject.toLowerCase().startsWith("re:")
+    ? opts.subject
+    : `Re: ${opts.subject}`;
+
+  const headers = [
+    `To: ${opts.to}`,
+    `Subject: ${subject}`,
+    "Content-Type: text/plain; charset=utf-8",
+    "MIME-Version: 1.0",
+  ];
+  if (opts.inReplyTo) headers.push(`In-Reply-To: ${opts.inReplyTo}`);
+  const references = [opts.references, opts.inReplyTo].filter(Boolean).join(" ").trim();
+  if (references) headers.push(`References: ${references}`);
+
+  const raw = Buffer.from(headers.join("\r\n") + "\r\n\r\n" + opts.body, "utf8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+
+  try {
+    const { data } = await gmail.users.drafts.update({
+      userId: "me",
+      id: draftId,
+      requestBody: { id: draftId, message: { raw, threadId: opts.threadId } },
+    });
+    return data.id ?? draftId;
+  } catch (err: unknown) {
+    const code =
+      typeof err === "object" && err && "code" in err ? (err as { code: number }).code : 0;
+    if (code === 404 || code === 400) return null;
+    throw err;
+  }
+}
+
 /**
  * Body text of a Gmail draft, for showing the AI reply inline in the app.
  * Returns null when the draft no longer exists (sent or discarded).
