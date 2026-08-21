@@ -1,9 +1,7 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { cancelRetriage, startRetriage } from "../retriage-actions";
-import { PendingButton } from "../pending-button";
 
 type Job = {
   status: string;
@@ -32,7 +30,9 @@ export function RetriagePanel({
   staleClassifier: boolean;
 }) {
   const router = useRouter();
-  const [state, formAction] = useActionState(startRetriage, null);
+  const [startError, setStartError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const emptyRange = Boolean(job && job.total === 0 && job.status !== "cancelled" && job.status !== "failed");
   const running = Boolean(
     job &&
@@ -73,6 +73,39 @@ export function RetriagePanel({
 
   const pct = job && job.total > 0 ? Math.min(100, Math.round((job.processed / job.total) * 100)) : 0;
 
+  async function onStart(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStartError(null);
+    setStarting(true);
+    const scope = String(new FormData(event.currentTarget).get("scope") ?? "7");
+    try {
+      const res = await fetch("/api/retriage/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scope }),
+      });
+      const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || data?.ok === false) {
+        setStartError(data?.error ?? "Re-triage failed to start — try again");
+      }
+    } catch {
+      setStartError("Re-triage failed to start — try again");
+    } finally {
+      setStarting(false);
+      router.refresh();
+    }
+  }
+
+  async function onCancel() {
+    setCancelling(true);
+    try {
+      await fetch("/api/retriage/cancel", { method: "POST" });
+    } finally {
+      setCancelling(false);
+      router.refresh();
+    }
+  }
+
   return (
     <section className="mt-8 rounded-2xl border border-zinc-200 p-6">
       <h2 className="font-semibold">Re-run triage on my history</h2>
@@ -85,9 +118,9 @@ export function RetriagePanel({
           Triage rules were updated. Re-run on your history so old labels match the new classifier.
         </p>
       )}
-      {state && !state.ok && (
+      {startError && (
         <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
-          {state.error ?? "Re-triage failed to start — try again"}
+          {startError}
         </p>
       )}
       {failed && (
@@ -110,18 +143,18 @@ export function RetriagePanel({
             <div className="h-full rounded-full bg-teal-600" style={{ width: `${pct}%` }} />
           </div>
           {job.status !== "cancel_requested" && (
-            <form action={cancelRetriage} className="mt-3">
-              <PendingButton
-                pendingText="Cancelling…"
-                className="rounded-full border border-zinc-300 px-4 py-1.5 text-xs font-medium hover:bg-zinc-50"
-              >
-                Cancel
-              </PendingButton>
-            </form>
+            <button
+              type="button"
+              onClick={() => void onCancel()}
+              disabled={cancelling}
+              className="mt-3 rounded-full border border-zinc-300 px-4 py-1.5 text-xs font-medium hover:bg-zinc-50 disabled:opacity-70"
+            >
+              {cancelling ? "Cancelling…" : "Cancel"}
+            </button>
           )}
         </div>
       ) : (
-        <form action={formAction} className="mt-4 flex flex-wrap items-end gap-3">
+        <form onSubmit={(e) => void onStart(e)} className="mt-4 flex flex-wrap items-end gap-3">
           <label className="text-sm">
             <span className="mb-1 block text-zinc-600">Scope</span>
             <select
@@ -135,12 +168,13 @@ export function RetriagePanel({
               <option value="all">All imported mail</option>
             </select>
           </label>
-          <PendingButton
-            pendingText="Starting…"
-            className="rounded-full bg-teal-600 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-700"
+          <button
+            type="submit"
+            disabled={starting}
+            className="inline-flex items-center justify-center rounded-full bg-teal-600 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-70"
           >
-            Start re-triage
-          </PendingButton>
+            {starting ? "Starting…" : "Start re-triage"}
+          </button>
           {job?.status === "done" && job.total > 0 && (
             <span className="text-xs text-zinc-500">
               Re-triaged {job.processed} messages

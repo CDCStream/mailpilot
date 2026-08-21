@@ -8,6 +8,8 @@ import {
   RETRIAGE_CONCURRENCY,
   nextRetriageSlice,
   parseRetriageChanged,
+  retriageWorkList,
+  snapshotRetriageTotal,
 } from "@/lib/retriage-job";
 import { listRetriageTargets } from "@/lib/retriage-query";
 import { purgePoisonedSenderCache, relabelPoisonedLinkedInSecurity } from "@/lib/sender-cache";
@@ -114,26 +116,26 @@ export async function processRetriageBatch(
     }
 
     const listed = await listRetriageTargets(userId, job.scope as RetriageScope);
-    const total = listed.length;
-    const startAt = Math.min(job.processed, total);
+    const total = snapshotRetriageTotal(job.total, listed.length);
+    const work = retriageWorkList(listed, total);
+    const startAt = Math.min(job.processed, work.length);
     let changed = parseRetriageChanged(job.error) ?? 0;
 
-    if (total === 0 || startAt >= total) {
-      await finishJob(jobId, userId, total, total, changed);
-      return { status: "done", processed: total, total, changed };
+    if (work.length === 0 || startAt >= work.length) {
+      await finishJob(jobId, userId, work.length, total, changed);
+      return { status: "done", processed: work.length, total, changed };
     }
 
     await db
       .update(retriageJobs)
       .set({
         status: "running",
-        total,
         lastGmailMessageId: job.lastGmailMessageId ?? "__started__",
         updatedAt: new Date(),
       })
       .where(and(eq(retriageJobs.id, jobId), inArray(retriageJobs.status, ["queued", "running"])));
 
-    const chunk = nextRetriageSlice(listed, startAt, RETRIAGE_BATCH_SIZE);
+    const chunk = nextRetriageSlice(work, startAt, RETRIAGE_BATCH_SIZE);
     for (let i = 0; i < chunk.length; i += RETRIAGE_CONCURRENCY) {
       const latest = await db.query.retriageJobs.findFirst({
         where: eq(retriageJobs.id, jobId),
@@ -191,7 +193,7 @@ export async function processRetriageBatch(
     }
 
     const processed = startAt + chunk.length;
-    const done = processed >= total;
+    const done = processed >= work.length;
     if (done) {
       await finishJob(jobId, userId, processed, total, changed);
       return { status: "done", processed, total, changed };
@@ -202,7 +204,6 @@ export async function processRetriageBatch(
       .set({
         status: "running",
         processed,
-        total,
         lastGmailMessageId: chunk.at(-1)?.gmailId ?? null,
         error: `changed:${changed}`,
         updatedAt: new Date(),

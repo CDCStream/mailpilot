@@ -148,13 +148,21 @@ export function isLinkedInSender(fromEmail: string, from = ""): boolean {
   return /linkedin\.com|lnkd\.in|\bvia linkedin\b/.test(blob);
 }
 
+/** Hiring digest / "Company is hiring" — never the user's own account. */
+export function isHiringNotice(from: string, fromEmail: string, subject = ""): boolean {
+  const blob = `${from} ${fromEmail} ${subject}`.toLowerCase();
+  return /\bis hiring\b|hiring for (a |an )|we're hiring|we are hiring/.test(blob);
+}
+
 export function isAccountSecurityText(subject: string, bodyExcerpt = "", fromEmail = ""): boolean {
+  if (isLinkedInSender(fromEmail) || isHiringNotice("", fromEmail, subject)) return false;
   return SECURITY_RE.test(`${fromEmail} ${subject} ${bodyExcerpt}`);
 }
 
 /** LinkedIn (and similar) job-alert machines — never a security event. */
 export function isJobAlert(from: string, fromEmail: string, subject = ""): boolean {
   const blob = `${from} ${fromEmail} ${subject}`.toLowerCase();
+  if (isHiringNotice(from, fromEmail, subject)) return true;
   if (/jobalerts?(?:-noreply)?@|job.?alerts/i.test(blob)) return true;
   if (/linkedin\.com/i.test(fromEmail) && /job alert|jobs? you may|new jobs? for you|similar to /i.test(blob)) {
     return true;
@@ -215,13 +223,11 @@ export function evaluateBotGate(input: GateInput): GateResult {
   const subject = input.subject ?? "";
   const body = input.bodyExcerpt ?? "";
   if (isLinkedInSender(email, input.from)) {
-    const ownAccount =
-      isAccountSecurityText(subject, body, email) && !isJobAlert(input.from, email, subject);
     return {
       skipIngest: false,
       neverToRespond: true,
-      category: ownAccount ? "security" : "notification",
-      reason: ownAccount ? "security-heuristic" : "linkedin",
+      category: "notification",
+      reason: "linkedin",
     };
   }
 

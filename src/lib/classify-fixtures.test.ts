@@ -93,6 +93,11 @@ const LINKEDIN_SECURITY_NEGATIVES: { from: string; email: string; subject: strin
     email: "invitations@linkedin.com",
     subject: "Gabriela accepted your invitation, explore their network",
   },
+  {
+    from: "LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>",
+    email: "jobalerts-noreply@linkedin.com",
+    subject: "Alpaca is hiring for a Remote role",
+  },
 ];
 
 const POSITIVES: { from: string; email: string; subject: string }[] = [
@@ -278,6 +283,28 @@ describe("R-1 LinkedIn is never Security", () => {
       expect(r.category, m.subject).toBe("notification");
       expect(r.neverToRespond, m.subject).toBe(true);
     }
+  });
+
+  it("keeps Alpaca hiring out of Security even when the body mentions 2FA", () => {
+    const r = preClassify({
+      from: "LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>",
+      fromEmail: "jobalerts-noreply@linkedin.com",
+      subject: "Alpaca is hiring for a Remote role",
+      bodyExcerpt: "Alpaca is hiring. Experience with MFA and 2FA required. Sign in to apply.",
+    });
+    expect(r.category).toBe("notification");
+    expect(
+      resolveTriageCategory({
+        from: "LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>",
+        fromEmail: "jobalerts-noreply@linkedin.com",
+        subject: "Alpaca is hiring for a Remote role",
+        bodyExcerpt: "Experience with MFA and 2FA required.",
+        pre: r,
+        llmOrDefault: "security",
+        cached: "security",
+      }),
+    ).toBe("notification");
+    expect(CLASSIFY_SYSTEM).toContain("Alpaca is hiring for a Remote role");
   });
 
   it("ignores a poisoned Security cache hit for linkedin.com", () => {

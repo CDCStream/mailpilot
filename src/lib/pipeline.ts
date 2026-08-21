@@ -13,12 +13,7 @@ import {
 import { applyLabels, createReplyDraft, getMessageMeta } from "@/lib/gmail";
 import { classifyEmail, generateReplyDraft } from "@/lib/ai";
 import { detectDevNotification, shouldBlockDraft } from "@/lib/dev-notifications";
-import {
-  headerFlagsFromMeta,
-  isAccountSecurityText,
-  isLinkedInSender,
-  isOwnAppSender,
-} from "@/lib/bot-gate";
+import { headerFlagsFromMeta, isLinkedInSender, isOwnAppSender } from "@/lib/bot-gate";
 import { senderDomain } from "@/lib/pre-classify";
 import { cachedSenderCategory, forgetSenderCategory, rememberSenderCategory } from "@/lib/sender-cache";
 import { isUncacheableDomain } from "@/lib/sender-cache-logic";
@@ -220,6 +215,14 @@ export async function processInboxMessage(
     summary: classification.summary,
   });
   if (pre.neverToRespond) classification.needs_reply = false;
+  else if (
+    classification.category === "to_respond" &&
+    classification.summary &&
+    devSignal?.kind !== "action_no_draft" &&
+    !devSignal?.skipDraft
+  ) {
+    classification.needs_reply = true;
+  }
 
   const outcome = applyRules(ctx.rules, {
     fromEmail: meta.fromEmail,
@@ -329,11 +332,7 @@ export async function processInboxMessage(
     }
   }
 
-  if (
-    isLinkedInSender(meta.fromEmail, meta.from) &&
-    outcome.category === "security" &&
-    !isAccountSecurityText(meta.subject, meta.bodyExcerpt, meta.fromEmail)
-  ) {
+  if (isLinkedInSender(meta.fromEmail, meta.from) && outcome.category === "security") {
     outcome.category = "notification";
   }
 
@@ -369,16 +368,21 @@ export async function processInboxMessage(
 type StoredMessage = {
   id: string;
   gmailMessageId: string;
+  threadId?: string;
   fromAddress: string | null;
   subject: string | null;
   snippet: string | null;
   category: Category | null;
   summary: string | null;
+  draftId?: string | null;
+  receivedAt?: Date | null;
+  createdAt?: Date;
   actions?: {
     hasListUnsubscribe?: boolean;
     isAutoSubmitted?: boolean;
     isBulkPrecedence?: boolean;
     hasListId?: boolean;
+    draftCreated?: boolean;
   } | null;
 };
 
@@ -453,6 +457,9 @@ export async function retriageStoredRow(
     summary: classification.summary,
   });
   if (pre.neverToRespond) classification.needs_reply = false;
+  else if (classification.category === "to_respond" && classification.summary) {
+    classification.needs_reply = true;
+  }
 
   const outcome = applyRules(ctx.rules, {
     fromEmail,
@@ -470,11 +477,7 @@ export async function retriageStoredRow(
     cached,
     summary: classification.summary,
   });
-  if (
-    isLinkedInSender(fromEmail, from) &&
-    outcome.category === "security" &&
-    !isAccountSecurityText(subject, bodyExcerpt, fromEmail)
-  ) {
+  if (isLinkedInSender(fromEmail, from) && outcome.category === "security") {
     outcome.category = "notification";
   }
 
@@ -495,15 +498,66 @@ export async function retriageStoredRow(
     }
   }
 
+  let draftId = row.draftId ?? null;
+  const arrived = row.receivedAt ?? row.createdAt ?? null;
+  const recentEnough =
+    arrived != null && Date.now() - arrived.getTime() <= 7 * 24 * 60 * 60 * 1000;
+  const draftStyle = prefs.draftStyle ?? "everything";
+  const blockedDraft = shouldBlockDraft({
+    fromEmail,
+    from,
+    category: outcome.category,
+    listUnsubscribe: meta?.listUnsubscribe,
+  });
+  const canBackfillDraft =
+    !draftId &&
+    recentEnough &&
+    outcome.category === "to_respond" &&
+    Boolean(classification.summary) &&
+    classification.needs_reply &&
+    prefs.draftsEnabled !== false &&
+    draftStyle !== "manual" &&
+    !(draftStyle === "important_only" && !classification.urgent) &&
+    !blockedDraft &&
+    !outcome.skipDraft;
+  if (canBackfillDraft && meta) {
+    try {
+      if (await consumeCredits(ctx.user.id, "draft")) {
+        const body = await generateReplyDraft({
+          userName: ctx.user.name ?? ctx.account.email,
+          voiceProfile: ctx.user.voiceProfile,
+          toneInstructions: ctx.user.voiceProfile ? "" : prefs.toneInstructions,
+          from,
+          subject,
+          bodyExcerpt,
+          summary: classification.summary ?? "",
+        });
+        if (body) {
+          draftId = await createReplyDraft(ctx.gmail, {
+            threadId: meta.threadId,
+            to: from,
+            subject,
+            body,
+            inReplyTo: meta.messageIdHeader || undefined,
+            references: meta.references || undefined,
+          });
+        }
+      }
+    } catch (err) {
+      console.error("retriage draft failed", { id: row.id, err });
+    }
+  }
+
   await db
     .update(messages)
     .set({
       category: outcome.category,
       summary: classification.summary,
+      draftId,
       actions: {
         labeled: outcome.category,
         archived: false,
-        draftCreated: false,
+        draftCreated: Boolean(draftId),
         retriaged: true,
         hasListUnsubscribe: row.actions?.hasListUnsubscribe ?? liveFlags.hasListUnsubscribe,
         isAutoSubmitted: row.actions?.isAutoSubmitted ?? liveFlags.isAutoSubmitted,
@@ -514,5 +568,5 @@ export async function retriageStoredRow(
     .where(eq(messages.id, row.id));
 
   await rememberSenderCategory(ctx.user.id, fromEmail, outcome.category);
-  return { status: "processed", category: outcome.category, draftCreated: false };
+  return { status: "processed", category: outcome.category, draftCreated: Boolean(draftId) };
 }

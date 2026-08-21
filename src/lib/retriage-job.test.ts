@@ -4,6 +4,8 @@ import {
   isRetriageStale,
   nextRetriageSlice,
   parseRetriageChanged,
+  retriageWorkList,
+  snapshotRetriageTotal,
 } from "@/lib/retriage-job";
 
 describe("retriage batching", () => {
@@ -26,5 +28,11 @@ describe("retriage batching", () => {
     expect(parseRetriageChanged("changed:12")).toBe(12);
     expect(parseRetriageChanged("stale-timeout")).toBeNull();
     expect(parseRetriageChanged("batch-error")).toBeNull();
+  });
+
+  it("freezes the job total at enqueue so new mail cannot grow the denominator", () => {
+    expect(snapshotRetriageTotal(295, 296)).toBe(295);
+    expect(snapshotRetriageTotal(0, 296)).toBe(296);
+    expect(retriageWorkList([1, 2, 3, 4], 3)).toEqual([1, 2, 3]);
   });
 });

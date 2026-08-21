@@ -1,5 +1,5 @@
 /** Bump this whenever the classify prompt or pre-gate changes. */
-export const CLASSIFIER_VERSION = "2026-08-20-r5";
+export const CLASSIFIER_VERSION = "2026-08-21-r8";
 
 export const RETRIAGE_SCOPES = ["7", "30", "90", "all"] as const;
 export type RetriageScope = (typeof RETRIAGE_SCOPES)[number];

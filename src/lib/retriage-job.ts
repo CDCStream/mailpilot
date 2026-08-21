@@ -15,6 +15,16 @@ export function nextRetriageSlice<T>(listed: T[], processed: number, batchSize =
   return listed.slice(start, start + batchSize);
 }
 
+/** Keep the enqueue-time denominator. New mail arriving mid-run must not move the bar. */
+export function snapshotRetriageTotal(jobTotal: number, listedLength: number): number {
+  return jobTotal > 0 ? jobTotal : listedLength;
+}
+
+export function retriageWorkList<T>(listed: T[], snapshotTotal: number): T[] {
+  if (snapshotTotal <= 0) return [];
+  return listed.slice(0, snapshotTotal);
+}
+
 export function isRetriageStale(updatedAt: Date, now = new Date(), staleMs = RETRIAGE_STALE_MS): boolean {
   return now.getTime() - updatedAt.getTime() >= staleMs;
 }

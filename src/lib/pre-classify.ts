@@ -1,7 +1,6 @@
 import type { Category } from "@/lib/db/schema";
 import {
   evaluateBotGate,
-  isAccountSecurityText,
   isHumanSupportReply,
   isJobAlert,
   isLinkedInSender,
@@ -48,15 +47,11 @@ export function preClassify(input: GateInput): PreClassifyResult {
     isJobAlert(input.from, input.fromEmail, input.subject ?? "") ||
     gate.reason === "job-alert"
   ) {
-    const ownAccount =
-      isLinkedInSender(input.fromEmail, input.from) &&
-      isAccountSecurityText(input.subject ?? "", input.bodyExcerpt ?? "", input.fromEmail) &&
-      !isJobAlert(input.from, input.fromEmail, input.subject ?? "");
     return {
       ...gate,
       neverToRespond: true,
-      category: ownAccount ? "security" : "notification",
-      reason: ownAccount ? "security-heuristic" : gate.reason === "job-alert" ? "job-alert" : "linkedin",
+      category: "notification",
+      reason: gate.reason === "job-alert" ? "job-alert" : "linkedin",
       skipLlmCategory: true,
     };
   }
@@ -123,12 +118,9 @@ export function resolveTriageCategory(opts: {
   llmOrDefault: Category;
   cached: Category | null;
 }): Category {
-  const body = opts.bodyExcerpt ?? "";
   if (isHumanSupportReply(opts.from, opts.fromEmail, opts.subject)) return "to_respond";
   if (isJobAlert(opts.from, opts.fromEmail, opts.subject)) return "notification";
-  if (isLinkedInSender(opts.fromEmail, opts.from)) {
-    return isAccountSecurityText(opts.subject, body, opts.fromEmail) ? "security" : "notification";
-  }
+  if (isLinkedInSender(opts.fromEmail, opts.from)) return "notification";
   if (opts.pre.skipLlmCategory && opts.pre.category) return opts.pre.category;
   if (opts.cached && opts.cached !== "money" && opts.cached !== "security") return opts.cached;
   return opts.llmOrDefault;

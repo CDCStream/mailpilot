@@ -83,7 +83,7 @@ Classify the email into exactly one category:
 - "marketing": promotional email — sales, discounts, course launches, webinars, product pitches. Platform instructor promos (Udemy, Coursera) are ALWAYS marketing, never notification or to_respond. Examples: Netflix "new shows", Adobe "50% off", Udemy "5 Days Only: Lowest Prices", Cambly "book now and save".
 - "notification": automated operational messages that are NOT money and NOT security (shipping, calendar, CI success, LinkedIn invites, "your export is ready").
 - "money": payments, failed charges, invoices, receipts, subscription renewals, payouts, card expiry. Sources: Stripe, Cursor, Ahrefs, Vercel billing, banks. Example: "Cursor — $100.36 payment was unsuccessful".
-- "security": ONLY when the message is about the user's OWN account: sign-in, MFA/2FA change, password or token change, new device or key, token expiry, or a provider security advisory addressed to this user. Example: "Vercel — New sign-in detected on your Vercel account". A job posting, hiring digest, connection request, or newsletter is NEVER security, even if the subject contains the word "Security". Negative: LinkedIn Job Alerts — "Security Architecture Professionals at Trendyol Group" is notification.
+- "security": ONLY when the message is about the user's OWN account at that provider: a sign-in on their account, MFA/2FA change on their account, password or token change, new device or key, token expiry, or a provider security advisory addressed to this user. Example: "Vercel — New sign-in detected on your Vercel account". A job posting, hiring notice, recruiting digest, connection request, or newsletter is NEVER security — those are not about the user's account, even if the body mentions MFA/2FA or the word "Security". Negatives: LinkedIn Job Alerts — "Security Architecture Professionals at Trendyol Group" is notification; LinkedIn — "Alpaca is hiring for a Remote role" is notification.
 - "cold_email": unsolicited outreach from a stranger trying to sell or pitch something.
 
 Disambiguation (worked examples):
@@ -92,7 +92,7 @@ Disambiguation (worked examples):
 - Morning briefing / editorial digest with no CTA to buy → newsletter.
 - "Payment unsuccessful" / invoice / renewal → money (outranks notification).
 - "2FA disabled" / "security key added" / "tokens expiring" / "New sign-in detected on your Vercel account" → security (outranks notification).
-- Anything from linkedin.com (Job Alerts, "Don't miss conversations…", "New jobs similar to…", "X accepted your invitation") → notification. Never security. The word "Security" in a job title is not a security event.
+- Anything from linkedin.com (Job Alerts, "Don't miss conversations…", "New jobs similar to…", "X is hiring…", "X accepted your invitation") → notification. Never security. A hiring notice is never about the user's own account.
 - A human at a role address (support@, hello@, team@) replying on a Re: thread the user opened → to_respond, not fyi. Role inbox ≠ bot.
 - A person wrote from a personal or company mailbox asking a question → to_respond.
 - A human support agent replying on a thread the user opened (e.g. Captapi Support <support@captapi.com> "Re: tiktok-transcript timed out") → to_respond, not fyi.
