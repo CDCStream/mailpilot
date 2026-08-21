@@ -11,7 +11,30 @@ export type GateHeaders = {
   listId?: string | null;
   autoSubmitted?: string | null;
   precedence?: string | null;
+  /** Persisted at ingest so re-triage can run without the raw Gmail payload. */
+  hasListUnsubscribe?: boolean;
+  isAutoSubmitted?: boolean;
+  isBulkPrecedence?: boolean;
+  hasListId?: boolean;
 };
+
+export function headerFlagsFromMeta(headers: {
+  listUnsubscribe?: string | null;
+  listId?: string | null;
+  autoSubmitted?: string | null;
+  precedence?: string | null;
+}): Required<Pick<GateHeaders, "hasListUnsubscribe" | "isAutoSubmitted" | "isBulkPrecedence" | "hasListId">> {
+  const unsub = (headers.listUnsubscribe ?? "").trim();
+  const listId = (headers.listId ?? "").trim();
+  const auto = (headers.autoSubmitted ?? "").toLowerCase();
+  const prec = (headers.precedence ?? "").toLowerCase();
+  return {
+    hasListUnsubscribe: unsub.length > 0,
+    hasListId: listId.length > 0,
+    isAutoSubmitted: auto.includes("auto-generated") || auto.includes("auto-replied"),
+    isBulkPrecedence: /\b(bulk|list|junk)\b/.test(prec),
+  };
+}
 
 export type GateInput = {
   from: string;
@@ -90,18 +113,26 @@ export function isBotSender(fromEmail: string, fromDisplay = ""): boolean {
 }
 
 function hasBulkHeaders(headers: GateHeaders | undefined): { bulk: boolean; newsletter: boolean } {
-  const unsub = (headers?.listUnsubscribe ?? "").trim();
-  const listId = (headers?.listId ?? "").trim();
-  const auto = (headers?.autoSubmitted ?? "").toLowerCase();
-  const prec = (headers?.precedence ?? "").toLowerCase();
-  const newsletter = listId.length > 0;
-  const bulk =
-    unsub.length > 0 ||
-    newsletter ||
-    auto.includes("auto-generated") ||
-    auto.includes("auto-replied") ||
-    /\b(bulk|list|junk)\b/.test(prec);
-  return { bulk, newsletter };
+  if (!headers) return { bulk: false, newsletter: false };
+  try {
+    const unsub = String(headers.listUnsubscribe ?? "").trim();
+    const listId = String(headers.listId ?? "").trim();
+    const auto = String(headers.autoSubmitted ?? "").toLowerCase();
+    const prec = String(headers.precedence ?? "").toLowerCase();
+    const newsletter = headers.hasListId === true || listId.length > 0;
+    const bulk =
+      headers.hasListUnsubscribe === true ||
+      headers.isAutoSubmitted === true ||
+      headers.isBulkPrecedence === true ||
+      unsub.length > 0 ||
+      newsletter ||
+      auto.includes("auto-generated") ||
+      auto.includes("auto-replied") ||
+      /\b(bulk|list|junk)\b/.test(prec);
+    return { bulk, newsletter };
+  } catch {
+    return { bulk: false, newsletter: false };
+  }
 }
 
 const MONEY_RE =

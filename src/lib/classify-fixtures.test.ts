@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { CLASSIFY_SYSTEM, handleClassifyFailure } from "@/lib/ai";
-import { canBeToRespond, isLinkedInSender } from "@/lib/bot-gate";
+import { canBeToRespond, headerFlagsFromMeta, isLinkedInSender } from "@/lib/bot-gate";
 import { retriageSince } from "@/lib/classifier-version";
 import { preClassify, resolveTriageCategory } from "@/lib/pre-classify";
 import { applyTriageGate, isLegacyActionSummary, sanitizeSummary } from "@/lib/triage";
@@ -159,6 +159,38 @@ function snapshotFixtures() {
     },
   ];
 }
+
+describe("B-3 gate degrades when headers are missing", () => {
+  it("does not throw on undefined headers or empty sender fields", () => {
+    expect(() =>
+      applyTriageGate({ from: "", fromEmail: "", subject: "", headers: undefined }),
+    ).not.toThrow();
+    const r = applyTriageGate({
+      from: "Human <a@b.com>",
+      fromEmail: "a@b.com",
+      subject: "Hello",
+    });
+    expect(r.reason).toBe("pass");
+  });
+
+  it("uses persisted header flags when raw headers are absent", () => {
+    const flags = headerFlagsFromMeta({
+      listUnsubscribe: "<mailto:unsub@x.com>",
+      listId: "",
+      autoSubmitted: null,
+      precedence: "bulk",
+    });
+    expect(flags.hasListUnsubscribe).toBe(true);
+    expect(flags.isBulkPrecedence).toBe(true);
+    const r = applyTriageGate({
+      from: "Human <person@company.com>",
+      fromEmail: "person@company.com",
+      subject: "Can you reply?",
+      headers: flags,
+    });
+    expect(r.neverToRespond).toBe(true);
+  });
+});
 
 describe("B-1 shared triage gate", () => {
   it("blocks the remaining To Respond bots on stored From/subject alone", () => {

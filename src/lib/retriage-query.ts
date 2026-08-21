@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, or } from "drizzle-orm";
 import { db, emailAccounts, messages } from "@/lib/db";
 import { retriageSince, type RetriageScope } from "@/lib/classifier-version";
 
@@ -6,7 +6,7 @@ export type RetriageTarget = { accountId: string; gmailId: string; messageId: st
 
 /**
  * Already-imported messages for this user, by Gmail arrival time.
- * COALESCE(received_at, created_at) so a null received_at cannot empty the scope.
+ * Null received_at falls back to created_at so the scope cannot go empty.
  */
 export async function listRetriageTargets(
   userId: string,
@@ -22,14 +22,12 @@ export async function listRetriageTargets(
 
   const since = retriageSince(scope, now);
   const inAccounts = inArray(messages.accountId, accountIds);
+  const arrivedSince = since
+    ? or(gte(messages.receivedAt, since), and(isNull(messages.receivedAt), gte(messages.createdAt, since)))
+    : undefined;
 
   const rows = await db.query.messages.findMany({
-    where: since
-      ? and(
-          inAccounts,
-          sql`coalesce(${messages.receivedAt}, ${messages.createdAt}) >= ${since}`,
-        )
-      : inAccounts,
+    where: arrivedSince ? and(inAccounts, arrivedSince) : inAccounts,
     orderBy: [asc(messages.receivedAt), asc(messages.id)],
     columns: { id: true, accountId: true, gmailMessageId: true },
   });

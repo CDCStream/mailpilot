@@ -191,8 +191,9 @@ export async function getMessageHtml(
 }
 
 export function parseEmailAddress(raw: string): string {
-  const match = raw.match(/<([^>]+)>/);
-  return (match ? match[1] : raw).trim().toLowerCase();
+  const value = typeof raw === "string" ? raw : "";
+  const match = value.match(/<([^>]+)>/);
+  return (match ? match[1] : value).trim().toLowerCase();
 }
 
 /** Deep link into Gmail for the right account, works even if the thread is archived. */

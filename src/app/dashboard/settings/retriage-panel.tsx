@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { cancelRetriage, startRetriage } from "../actions";
+import { cancelRetriage, startRetriage } from "../retriage-actions";
 import { PendingButton } from "../pending-button";
 
 type Job = {
@@ -21,6 +21,7 @@ export function RetriagePanel({
   staleClassifier: boolean;
 }) {
   const router = useRouter();
+  const [state, formAction] = useActionState(startRetriage, null);
   const emptyRange = Boolean(job && job.total === 0 && job.status !== "cancelled");
   const running = Boolean(
     job &&
@@ -48,6 +49,11 @@ export function RetriagePanel({
           Triage rules were updated. Re-run on your history so old labels match the new classifier.
         </p>
       )}
+      {state && !state.ok && (
+        <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+          {state.error ?? "Re-triage failed to start — try again"}
+        </p>
+      )}
       {emptyRange && job?.status === "done" && (
         <p className="mt-4 text-sm text-zinc-600">No messages in this range</p>
       )}
@@ -73,12 +79,12 @@ export function RetriagePanel({
           )}
         </div>
       ) : (
-        <form action={startRetriage} className="mt-4 flex flex-wrap items-end gap-3">
+        <form action={formAction} className="mt-4 flex flex-wrap items-end gap-3">
           <label className="text-sm">
             <span className="mb-1 block text-zinc-600">Scope</span>
             <select
               name="scope"
-              defaultValue="30"
+              defaultValue="7"
               className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
             >
               <option value="7">Last 7 days</option>

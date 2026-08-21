@@ -10,7 +10,24 @@ import {
 
 /** Single gate used by ingest and re-triage. Do not fork this. */
 export function applyTriageGate(input: GateInput): PreClassifyResult {
-  return preClassify(input);
+  try {
+    return preClassify({
+      from: input.from ?? "",
+      fromEmail: input.fromEmail ?? "",
+      subject: input.subject ?? "",
+      bodyExcerpt: input.bodyExcerpt ?? "",
+      headers: input.headers,
+    });
+  } catch (err) {
+    console.error("applyTriageGate failed", err);
+    return {
+      skipIngest: false,
+      neverToRespond: false,
+      category: null,
+      reason: "gate-error",
+      skipLlmCategory: false,
+    };
+  }
 }
 
 export function isLegacyActionSummary(summary: string | null | undefined): boolean {
@@ -28,13 +45,25 @@ export function gateInputFromStored(row: {
   fromAddress: string | null;
   subject: string | null;
   snippet: string | null;
+  actions?: {
+    hasListUnsubscribe?: boolean;
+    isAutoSubmitted?: boolean;
+    isBulkPrecedence?: boolean;
+    hasListId?: boolean;
+  } | null;
 }): GateInput {
   const from = row.fromAddress ?? "";
   return {
     from,
-    fromEmail: parseEmailAddress(from),
+    fromEmail: parseEmailAddress(from || ""),
     subject: row.subject ?? "",
     bodyExcerpt: row.snippet ?? "",
+    headers: {
+      hasListUnsubscribe: row.actions?.hasListUnsubscribe,
+      isAutoSubmitted: row.actions?.isAutoSubmitted,
+      isBulkPrecedence: row.actions?.isBulkPrecedence,
+      hasListId: row.actions?.hasListId,
+    },
   };
 }
 

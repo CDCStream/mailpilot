@@ -194,6 +194,10 @@ export type MessageActions = {
   devSignal?: string;
   briefTag?: "incident" | "deadline" | "action";
   retriaged?: boolean;
+  hasListUnsubscribe?: boolean;
+  isAutoSubmitted?: boolean;
+  isBulkPrecedence?: boolean;
+  hasListId?: boolean;
 };
 
 export const messages = pgTable(

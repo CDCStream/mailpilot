@@ -13,7 +13,12 @@ import {
 import { applyLabels, createReplyDraft, getMessageMeta } from "@/lib/gmail";
 import { classifyEmail, generateReplyDraft } from "@/lib/ai";
 import { detectDevNotification, shouldBlockDraft } from "@/lib/dev-notifications";
-import { isAccountSecurityText, isLinkedInSender, isOwnAppSender } from "@/lib/bot-gate";
+import {
+  headerFlagsFromMeta,
+  isAccountSecurityText,
+  isLinkedInSender,
+  isOwnAppSender,
+} from "@/lib/bot-gate";
 import { senderDomain } from "@/lib/pre-classify";
 import { cachedSenderCategory, forgetSenderCategory, rememberSenderCategory } from "@/lib/sender-cache";
 import { isUncacheableDomain } from "@/lib/sender-cache-logic";
@@ -343,6 +348,12 @@ export async function processInboxMessage(
         archived: shouldArchive,
         draftCreated: Boolean(draftId),
         ruleApplied: outcome.appliedRule,
+        ...headerFlagsFromMeta({
+          listUnsubscribe: meta.listUnsubscribe,
+          listId: meta.listId,
+          autoSubmitted: meta.autoSubmitted,
+          precedence: meta.precedence,
+        }),
         ...(devSignal
           ? { devSignal: devSignal.kind, briefTag: devSignal.briefTag }
           : {}),
@@ -363,6 +374,12 @@ type StoredMessage = {
   snippet: string | null;
   category: Category | null;
   summary: string | null;
+  actions?: {
+    hasListUnsubscribe?: boolean;
+    isAutoSubmitted?: boolean;
+    isBulkPrecedence?: boolean;
+    hasListId?: boolean;
+  } | null;
 };
 
 /**
@@ -381,19 +398,26 @@ export async function retriageStoredRow(
   const subject = meta?.subject ?? stored.subject ?? "";
   const bodyExcerpt = meta?.bodyExcerpt || stored.bodyExcerpt || "";
 
+  const storedFlags = stored.headers ?? {};
+  const liveFlags = headerFlagsFromMeta({
+    listUnsubscribe: meta?.listUnsubscribe,
+    listId: meta?.listId,
+    autoSubmitted: meta?.autoSubmitted,
+    precedence: meta?.precedence,
+  });
   const pre = applyTriageGate({
     from,
     fromEmail,
     subject,
     bodyExcerpt,
-    headers: meta
-      ? {
-          listUnsubscribe: meta.listUnsubscribe,
-          listId: meta.listId,
-          autoSubmitted: meta.autoSubmitted,
-          precedence: meta.precedence,
-        }
-      : undefined,
+    headers: {
+      ...storedFlags,
+      ...liveFlags,
+      listUnsubscribe: meta?.listUnsubscribe,
+      listId: meta?.listId,
+      autoSubmitted: meta?.autoSubmitted,
+      precedence: meta?.precedence,
+    },
   });
 
   if (pre.skipIngest || isOwnAppSender(fromEmail)) {
@@ -481,6 +505,10 @@ export async function retriageStoredRow(
         archived: false,
         draftCreated: false,
         retriaged: true,
+        hasListUnsubscribe: row.actions?.hasListUnsubscribe ?? liveFlags.hasListUnsubscribe,
+        isAutoSubmitted: row.actions?.isAutoSubmitted ?? liveFlags.isAutoSubmitted,
+        isBulkPrecedence: row.actions?.isBulkPrecedence ?? liveFlags.isBulkPrecedence,
+        hasListId: row.actions?.hasListId ?? liveFlags.hasListId,
       },
     })
     .where(eq(messages.id, row.id));
