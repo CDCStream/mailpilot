@@ -11,7 +11,18 @@ type Job = {
   processed: number;
   total: number;
   changed?: number | null;
+  error?: string | null;
 } | null;
+
+function failedCopy(error: string | null | undefined): string {
+  if (error === "stale-timeout") {
+    return "Re-triage stopped — no progress for 2 minutes. Try again.";
+  }
+  if (error === "batch-error" || error === "tick-error") {
+    return "Re-triage hit an error mid-run. Try again — it resumes from the last committed batch.";
+  }
+  return "Re-triage failed. Try again.";
+}
 
 export function RetriagePanel({
   job,
@@ -22,17 +33,42 @@ export function RetriagePanel({
 }) {
   const router = useRouter();
   const [state, formAction] = useActionState(startRetriage, null);
-  const emptyRange = Boolean(job && job.total === 0 && job.status !== "cancelled");
+  const emptyRange = Boolean(job && job.total === 0 && job.status !== "cancelled" && job.status !== "failed");
   const running = Boolean(
     job &&
       job.total > 0 &&
       (job.status === "queued" || job.status === "running" || job.status === "cancel_requested"),
   );
+  const failed = job?.status === "failed";
 
   useEffect(() => {
     if (!running) return;
-    const t = setInterval(() => router.refresh(), 3000);
-    return () => clearInterval(t);
+    let stopped = false;
+    let inFlight = false;
+
+    const tick = async () => {
+      if (inFlight || stopped) return;
+      inFlight = true;
+      try {
+        const res = await fetch("/api/retriage/tick", { method: "POST" });
+        const data = (await res.json().catch(() => null)) as { status?: string } | null;
+        if (data?.status === "done" || data?.status === "failed" || data?.status === "cancelled") {
+          stopped = true;
+        }
+      } catch {
+        // Cron / Inngest still drain the job if this poll misses.
+      } finally {
+        inFlight = false;
+        if (!stopped) router.refresh();
+      }
+    };
+
+    void tick();
+    const t = setInterval(tick, 4000);
+    return () => {
+      stopped = true;
+      clearInterval(t);
+    };
   }, [running, router]);
 
   const pct = job && job.total > 0 ? Math.min(100, Math.round((job.processed / job.total) * 100)) : 0;
@@ -52,6 +88,12 @@ export function RetriagePanel({
       {state && !state.ok && (
         <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
           {state.error ?? "Re-triage failed to start — try again"}
+        </p>
+      )}
+      {failed && (
+        <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+          {failedCopy(job?.error)}
+          {job && job.total > 0 ? ` Last commit: ${job.processed} / ${job.total}.` : ""}
         </p>
       )}
       {emptyRange && job?.status === "done" && (

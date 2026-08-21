@@ -9,7 +9,7 @@ import {
   users,
   DEFAULT_PREFERENCES,
 } from "@/lib/db";
-import { CLASSIFIER_VERSION, type RetriageScope } from "@/lib/classifier-version";
+import { CLASSIFIER_VERSION } from "@/lib/classifier-version";
 import {
   deleteDraft,
   ensureLabels,
@@ -22,9 +22,9 @@ import {
   startWatch,
 } from "@/lib/gmail";
 import { buildVoiceProfile } from "@/lib/ai";
-import { processInboxMessage, retriageStoredRow, type PipelineContext } from "@/lib/pipeline";
-import { listRetriageTargets } from "@/lib/retriage-query";
-import { purgePoisonedSenderCache, relabelPoisonedLinkedInSecurity } from "@/lib/sender-cache";
+import { processInboxMessage, type PipelineContext } from "@/lib/pipeline";
+import { failStaleRetriageJobs } from "@/lib/retriage-job";
+import { processRetriageBatch } from "@/lib/retriage-runner";
 import { buildAndSendBrief } from "@/lib/brief";
 import { hasActiveAccess } from "@/lib/billing";
 
@@ -550,114 +550,54 @@ export const weeklyVoiceRetrain = inngest.createFunction(
   },
 );
 
-/** Re-runs classification + summary on already-imported history. */
+/**
+ * One batch per invocation (same shape as import's triage-batch-N steps),
+ * then re-enqueues so a 295-message job never lives in a single Vercel run.
+ */
 export const retriageHistory = inngest.createFunction(
   {
     id: "retriage-history",
-    retries: 0,
+    retries: 1,
     concurrency: { key: "event.data.userId", limit: 1 },
     triggers: { event: "app/user.retriage" },
   },
   async ({ event, step }) => {
     const { userId, jobId } = event.data as { userId: string; jobId: string };
 
-    const listed = await step.run("list-messages", async () => {
-      try {
-        await purgePoisonedSenderCache();
-        await relabelPoisonedLinkedInSecurity();
-      } catch (err) {
-        console.error("retriage cache purge failed", err);
-      }
+    const result = await step.run("retriage-batch", () => processRetriageBatch(jobId, userId));
 
-      const job = await db.query.retriageJobs.findFirst({
-        where: and(eq(retriageJobs.id, jobId), eq(retriageJobs.userId, userId)),
+    if (result.status === "running") {
+      await step.sendEvent("continue", {
+        name: "app/user.retriage",
+        data: { userId, jobId },
       });
-      if (!job || job.status === "cancelled" || job.status === "done") {
-        return [] as { accountId: string; gmailId: string }[];
-      }
-
-      const rows = await listRetriageTargets(userId, job.scope as RetriageScope);
-      await db
-        .update(retriageJobs)
-        .set({
-          status: rows.length === 0 ? "done" : "running",
-          total: rows.length,
-          processed: rows.length === 0 ? 0 : job.processed,
-          lastGmailMessageId: "__started__",
-          updatedAt: new Date(),
-        })
-        .where(eq(retriageJobs.id, jobId));
-      return rows;
-    });
-
-    for (let i = 0; i < listed.length; i += TRIAGE_CONCURRENCY) {
-      const chunk = listed.slice(i, i + TRIAGE_CONCURRENCY);
-      const outcome = await step.run(`retriage-batch-${i}`, async () => {
-        const job = await db.query.retriageJobs.findFirst({
-          where: eq(retriageJobs.id, jobId),
-        });
-        if (!job || job.status === "cancel_requested" || job.status === "cancelled") {
-          await db
-            .update(retriageJobs)
-            .set({ status: "cancelled", updatedAt: new Date() })
-            .where(eq(retriageJobs.id, jobId));
-          return "cancel" as const;
-        }
-        if (job.processed > i) return "ok" as const;
-
-        const byAccount = new Map<string, string[]>();
-        for (const item of chunk) {
-          const list = byAccount.get(item.accountId) ?? [];
-          list.push(item.gmailId);
-          byAccount.set(item.accountId, list);
-        }
-        for (const [accountId, gmailIds] of byAccount) {
-          const ctx = await loadContext(accountId);
-          if (!ctx) continue;
-          const rows = await db.query.messages.findMany({
-            where: and(eq(messages.accountId, accountId), inArray(messages.gmailMessageId, gmailIds)),
-          });
-          await Promise.all(
-            rows.map(async (r) => {
-              try {
-                await retriageStoredRow(ctx, r);
-              } catch (err) {
-                console.error("retriage row failed", { id: r.id, err });
-              }
-            }),
-          );
-        }
-
-        await db
-          .update(retriageJobs)
-          .set({
-            processed: i + chunk.length,
-            lastGmailMessageId: chunk.at(-1)?.gmailId ?? null,
-            updatedAt: new Date(),
-          })
-          .where(eq(retriageJobs.id, jobId));
-        return "ok" as const;
-      });
-      if (outcome === "cancel") return { cancelled: true, processed: i };
     }
 
-    await step.run("finish", async () => {
-      await db
-        .update(retriageJobs)
-        .set({
-          status: "done",
-          processed: listed.length,
-          total: listed.length,
-          updatedAt: new Date(),
-        })
-        .where(eq(retriageJobs.id, jobId));
-      await db
-        .update(users)
-        .set({ classifierVersion: CLASSIFIER_VERSION })
-        .where(eq(users.id, userId));
+    return result;
+  },
+);
+
+/** Safety net if the start-action send is dropped — kick any live job once a minute. */
+export const drainRetriage = inngest.createFunction(
+  { id: "drain-retriage", retries: 0, triggers: { cron: "* * * * *" } },
+  async ({ step }) => {
+    const jobs = await step.run("list-active", async () => {
+      await failStaleRetriageJobs();
+      return db.query.retriageJobs.findMany({
+        where: inArray(retriageJobs.status, ["queued", "running"]),
+        columns: { id: true, userId: true },
+        limit: 10,
+      });
     });
 
-    return { processed: listed.length };
+    for (const job of jobs) {
+      await step.sendEvent(`kick-${job.id}`, {
+        name: "app/user.retriage",
+        data: { userId: job.userId, jobId: job.id },
+      });
+    }
+
+    return { kicked: jobs.length };
   },
 );
 
@@ -671,4 +611,5 @@ export const functions = [
   cleanupStaleDrafts,
   weeklyVoiceRetrain,
   retriageHistory,
+  drainRetriage,
 ];

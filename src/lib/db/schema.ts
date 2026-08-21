@@ -301,7 +301,13 @@ export const senderCategoryCache = pgTable(
   (t) => [uniqueIndex("sender_category_cache_user_domain_idx").on(t.userId, t.senderDomain)],
 );
 
-export type RetriageStatus = "queued" | "running" | "cancel_requested" | "done" | "cancelled";
+export type RetriageStatus =
+  | "queued"
+  | "running"
+  | "cancel_requested"
+  | "done"
+  | "cancelled"
+  | "failed";
 
 export const retriageJobs = pgTable("retriage_jobs", {
   id: uuid("id").primaryKey().defaultRandom(),

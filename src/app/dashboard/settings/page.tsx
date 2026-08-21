@@ -109,6 +109,8 @@ export default async function SettingsPage({
                 scope: latestJob.scope,
                 processed: latestJob.processed,
                 total: latestJob.total,
+                changed: latestJob.changed,
+                error: latestJob.error,
               }
             : null
         }

@@ -1,5 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { db, retriageJobs, users } from "@/lib/db";
+import { parseRetriageChanged } from "@/lib/retriage-job";
 
 /**
  * Reads optional round-2 columns/tables without taking the dashboard down
@@ -24,12 +25,8 @@ export type SafeRetriageJob = {
   processed: number;
   total: number;
   changed: number | null;
+  error: string | null;
 };
-
-function parseChanged(error: string | null | undefined): number | null {
-  const match = error?.match(/^changed:(\d+)$/);
-  return match ? Number(match[1]) : null;
-}
 
 export async function readLatestRetriageJob(userId: string): Promise<SafeRetriageJob | null> {
   try {
@@ -45,12 +42,14 @@ export async function readLatestRetriageJob(userId: string): Promise<SafeRetriag
       },
     });
     if (!job) return null;
+    const changed = parseRetriageChanged(job.error);
     return {
       status: job.status,
       scope: job.scope,
       processed: job.processed ?? 0,
       total: job.total ?? 0,
-      changed: parseChanged(job.error),
+      changed,
+      error: job.status === "failed" ? (job.error ?? "failed") : null,
     };
   } catch (err) {
     console.error("retriage_jobs table missing — run drizzle/0006_retriage_security.sql", err);
