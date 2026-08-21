@@ -10,6 +10,7 @@ import {
   type UserPreferences,
   type VoiceProfile,
 } from "@/lib/db";
+import { CLASSIFIER_VERSION } from "@/lib/classifier-version";
 import { applyLabels, createReplyDraft, getMessageMeta, updateReplyDraft } from "@/lib/gmail";
 import { classifyEmail, generateReplyDraft } from "@/lib/ai";
 import { detectDevNotification, shouldBlockDraft } from "@/lib/dev-notifications";
@@ -43,6 +44,20 @@ export type PipelineContext = {
 export type ProcessResult =
   | { status: "processed"; category: Category; draftCreated: boolean }
   | { status: "skipped"; reason: string };
+
+async function settleWithTimeout<T>(work: Promise<T>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work.then((v) => v, () => null),
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 async function existingThreadDraftId(accountId: string, threadId: string): Promise<string | null> {
   if (!threadId) return null;
@@ -436,7 +451,7 @@ export async function retriageStoredRow(
 ): Promise<ProcessResult> {
   const prefs = ctx.user.preferences ?? DEFAULT_PREFERENCES;
   const stored = gateInputFromStored(row);
-  const meta = await getMessageMeta(ctx.gmail, row.gmailMessageId, ctx.account.email);
+  const meta = await settleWithTimeout(getMessageMeta(ctx.gmail, row.gmailMessageId, ctx.account.email), 8_000);
   const from = meta?.from ?? stored.from;
   const fromEmail = meta?.fromEmail ?? stored.fromEmail;
   const subject = meta?.subject ?? stored.subject ?? "";
@@ -602,6 +617,8 @@ export async function retriageStoredRow(
         archived: false,
         draftCreated: Boolean(draftId),
         retriaged: true,
+        retriagedAt: new Date().toISOString(),
+        retriagedVersion: CLASSIFIER_VERSION,
         hasListUnsubscribe: row.actions?.hasListUnsubscribe ?? liveFlags.hasListUnsubscribe,
         isAutoSubmitted: row.actions?.isAutoSubmitted ?? liveFlags.isAutoSubmitted,
         isBulkPrecedence: row.actions?.isBulkPrecedence ?? liveFlags.isBulkPrecedence,

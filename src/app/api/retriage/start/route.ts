@@ -18,9 +18,11 @@ export async function POST(req: Request) {
   const scope: RetriageScope = (RETRIAGE_SCOPES as readonly string[]).includes(scopeRaw)
     ? (scopeRaw as RetriageScope)
     : "7";
+  const resume = body?.resume === true;
+  const startOver = body?.startOver === true;
 
   try {
-    const result = await enqueueRetriageJob(userId, scope);
+    const result = await enqueueRetriageJob(userId, scope, { resume, startOver });
     if (!result.ok) {
       return NextResponse.json({ ok: false, error: result.error }, { status: 200 });
     }
@@ -34,6 +36,8 @@ export async function POST(req: Request) {
       jobId: result.jobId,
       total: result.total,
       alreadyActive: result.alreadyActive ?? false,
+      resumed: result.resumed ?? false,
+      processed: result.processed ?? 0,
     });
   } catch (err) {
     console.error("retriage start failed", err);

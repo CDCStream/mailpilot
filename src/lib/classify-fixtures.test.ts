@@ -3,12 +3,13 @@ import { CLASSIFY_SYSTEM, handleClassifyFailure } from "@/lib/ai";
 import { canBeToRespond, headerFlagsFromMeta, isLinkedInSender } from "@/lib/bot-gate";
 import { retriageSince } from "@/lib/classifier-version";
 import { preClassify, resolveTriageCategory } from "@/lib/pre-classify";
-import { applyTriageGate, isLegacyActionSummary, sanitizeSummary } from "@/lib/triage";
+import { applyTriageGate, finalizeTriageCategory, isLegacyActionSummary, sanitizeSummary } from "@/lib/triage";
 import {
   isUncacheableDomain,
   nextCacheState,
   shouldApplyCachedCategory,
 } from "@/lib/sender-cache-logic";
+import { SECURITY_NEGATIVES } from "@/lib/security-negatives";
 import { isSummaryUnavailable, SUMMARY_UNAVAILABLE_LABEL } from "@/lib/summary-display";
 
 /** Round-3 labelled Security negatives — every linkedin.com sender from the 2026-08-20 QA pass. */
@@ -428,29 +429,9 @@ describe("R-1 sender cache", () => {
 });
 
 describe("C-3 Security is an account event", () => {
-  const negatives = [
-    {
-      from: "Udemy <no-reply@e.udemymail.com>",
-      email: "no-reply@e.udemymail.com",
-      subject: "Fuat, still interested in Search Engine Optimization (SEO) prep?",
-      expect: "marketing" as const,
-    },
-    {
-      from: "Netflix <info@mailer.netflix.com>",
-      email: "info@mailer.netflix.com",
-      subject: "Important: How to update your Netflix Household",
-      expect: "notification" as const,
-    },
-    {
-      from: "Fyxer Privacy <privacy@fyxer.com>",
-      email: "privacy@fyxer.com",
-      subject: "An update on Fyxer's sub-processors",
-      expect: "notification" as const,
-    },
-  ];
-
   it("keeps Udemy / Netflix Household / Fyxer sub-processors out of Security", () => {
-    for (const m of negatives) {
+    expect(SECURITY_NEGATIVES).toHaveLength(3);
+    for (const m of SECURITY_NEGATIVES) {
       const pre = predicted(m.from, m.email, m.subject);
       expect(pre.category, m.subject).toBe(m.expect);
       expect(
@@ -468,6 +449,26 @@ describe("C-3 Security is an account event", () => {
     expect(CLASSIFY_SYSTEM).toContain("still interested in Search Engine Optimization");
     expect(CLASSIFY_SYSTEM).toContain("Netflix Household");
     expect(CLASSIFY_SYSTEM).toContain("sub-processors");
+    expect(CLASSIFY_SYSTEM).toContain("Requires an EVENT on the user's OWN account");
+  });
+
+  it("wins over the LLM and a poisoned Security cache for Fyxer Privacy", () => {
+    const from = "Fyxer Privacy <privacy@fyxer.com>";
+    const email = "privacy@fyxer.com";
+    const subject = "An update on Fyxer's sub-processors";
+    const pre = predicted(from, email, subject);
+    expect(
+      finalizeTriageCategory({
+        from,
+        fromEmail: email,
+        subject,
+        bodyExcerpt: "We take the security of your data seriously. Verification of our subprocessors.",
+        pre,
+        llmOrDefault: "security",
+        cached: "security",
+        summary: "Vendor updated its list of subprocessors.",
+      }),
+    ).toBe("notification");
   });
 
   it("still labels real account events as Security", () => {
@@ -476,6 +477,9 @@ describe("C-3 Security is an account event", () => {
       ["Link <noreply@link.com>", "noreply@link.com", "New login from iOS (Mobile Safari)"],
       ["Similarweb <no-reply@similarweb.com>", "no-reply@similarweb.com", "SimilarWeb Hesabı Giriş Doğrulaması"],
       ["npm <noreply@npmjs.com>", "noreply@npmjs.com", "[npm] Two-factor authentication disabled"],
+      ["Atlaso <noreply@atlaso.com>", "noreply@atlaso.com", "914671 is your verification code"],
+      ["Nasdaq Signin <noreply@nasdaq.com>", "noreply@nasdaq.com", "Your Nasdaq password is expiring"],
+      ["Google <no-reply@accounts.google.com>", "no-reply@accounts.google.com", "Güvenlik uyarısı"],
     ] as const;
     for (const [from, email, subject] of kept) {
       expect(predicted(from, email, subject).category, subject).toBe("security");

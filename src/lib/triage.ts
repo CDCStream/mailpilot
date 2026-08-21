@@ -98,6 +98,10 @@ export function finalizeTriageCategory(opts: {
     category,
     summary: opts.summary,
     gate: opts.pre,
+    from: opts.from,
+    fromEmail: opts.fromEmail,
+    subject: opts.subject,
+    bodyExcerpt: opts.bodyExcerpt,
   });
   category = resolveTriageCategory({
     from: opts.from,

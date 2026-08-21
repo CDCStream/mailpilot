@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db, emailAccounts, messages } from "@/lib/db";
 import { gmailThreadUrl } from "@/lib/gmail";
@@ -33,6 +33,16 @@ export default async function DraftsPage() {
       })
     : [];
   const written = uniqueDraftsByThread(writtenRows);
+  const [writtenTotal = { n: 0 }] = accountIds.length
+    ? await db
+        .select({
+          n: sql<number>`count(distinct ${messages.threadId}) filter (where ${messages.draftId} is not null)`.mapWith(
+            Number,
+          ),
+        })
+        .from(messages)
+        .where(inArray(messages.accountId, accountIds))
+    : [];
 
   // Reply-worthy mail from the last 14 days that doesn't have a draft yet.
   const since = new Date();
@@ -127,8 +137,8 @@ export default async function DraftsPage() {
       <section>
         <h2 className="text-lg font-semibold">Drafts written for you</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          One Wingman draft per Gmail thread — review, edit, and hit send. Same thread is listed
-          once.
+          All time · {writtenTotal.n} thread{writtenTotal.n === 1 ? "" : "s"} · same count as
+          Overview. Review, edit, and hit send.
         </p>
         {written.length === 0 ? (
           <p className="mt-4 rounded-xl border border-dashed border-zinc-200 p-6 text-center text-sm text-zinc-500">

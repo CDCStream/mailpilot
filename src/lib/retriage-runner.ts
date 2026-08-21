@@ -6,13 +6,19 @@ import { retriageStoredRow, type PipelineContext } from "@/lib/pipeline";
 import {
   RETRIAGE_BATCH_SIZE,
   RETRIAGE_CONCURRENCY,
+  formatRetriageError,
   nextRetriageSlice,
   parseRetriageChanged,
+  parseRetriageError,
   retriageWorkList,
   snapshotRetriageTotal,
 } from "@/lib/retriage-job";
 import { listRetriageTargets } from "@/lib/retriage-query";
-import { purgePoisonedSenderCache, relabelPoisonedLinkedInSecurity } from "@/lib/sender-cache";
+import {
+  purgePoisonedSenderCache,
+  relabelPoisonedLinkedInSecurity,
+  relabelSecurityNegatives,
+} from "@/lib/sender-cache";
 
 export type RetriageBatchResult = {
   status: "running" | "done" | "cancelled" | "failed" | "idle";
@@ -23,7 +29,20 @@ export type RetriageBatchResult = {
   batchIds?: string[];
 };
 
-async function withRowTimeout<T>(work: Promise<T>, ms = 15_000): Promise<T> {
+function retriagedThisJob(
+  row: { actions?: { retriagedAt?: string; retriagedVersion?: string } | null },
+  jobStarted: Date,
+): boolean {
+  if (row.actions?.retriagedVersion && row.actions.retriagedVersion !== CLASSIFIER_VERSION) {
+    return false;
+  }
+  const at = row.actions?.retriagedAt;
+  if (!at) return false;
+  const ts = Date.parse(at);
+  return Number.isFinite(ts) && ts >= jobStarted.getTime();
+}
+
+async function withRowTimeout<T>(work: Promise<T>, ms = 12_000): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
@@ -78,7 +97,7 @@ async function finishJob(
       status: "done",
       processed,
       total,
-      error: `changed:${changed}`,
+      error: formatRetriageError({ changed }),
       updatedAt: new Date(),
     })
     .where(eq(retriageJobs.id, jobId));
@@ -122,20 +141,23 @@ export async function processRetriageBatch(
   }
 
   try {
-    if (job.processed === 0) {
-      try {
+    try {
+      if (job.processed === 0) {
         await purgePoisonedSenderCache();
         await relabelPoisonedLinkedInSecurity();
-      } catch (err) {
-        console.error("retriage cache purge failed", err);
       }
+      await relabelSecurityNegatives();
+    } catch (err) {
+      console.error("retriage cache purge failed", err);
     }
 
     const listed = await listRetriageTargets(userId, job.scope as RetriageScope);
     const total = snapshotRetriageTotal(job.total, listed.length);
     const work = retriageWorkList(listed, total);
     const startAt = Math.min(job.processed, work.length);
-    let changed = parseRetriageChanged(job.error) ?? 0;
+    const errState = parseRetriageError(job.error);
+    let changed = errState.changed;
+    const skipped = new Set(errState.skip);
 
     if (work.length === 0 || startAt >= work.length) {
       await finishJob(jobId, userId, work.length, total, changed);
@@ -149,12 +171,17 @@ export async function processRetriageBatch(
 
     const chunk = nextRetriageSlice(work, startAt, RETRIAGE_BATCH_SIZE);
     const batchIds = chunk.map((c) => c.gmailId);
-    console.info("retriage batch", { jobId, startAt, total, batchIds });
+    const batchMessageIds = chunk.map((c) => c.messageId);
+    console.info("retriage batch", { jobId, startAt, total, batchIds, batchMessageIds });
     if (chunk.length === 0) {
       console.error("retriage zero-progress empty chunk", { jobId, startAt, work: work.length, total });
       await db
         .update(retriageJobs)
-        .set({ status: "failed", error: "zero-progress", updatedAt: new Date() })
+        .set({
+          status: "failed",
+          error: formatRetriageError({ changed, kind: "zero-progress", stuck: batchIds.join(",") }),
+          updatedAt: new Date(),
+        })
         .where(and(eq(retriageJobs.id, jobId), inArray(retriageJobs.status, ["queued", "running"])));
       return { status: "failed", processed: startAt, total, changed, advanced: 0, batchIds };
     }
@@ -180,7 +207,20 @@ export async function processRetriageBatch(
       }
 
       const wave = chunk.slice(i, i + RETRIAGE_CONCURRENCY);
-      console.info("retriage wave", { jobId, offset: processed, ids: wave.map((w) => w.gmailId) });
+      const waveIds = wave.map((w) => w.gmailId);
+      const waveMessageIds = wave.map((w) => w.messageId);
+      console.info("retriage wave", { jobId, offset: processed, ids: waveIds, messageIds: waveMessageIds });
+      await db
+        .update(retriageJobs)
+        .set({
+          lastGmailMessageId: waveIds.join(","),
+          error: formatRetriageError({
+            changed,
+            skip: [...skipped],
+            stuck: waveIds.join(","),
+          }),
+        })
+        .where(and(eq(retriageJobs.id, jobId), inArray(retriageJobs.status, ["queued", "running"])));
       const byAccount = new Map<string, string[]>();
       for (const item of wave) {
         const list = byAccount.get(item.accountId) ?? [];
@@ -198,6 +238,9 @@ export async function processRetriageBatch(
         });
         const results = await Promise.all(
           rows.map(async (r) => {
+            if (retriagedThisJob(r, job.createdAt)) {
+              return { status: "skipped" as const, reason: "already-retriaged" };
+            }
             for (let attempt = 1; attempt <= 2; attempt += 1) {
               try {
                 return await withRowTimeout(retriageStoredRow(ctx, r));
@@ -208,9 +251,13 @@ export async function processRetriageBatch(
                   attempt,
                   err,
                 });
-                if (attempt === 2) return { status: "skipped" as const, reason: "error" };
+                if (attempt === 2) {
+                  skipped.add(r.gmailMessageId);
+                  return { status: "skipped" as const, reason: "error" };
+                }
               }
             }
+            skipped.add(r.gmailMessageId);
             return { status: "skipped" as const, reason: "error" };
           }),
         );
@@ -228,7 +275,7 @@ export async function processRetriageBatch(
           status: "running",
           processed,
           lastGmailMessageId: wave.at(-1)?.gmailId ?? null,
-          error: `changed:${changed}`,
+          error: formatRetriageError({ changed, skip: [...skipped] }),
           updatedAt: new Date(),
         })
         .where(and(eq(retriageJobs.id, jobId), inArray(retriageJobs.status, ["queued", "running"])));
@@ -249,10 +296,19 @@ export async function processRetriageBatch(
       batchIds,
     };
   } catch (err) {
-    console.error("retriage batch failed", err);
+    console.error("retriage batch failed", { jobId, processed: job.processed, err });
+    const parsed = parseRetriageError(job.error);
     await db
       .update(retriageJobs)
-      .set({ status: "failed", error: "batch-error", updatedAt: new Date() })
+      .set({
+        status: "failed",
+        error: formatRetriageError({
+          ...parsed,
+          kind: "batch-error",
+          stuck: job.lastGmailMessageId ?? parsed.stuck,
+        }),
+        updatedAt: new Date(),
+      })
       .where(and(eq(retriageJobs.id, jobId), inArray(retriageJobs.status, ["queued", "running"])));
     return {
       status: "failed",

@@ -204,6 +204,9 @@ export type MessageActions = {
   /** Why auto-draft was skipped — makes "0 drafts this week" explainable. */
   draftSkipReason?: string;
   draftRequested?: boolean;
+  /** ISO time this row was last re-triaged — used to skip work already done in the current job. */
+  retriagedAt?: string;
+  retriagedVersion?: string;
 };
 
 export const messages = pgTable(

@@ -1,4 +1,5 @@
 import type { Category } from "@/lib/db/schema";
+import { matchSecurityNegative } from "@/lib/security-negatives";
 
 /** Local-part / domain tokens that mean "this is a machine, not a person waiting." */
 export const BOT_SENDER_RE =
@@ -140,11 +141,11 @@ const MONEY_RE =
 
 /** Must be an event on the user's own account — never a job title or a policy memo. */
 const SECURITY_RE =
-  /(two-factor|2fa|mfa|security (alert|advisory|key was|code for your)|g[uü]venlik uyar[ıi]s[ıi]|access tokens? expir|password (changed|reset)|new (device|sign-in|login) (detected|on your|to your|from)|sign-in detected|login from a new|granular access token|couldn't sign you in|suspicious (sign-?in|login)|data breach|breach affecting your|giri[sş] do[gğ]rulama|verification code)/i;
+  /(two-factor|2fa|mfa|security (alert|advisory|key was|code for your)|g[uü]venlik uyar[ıi]s[ıi]|access tokens? expir|password.{0,16}(changed|reset|expir)|new (device|sign-in|login) (detected|on your|to your|from)|sign-in detected|login from a new|granular access token|couldn't sign you in|suspicious (sign-?in|login)|data breach|breach affecting your|giri[sş] do[gğ]rulama|verification code)/i;
 
 /** Policy / promo / vendor-compliance copy that is not a security event. */
 const NOT_SECURITY_RE =
-  /(still interested|household|sub-processors?|privacy polic|cookie polic|terms of (use|service)|how to update your|seo prep|course (prep|launch)|an update on .{0,60}(privacy|sub-processor))/i;
+  /(still interested|household|sub\s*[-–—]?\s*process|privacy polic|cookie polic|terms of (use|service)|how to update your|seo prep|course (prep|launch)|an update on .{0,80}(privacy|sub\s*[-–—]?\s*process)|\bdpa\b|data processing add)/i;
 
 /** Mixed-intent social networks — a domain cache must never label the whole mailbox. */
 export function isLinkedInSender(fromEmail: string, from = ""): boolean {
@@ -158,9 +159,15 @@ export function isHiringNotice(from: string, fromEmail: string, subject = ""): b
   return /\bis hiring\b|hiring for (a |an )|we're hiring|we are hiring/.test(blob);
 }
 
-export function isAccountSecurityText(subject: string, bodyExcerpt = "", fromEmail = ""): boolean {
-  if (isLinkedInSender(fromEmail) || isHiringNotice("", fromEmail, subject)) return false;
-  const blob = `${fromEmail} ${subject} ${bodyExcerpt}`;
+export function isAccountSecurityText(
+  subject: string,
+  bodyExcerpt = "",
+  fromEmail = "",
+  from = "",
+): boolean {
+  if (isLinkedInSender(fromEmail, from) || isHiringNotice(from, fromEmail, subject)) return false;
+  if (matchSecurityNegative(from, fromEmail, subject, bodyExcerpt)) return false;
+  const blob = `${from} ${fromEmail} ${subject} ${bodyExcerpt}`;
   if (NOT_SECURITY_RE.test(blob)) return false;
   return SECURITY_RE.test(blob);
 }
@@ -201,10 +208,10 @@ export function detectObligationCategory(
   from = "",
 ): Category | null {
   if (isJobAlert(from, fromEmail, subject)) return null;
-  if (isLinkedInSender(fromEmail, from) && !isAccountSecurityText(subject, bodyExcerpt, fromEmail)) {
+  if (isLinkedInSender(fromEmail, from) && !isAccountSecurityText(subject, bodyExcerpt, fromEmail, from)) {
     return null;
   }
-  if (isAccountSecurityText(subject, bodyExcerpt, fromEmail)) return "security";
+  if (isAccountSecurityText(subject, bodyExcerpt, fromEmail, from)) return "security";
   if (MONEY_RE.test(`${fromEmail} ${subject} ${bodyExcerpt}`)) return "money";
   return null;
 }

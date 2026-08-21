@@ -13,13 +13,13 @@ type Job = {
 } | null;
 
 function failedCopy(error: string | null | undefined): string {
-  if (error === "stale-timeout") {
-    return "Re-triage stopped — no progress for 2 minutes. Try again.";
+  if (error?.includes("stale-timeout")) {
+    return "Re-triage stopped — no progress for 2 minutes.";
   }
-  if (error === "batch-error" || error === "tick-error" || error === "zero-progress") {
-    return "Re-triage hit an error mid-run. Try again — it resumes from the last committed batch.";
+  if (error?.includes("batch-error") || error?.includes("tick-error") || error?.includes("zero-progress")) {
+    return "Re-triage hit an error mid-run.";
   }
-  return "Re-triage failed. Try again.";
+  return "Re-triage failed.";
 }
 
 export function RetriagePanel({
@@ -40,6 +40,9 @@ export function RetriagePanel({
       (job.status === "queued" || job.status === "running" || job.status === "cancel_requested"),
   );
   const failed = job?.status === "failed";
+  const resumable = Boolean(
+    job && job.processed > 0 && (job.status === "failed" || job.status === "cancelled"),
+  );
 
   useEffect(() => {
     if (!running) return;
@@ -73,16 +76,14 @@ export function RetriagePanel({
 
   const pct = job && job.total > 0 ? Math.min(100, Math.round((job.processed / job.total) * 100)) : 0;
 
-  async function onStart(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function start(opts: { scope: string; resume?: boolean; startOver?: boolean }) {
     setStartError(null);
     setStarting(true);
-    const scope = String(new FormData(event.currentTarget).get("scope") ?? "7");
     try {
       const res = await fetch("/api/retriage/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scope }),
+        body: JSON.stringify(opts),
       });
       const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
       if (!res.ok || data?.ok === false) {
@@ -94,6 +95,12 @@ export function RetriagePanel({
       setStarting(false);
       router.refresh();
     }
+  }
+
+  async function onStart(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const scope = String(new FormData(event.currentTarget).get("scope") ?? "7");
+    await start({ scope, resume: resumable && scope === job?.scope });
   }
 
   async function onCancel() {
@@ -126,7 +133,7 @@ export function RetriagePanel({
       {failed && (
         <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
           {failedCopy(job?.error)}
-          {job && job.total > 0 ? ` Last commit: ${job.processed} / ${job.total}.` : ""}
+          {job && job.total > 0 ? ` Last commit: ${job.processed} / ${job.total}. Resume from there, or start over.` : ""}
         </p>
       )}
       {emptyRange && job?.status === "done" && (
@@ -159,7 +166,7 @@ export function RetriagePanel({
             <span className="mb-1 block text-zinc-600">Scope</span>
             <select
               name="scope"
-              defaultValue="7"
+              defaultValue={resumable ? job?.scope : "7"}
               className="rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
             >
               <option value="7">Last 7 days</option>
@@ -173,15 +180,25 @@ export function RetriagePanel({
             disabled={starting}
             className="inline-flex items-center justify-center rounded-full bg-teal-600 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-70"
           >
-            {starting ? "Starting…" : "Start re-triage"}
+            {starting ? "Starting…" : resumable ? "Resume" : "Start re-triage"}
           </button>
+          {resumable && (
+            <button
+              type="button"
+              disabled={starting}
+              onClick={() => void start({ scope: job?.scope ?? "all", startOver: true })}
+              className="inline-flex items-center justify-center rounded-full border border-zinc-300 px-4 py-2 text-xs font-medium hover:bg-zinc-50 disabled:opacity-70"
+            >
+              Start over
+            </button>
+          )}
           {job?.status === "done" && job.total > 0 && (
             <span className="text-xs text-zinc-500">
               Re-triaged {job.processed} messages
               {job.changed != null ? ` · ${job.changed} changed` : ""}
             </span>
           )}
-          {job?.status === "cancelled" && (
+          {job?.status === "cancelled" && !resumable && (
             <span className="text-xs text-zinc-500">Last run cancelled at {job.processed}.</span>
           )}
         </form>

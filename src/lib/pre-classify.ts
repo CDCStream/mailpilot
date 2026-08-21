@@ -8,6 +8,7 @@ import {
   type GateInput,
   type GateResult,
 } from "@/lib/bot-gate";
+import { matchSecurityNegative } from "@/lib/security-negatives";
 
 export type PreClassifyResult = GateResult & {
   /** When set, skip the LLM classification call (summary may still be requested). */
@@ -64,10 +65,20 @@ export function preClassify(input: GateInput): PreClassifyResult {
   const from = `${input.from} ${input.fromEmail}`;
   const subject = input.subject ?? "";
   const body = input.bodyExcerpt ?? "";
+  const negative = matchSecurityNegative(input.from, input.fromEmail, subject, body);
+  if (negative) {
+    return {
+      ...gate,
+      neverToRespond: true,
+      category: negative,
+      reason: "security-negative",
+      skipLlmCategory: true,
+    };
+  }
 
   if (
     ACCOUNT_POLICY_RE.test(`${from} ${subject} ${body}`) &&
-    !isAccountSecurityText(subject, body, input.fromEmail)
+    !isAccountSecurityText(subject, body, input.fromEmail, input.from)
   ) {
     return {
       ...gate,
@@ -109,7 +120,31 @@ export function clampCategory(opts: {
   category: Category;
   summary: string | null;
   gate: GateResult;
+  from?: string;
+  fromEmail?: string;
+  subject?: string;
+  bodyExcerpt?: string;
 }): Category {
+  const negative = matchSecurityNegative(
+    opts.from ?? "",
+    opts.fromEmail ?? "",
+    opts.subject ?? "",
+    opts.bodyExcerpt ?? "",
+  );
+  if (negative) return negative;
+  if (opts.gate.category === "security") {
+    if (
+      !isAccountSecurityText(
+        opts.subject ?? "",
+        opts.bodyExcerpt ?? "",
+        opts.fromEmail ?? "",
+        opts.from ?? "",
+      )
+    ) {
+      return opts.category === "security" ? "notification" : opts.category;
+    }
+    return "security";
+  }
   if (opts.gate.category) return opts.gate.category;
   if (
     (opts.summary == null || opts.summary.trim() === "" || opts.gate.neverToRespond) &&
@@ -140,10 +175,12 @@ export function resolveTriageCategory(opts: {
   if (isHumanSupportReply(opts.from, opts.fromEmail, opts.subject)) return "to_respond";
   if (isJobAlert(opts.from, opts.fromEmail, opts.subject)) return "notification";
   if (isLinkedInSender(opts.fromEmail, opts.from)) return "notification";
+  const negative = matchSecurityNegative(opts.from, opts.fromEmail, opts.subject, opts.bodyExcerpt ?? "");
+  if (negative) return negative;
   if (opts.pre.category === "marketing") return "marketing";
   if (
     (opts.llmOrDefault === "security" || opts.cached === "security" || opts.pre.category === "security") &&
-    !isAccountSecurityText(opts.subject, opts.bodyExcerpt ?? "", opts.fromEmail)
+    !isAccountSecurityText(opts.subject, opts.bodyExcerpt ?? "", opts.fromEmail, opts.from)
   ) {
     if (opts.pre.category && opts.pre.category !== "security") return opts.pre.category;
     return "notification";

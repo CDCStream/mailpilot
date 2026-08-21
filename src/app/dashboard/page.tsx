@@ -114,7 +114,9 @@ export default async function OverviewPage() {
     ? await db
         .select({
           processed: sql<number>`count(*) filter (where ${messages.category} is not null)`.mapWith(Number),
-          drafts: sql<number>`count(*) filter (where (${messages.actions}->>'draftCreated')::boolean)`.mapWith(Number),
+          drafts: sql<number>`count(distinct ${messages.threadId}) filter (where ${messages.draftId} is not null)`.mapWith(
+            Number,
+          ),
           archived: sql<number>`count(*) filter (where (${messages.actions}->>'archived')::boolean)`.mapWith(Number),
         })
         .from(messages)
@@ -179,9 +181,9 @@ export default async function OverviewPage() {
             [
               "Drafts written for you",
               totals.drafts,
-              `${recent.filter((m) => m.actions?.draftCreated).length} in the last 7 days${
+              `all time · one per Gmail thread${
                 recent.filter((m) => m.actions?.draftSkipReason).length
-                  ? ` · ${recent.filter((m) => m.actions?.draftSkipReason).length} skipped`
+                  ? ` · ${recent.filter((m) => m.actions?.draftSkipReason).length} skipped this week`
                   : ""
               }`,
             ],

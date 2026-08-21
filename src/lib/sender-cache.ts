@@ -122,6 +122,45 @@ export async function purgePoisonedSenderCache(): Promise<number> {
   }
 }
 
+/** Immediate repair: policy / promo mail must not sit in Security even on resume. */
+export async function relabelSecurityNegatives(): Promise<number> {
+  try {
+    const marketing = await db
+      .update(messages)
+      .set({ category: "marketing" })
+      .where(
+        and(
+          eq(messages.category, "security"),
+          or(
+            ilike(messages.fromAddress, "%udemy%"),
+            and(ilike(messages.subject, "%still interested%"), ilike(messages.subject, "%seo%")),
+          ),
+        ),
+      )
+      .returning({ id: messages.id });
+    const notices = await db
+      .update(messages)
+      .set({ category: "notification" })
+      .where(
+        and(
+          eq(messages.category, "security"),
+          or(
+            ilike(messages.subject, "%household%"),
+            ilike(messages.fromAddress, "%fyxer%"),
+            ilike(messages.fromAddress, "%privacy@%"),
+            ilike(messages.subject, "%sub-process%"),
+            ilike(messages.subject, "%subprocessor%"),
+          ),
+        ),
+      )
+      .returning({ id: messages.id });
+    return marketing.length + notices.length;
+  } catch (err) {
+    console.error("security-negative relabel failed", err);
+    return 0;
+  }
+}
+
 /** Immediate repair: LinkedIn mail must not sit in Security even before re-triage finishes. */
 export async function relabelPoisonedLinkedInSecurity(): Promise<number> {
   try {

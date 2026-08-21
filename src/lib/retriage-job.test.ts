@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   RETRIAGE_BATCH_SIZE,
+  canResumeRetriage,
+  formatRetriageError,
   isRetriageStale,
   nextRetriageSlice,
   parseRetriageChanged,
+  parseRetriageError,
   retriageWorkList,
   snapshotRetriageTotal,
 } from "@/lib/retriage-job";
@@ -26,8 +29,31 @@ describe("retriage batching", () => {
 
   it("reads the changed counter without treating failed errors as a count", () => {
     expect(parseRetriageChanged("changed:12")).toBe(12);
+    expect(parseRetriageChanged("stale-timeout;changed:1325;stuck:abc")).toBe(1325);
     expect(parseRetriageChanged("stale-timeout")).toBeNull();
     expect(parseRetriageChanged("batch-error")).toBeNull();
+  });
+
+  it("resumes a failed job for the same scope from last_commit", () => {
+    expect(canResumeRetriage({ status: "failed", scope: "all", processed: 1325 }, "all")).toBe(true);
+    expect(canResumeRetriage({ status: "cancelled", scope: "all", processed: 100 }, "all")).toBe(true);
+    expect(canResumeRetriage({ status: "failed", scope: "all", processed: 1325 }, "7")).toBe(false);
+    expect(canResumeRetriage({ status: "failed", scope: "all", processed: 0 }, "all")).toBe(false);
+    expect(canResumeRetriage({ status: "done", scope: "all", processed: 1505 }, "all")).toBe(false);
+  });
+
+  it("keeps skip and stuck ids on the error string", () => {
+    const encoded = formatRetriageError({
+      kind: "stale-timeout",
+      changed: 1325,
+      skip: ["g1"],
+      stuck: "g2,g3",
+    });
+    expect(encoded).toContain("stale-timeout");
+    const parsed = parseRetriageError(encoded);
+    expect(parsed.changed).toBe(1325);
+    expect(parsed.skip).toEqual(["g1"]);
+    expect(parsed.stuck).toBe("g2,g3");
   });
 
   it("freezes the job total at enqueue so new mail cannot grow the denominator", () => {
