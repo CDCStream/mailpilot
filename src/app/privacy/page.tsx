@@ -37,6 +37,12 @@ export default function PrivacyPage() {
             We store email <strong>metadata only</strong>: sender, subject, a short snippet, the
             assigned category, and a one-sentence AI summary. We do <strong>not</strong> store
             full email bodies. Your Google refresh token is encrypted at rest with AES-256-GCM.
+            Server API keys and other platform secrets are stored only as Sensitive Vercel
+            environment variables (not in this database). See{" "}
+            <Link href="/security/secrets" className="underline">
+              Secrets management
+            </Link>{" "}
+            for access control, cryptography, and monitoring.
           </p>
         </section>
         <section>

@@ -252,7 +252,7 @@ export async function addRuleTemplate(formData: FormData) {
 /** Best-effort revocation of a Google refresh token so Wingman loses Gmail access at Google's side. */
 async function revokeGoogleToken(refreshTokenEnc: string) {
   try {
-    const token = decryptSecret(refreshTokenEnc);
+    const token = decryptSecret(refreshTokenEnc, "gmail.revoke");
     await fetch("https://oauth2.googleapis.com/revoke", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },

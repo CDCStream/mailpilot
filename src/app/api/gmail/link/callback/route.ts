@@ -75,7 +75,7 @@ export async function GET(req: Request) {
         userId: sessionUserId,
         provider: "gmail",
         email,
-        refreshTokenEnc: encryptSecret(tokens.refresh_token),
+        refreshTokenEnc: encryptSecret(tokens.refresh_token, "gmail.persist"),
         status: "active",
         // Show the "importing your mail" banner from the very first page load;
         // the backfill job clears it when the import finishes.
@@ -84,7 +84,7 @@ export async function GET(req: Request) {
       .onConflictDoUpdate({
         target: [emailAccounts.userId, emailAccounts.email],
         set: {
-          refreshTokenEnc: encryptSecret(tokens.refresh_token),
+          refreshTokenEnc: encryptSecret(tokens.refresh_token, "gmail.persist"),
           status: "active",
           lastError: null,
           backfillStartedAt: new Date(),

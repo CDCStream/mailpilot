@@ -66,7 +66,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             userId: dbUser.id,
             provider: "gmail",
             email: user.email,
-            refreshTokenEnc: encryptSecret(account.refresh_token),
+            refreshTokenEnc: encryptSecret(account.refresh_token, "gmail.persist"),
             status: "active",
             // First connect kicks off the 5-day import — surface the banner
             // immediately. Deliberately NOT in the conflict-update below: that
@@ -76,7 +76,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .onConflictDoUpdate({
             target: [emailAccounts.userId, emailAccounts.email],
             set: {
-              refreshTokenEnc: encryptSecret(account.refresh_token),
+              refreshTokenEnc: encryptSecret(account.refresh_token, "gmail.persist"),
               status: "active",
               lastError: null,
             },

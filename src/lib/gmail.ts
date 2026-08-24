@@ -18,7 +18,7 @@ export function getGmailClient(encryptedRefreshToken: string): gmail_v1.Gmail {
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
   );
-  oauth2.setCredentials({ refresh_token: decryptSecret(encryptedRefreshToken) });
+  oauth2.setCredentials({ refresh_token: decryptSecret(encryptedRefreshToken, "gmail.api") });
   return google.gmail({ version: "v1", auth: oauth2 });
 }
 

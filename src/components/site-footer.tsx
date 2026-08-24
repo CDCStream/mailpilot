@@ -28,6 +28,7 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
     links: [
       { href: "/docs", label: "Documentation" },
       { href: "/security", label: "Security" },
+      { href: "/security/secrets", label: "Secrets management" },
       { href: "/#faq", label: "FAQ" },
       { href: "/contact", label: "Support" },
     ],

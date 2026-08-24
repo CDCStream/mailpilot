@@ -34,10 +34,17 @@ export default function SecurityPage() {
           </p>
         </section>
         <section>
-          <h2 className="text-lg font-semibold text-zinc-900">Encrypted tokens</h2>
+          <h2 className="text-lg font-semibold text-zinc-900">Encrypted tokens and secrets</h2>
           <p className="mt-2">
-            Gmail refresh tokens are encrypted at rest with AES-256-GCM. We store metadata (sender,
-            subject, snippet, category, short summary) — not full message bodies.
+            Gmail refresh tokens are encrypted at rest with AES-256-GCM. API keys and other
+            server secrets stay in Sensitive Vercel environment variables — never in the browser
+            or in git. We store metadata (sender, subject, snippet, category, short summary) —
+            not full message bodies. Access control, the secret inventory, and decrypt/encrypt
+            monitoring are documented in{" "}
+            <Link href="/security/secrets" className="underline">
+              Secrets management
+            </Link>
+            .
           </p>
         </section>
         <section>
