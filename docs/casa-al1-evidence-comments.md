@@ -185,8 +185,8 @@ Stack: Next.js on Vercel, NextAuth (Google OAuth only), PostgreSQL (Supabase), A
 📷 Upload: after logout, DevTools Application showing session cookie removed (you take)
 
 **6.7.1** Secure storage of access tokens / API keys / secrets  
-`Compliant. Secrets-management policy is published at https://www.inboxwingman.com/security/secrets (CASA 6.7.1). (1) Access control: AUTH_SECRET, TOKEN_ENCRYPTION_KEY, GOOGLE_CLIENT_SECRET, OPENAI_API_KEY, DATABASE_URL, RESEND_API_KEY, Inngest keys, and billing secrets are Vercel project environment variables, marked Sensitive, scoped to Production/Preview, not NEXT_PUBLIC_, never shipped to the browser or committed to git. Only Vercel project members with env permission can view or edit them; the app has no console that displays secret values. (2) Cryptography: platform secrets stay in the Vercel runtime (Vercel encrypts env vars at rest). Per-mailbox Google refresh tokens are AES-256-GCM encrypted in-app (32-byte TOKEN_ENCRYPTION_KEY, random 12-byte IV, iv.ciphertext.authTag) before Postgres storage; tampering fails closed. Google access tokens are ephemeral in memory and are never persisted. Session cookies are JWEs bound to AUTH_SECRET (maxAge 24h). (3) Monitoring: Vercel records Added/Updated timestamps and the actor on each env var and retains deploy/env activity. Application code emits structured secret.encrypt / secret.decrypt logs (kind, purpose, ok, at) without ciphertext, plaintext, or keys; events go to Vercel Runtime Logs.`  
-📷 Upload: live `/security/secrets` (inventory + policy); Vercel env list (names only, Sensitive); `src/lib/crypto.ts` encrypt/decrypt + auditSecretAccess (no values)
+Paste the short text in `docs/casa-6.7.1-assessor-comment.md` (long comments get truncated in the portal).  
+📷 Upload: full `/security/secrets` including OWASP mapping + rotation; Vercel env names only (Sensitive); Vercel Activity actor on env change; `src/lib/crypto.ts`; Runtime Log `secret.decrypt` with no values. Do **not** upload Privacy Policy as the only file.
 
 ---
 
@@ -243,6 +243,6 @@ Folder: `docs/casa-evidence-screenshots/` (gitignored). One uniquely named PNG p
 | 6.4.1 | `casa-6.4.1-dns-vercel-active.png` |
 | 6.5.1 | `casa-6.5.1-encrypt-refresh-token-no-log.png` |
 | 6.6.1 | `casa-6.6.1-after-logout-login-redirect.png` (+ `casa-6.6.1-session-null-after-logout.png`) |
-| 6.7.1 | `casa-6.7.1-secrets-management-page.png` (+ Vercel env names-only + `crypto.ts` audit, no values) |
+| 6.7.1 | `casa-6.7.1-secrets-management-page.png` (+ OWASP table + rotation; Vercel env names-only; Activity actor; `crypto.ts`; Runtime Log `secret.decrypt`, no values) |
 
 Do **not** upload screenshots that show live secrets, `.env`, or raw tokens.

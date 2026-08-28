@@ -71,11 +71,11 @@ export default function SecretsManagementPage() {
       <p className="text-sm font-medium uppercase tracking-widest text-teal-700">Security</p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">Secrets management</h1>
       <p className="mt-3 text-zinc-600">
-        Control 6.7.1 — The application securely stores access tokens, API keys, and other
-        server-side secrets. This page is the public access-control, cryptography, and monitoring
-        policy for Inbox Wingman.
+        Control 6.7.1 and the OWASP Secrets Management Cheat Sheet — dedicated store, no
+        hardcoded or Git-committed secrets, least privilege, rotation and revocation, access
+        monitoring, and immediate replacement of a compromised secret.
       </p>
-      <p className="mt-2 text-sm text-zinc-500">Last updated: 24 August 2026</p>
+      <p className="mt-2 text-sm text-zinc-500">Last updated: 28 August 2026</p>
 
       <div className="mt-10 space-y-10 text-sm leading-relaxed text-zinc-700">
         <section>
@@ -164,7 +164,84 @@ export default function SecretsManagementPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-zinc-900">4. Logging and monitoring</h2>
+          <h2 className="text-lg font-semibold text-zinc-900">4. OWASP mapping</h2>
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-zinc-200">
+            <table className="min-w-full text-left text-xs">
+              <thead className="bg-zinc-50 text-zinc-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">OWASP requirement</th>
+                  <th className="px-4 py-3 font-medium">How Inbox Wingman implements it</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                <tr>
+                  <td className="px-4 py-3 font-medium text-zinc-900">Dedicated secrets-management solution</td>
+                  <td className="px-4 py-3 text-zinc-600">
+                    Vercel project Environment Variables (Sensitive) is the dedicated store for
+                    platform secrets. They are encrypted at rest by Vercel and injected only into
+                    the serverless runtime. TLS certificates are managed by Vercel, not stored in
+                    the app or the database.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-zinc-900">Do not hardcode secrets</td>
+                  <td className="px-4 py-3 text-zinc-600">
+                    Application code reads <code>process.env.*</code> only. Repo search finds no
+                    live API keys, passwords, or private keys. Placeholders such as{" "}
+                    <code>sk-placeholder</code> are not production credentials.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-zinc-900">Do not commit secrets to Git</td>
+                  <td className="px-4 py-3 text-zinc-600">
+                    <code>.gitignore</code> ignores <code>.env*</code> (except{" "}
+                    <code>.env.example</code> with dummy names). Local env files are not in version
+                    control.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-zinc-900">Least privilege</td>
+                  <td className="px-4 py-3 text-zinc-600">
+                    Env access is limited to Vercel project members who can edit Environment
+                    Variables. Production and Preview are separate. The app never exposes secret
+                    values in HTML, APIs, or admin UI. Token decrypt is server-only for Gmail API
+                    or revoke.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-zinc-900">Rotation and revocation</td>
+                  <td className="px-4 py-3 text-zinc-600">
+                    Platform secrets are rotated by replacing the Vercel env value and redeploying.
+                    Google refresh tokens are revoked via Google&apos;s revoke endpoint when a
+                    mailbox is disconnected or the account is deleted, then the ciphertext row is
+                    removed. Session JWEs expire in 24 hours; changing <code>AUTH_SECRET</code>{" "}
+                    invalidates all sessions.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-zinc-900">Monitor access</td>
+                  <td className="px-4 py-3 text-zinc-600">
+                    Vercel records who added or updated each variable and when. Project activity
+                    retains deploys and env changes. The app logs <code>secret.encrypt</code> /{" "}
+                    <code>secret.decrypt</code> (kind, purpose, ok, time) without secret values.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-medium text-zinc-900">Replace exposed secrets immediately</td>
+                  <td className="px-4 py-3 text-zinc-600">
+                    On suspected exposure: rotate the Vercel variable, revoke the provider key
+                    (Google Cloud OAuth client, OpenAI, Resend, Stripe/Paddle), redeploy, and
+                    revoke user Gmail grants if a refresh-token key is involved. Old values are not
+                    kept in the app.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold text-zinc-900">5. Logging and monitoring</h2>
           <ul className="mt-3 list-disc space-y-2 pl-5">
             <li>
               <strong>Platform.</strong> Each Vercel environment variable shows Added / Updated
@@ -182,6 +259,43 @@ export default function SecretsManagementPage() {
             <li>
               Failed decrypts (wrong key or tampered payload) are logged with <code>ok: false</code>{" "}
               and throw; the request fails closed.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold text-zinc-900">6. Rotation, revocation, incident</h2>
+          <ol className="mt-3 list-decimal space-y-2 pl-5">
+            <li>
+              Generate a new value at the provider (or <code>openssl rand -hex 32</code> for{" "}
+              <code>TOKEN_ENCRYPTION_KEY</code> / <code>AUTH_SECRET</code>).
+            </li>
+            <li>
+              Paste it into Vercel → Project → Settings → Environment Variables as Sensitive,
+              Production and Preview. Save. The previous value is replaced, not shown again.
+            </li>
+            <li>Redeploy Production so every instance picks up the new value.</li>
+            <li>
+              Revoke the old provider credential. Disconnecting Gmail or deleting an account calls
+              Google revoke and deletes <code>refresh_token_enc</code>.
+            </li>
+            <li>
+              If <code>TOKEN_ENCRYPTION_KEY</code> itself is rotated, existing ciphertext cannot be
+              read; users reconnect Gmail (new encrypted refresh token). If{" "}
+              <code>AUTH_SECRET</code> is rotated, every session cookie is invalid and users sign
+              in again.
+            </li>
+          </ol>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold text-zinc-900">7. What this control does not do</h2>
+          <ul className="mt-3 list-disc space-y-2 pl-5">
+            <li>No hardcoded production secrets in source or in Git.</li>
+            <li>No <code>NEXT_PUBLIC_</code> secret variables and no secret values in HTML or client JS.</li>
+            <li>No admin screen that displays env values or decrypted refresh tokens.</li>
+            <li>
+              Logs never include ciphertext, plaintext, IVs, keys, session tokens, or card data.
             </li>
           </ul>
         </section>
