@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "crypto";
 import { eq } from "drizzle-orm";
 import { db, users, creditTopups, DEFAULT_PREFERENCES, type UserPreferences } from "@/lib/db";
-import { promoClaimId, promoCreditsForKeyName } from "@/lib/promo-key";
+import { normalizePromoKeyName, promoClaimId, promoCreditsForKeyName } from "@/lib/promo-key";
 import { grantBonusCredits } from "@/lib/usage";
 
 export type StoredApiKey = {
@@ -26,7 +26,7 @@ function withKeys(prefs: UserPreferences | null | undefined, apiKeys: StoredApiK
   return { ...(prefs ?? DEFAULT_PREFERENCES), apiKeys };
 }
 
-/** First create of a promo-named key grants bonus credits; unique claim id blocks repeats. */
+/** First matching name grants bonus credits; later creates/renames do not. */
 export async function claimPromoCreditsOnCreate(
   userId: string,
   name: string,
@@ -34,21 +34,52 @@ export async function claimPromoCreditsOnCreate(
   const credits = promoCreditsForKeyName(name);
   if (!credits) return { granted: 0, reason: "not-promo" };
 
-  const inserted = await db
-    .insert(creditTopups)
-    .values({
-      userId,
-      stripeSessionId: promoClaimId(userId, name),
-      packId: `promo:${normalizeSafe(name)}`,
-      credits,
-      amountCents: 0,
-    })
-    .onConflictDoNothing()
-    .returning({ id: creditTopups.id });
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { preferences: true },
+  });
+  const claim = normalizePromoKeyName(name);
+  const claimed = user?.preferences?.promoClaims ?? [];
+  if (claimed.includes(claim)) return { granted: 0, reason: "already-claimed" };
 
-  if (inserted.length === 0) return { granted: 0, reason: "already-claimed" };
   await grantBonusCredits(userId, credits);
+  await db
+    .update(users)
+    .set({
+      preferences: {
+        ...(user?.preferences ?? DEFAULT_PREFERENCES),
+        promoClaims: [...claimed, claim],
+      },
+    })
+    .where(eq(users.id, userId));
+
+  try {
+    await db
+      .insert(creditTopups)
+      .values({
+        userId,
+        stripeSessionId: promoClaimId(userId, name),
+        packId: `promo:${normalizeSafe(name)}`,
+        credits,
+        amountCents: 0,
+      })
+      .onConflictDoNothing();
+  } catch (err) {
+    console.error("promo topup row failed", { userId, claim, err });
+  }
+
   return { granted: credits };
+}
+
+/** If a promo-named key already exists but credits never landed, grant once. */
+export async function syncPromoCreditsForUser(userId: string): Promise<number> {
+  const keys = await listApiKeys(userId);
+  let granted = 0;
+  for (const key of keys) {
+    const result = await claimPromoCreditsOnCreate(userId, key.name);
+    granted += result.granted;
+  }
+  return granted;
 }
 
 function normalizeSafe(name: string): string {

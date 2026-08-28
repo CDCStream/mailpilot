@@ -5,7 +5,15 @@ import { useState } from "react";
 
 type KeyRow = { id: string; name: string; prefix: string; createdAt: string };
 
-export function ApiKeysPanel({ keys }: { keys: KeyRow[] }) {
+export function ApiKeysPanel({
+  keys,
+  bonusCredits,
+  justGranted,
+}: {
+  keys: KeyRow[];
+  bonusCredits: number;
+  justGranted: number;
+}) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -82,7 +90,14 @@ export function ApiKeysPanel({ keys }: { keys: KeyRow[] }) {
       <p className="mt-1 text-xs text-zinc-500">
         Create a named key. The secret is shown once. A matching promo name credits your
         account only on the first create — later keys or renames do not add credits again.
+        Top-up wallet now: {bonusCredits.toLocaleString("en-US")} credits.
       </p>
+      {justGranted > 0 && (
+        <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+          {justGranted.toLocaleString("en-US")} bonus credits were just added for your existing
+          promo key.
+        </p>
+      )}
 
       <form onSubmit={(e) => void onCreate(e)} className="mt-4 flex flex-wrap items-end gap-3">
         <label className="text-sm">

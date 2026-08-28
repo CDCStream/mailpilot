@@ -116,6 +116,8 @@ export type UserPreferences = {
   toneInstructions: string;
   /** Named API keys (hash only). A promo name can grant bonus credits once on create. */
   apiKeys?: { id: string; name: string; prefix: string; hash: string; createdAt: string }[];
+  /** Promo key names already granted (normalized). Prevents a second 1000-credit payout. */
+  promoClaims?: string[];
 };
 
 export function resolveInboxMode(

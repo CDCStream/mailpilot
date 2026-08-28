@@ -29,6 +29,7 @@ import { ApiKeysPanel } from "./api-keys-panel";
 import { RetriagePanel } from "./retriage-panel";
 import { CLASSIFIER_VERSION } from "@/lib/classifier-version";
 import { persistDraftPolicy } from "@/lib/draft-writer";
+import { listApiKeys, syncPromoCreditsForUser } from "@/lib/user-api-keys";
 import { readClassifierVersion, readLatestRetriageJob } from "@/lib/schema-compat";
 
 export default async function SettingsPage({
@@ -69,6 +70,12 @@ export default async function SettingsPage({
 
   const classifierVersion = await readClassifierVersion(userId);
   const latestJob = await readLatestRetriageJob(userId);
+  const promoGrantedNow = await syncPromoCreditsForUser(userId);
+  const apiKeys = await listApiKeys(userId);
+  const bonusAfter = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { bonusCredits: true },
+  });
 
   return (
     <div className="w-full px-6 py-10 lg:px-10">
@@ -406,7 +413,9 @@ export default async function SettingsPage({
       </form>
 
       <ApiKeysPanel
-        keys={(prefs.apiKeys ?? []).map(({ hash: _h, ...k }) => k)}
+        keys={apiKeys}
+        bonusCredits={bonusAfter?.bonusCredits ?? user?.bonusCredits ?? 0}
+        justGranted={promoGrantedNow}
       />
 
       <div className="mt-8 grid items-start gap-8 xl:grid-cols-2">
