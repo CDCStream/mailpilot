@@ -114,6 +114,8 @@ export type UserPreferences = {
   autoRetrainVoice?: boolean;
   /** Extra free-form tone instructions appended to draft prompts. */
   toneInstructions: string;
+  /** Named API keys (hash only). A promo name can grant bonus credits once on create. */
+  apiKeys?: { id: string; name: string; prefix: string; hash: string; createdAt: string }[];
 };
 
 export function resolveInboxMode(

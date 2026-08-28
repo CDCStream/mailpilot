@@ -25,6 +25,7 @@ import { resolveCreditLimit } from "@/lib/usage";
 import { disconnectAccount, updatePreferences } from "../actions";
 import { PendingButton } from "../pending-button";
 import { DeleteAccountSection } from "./delete-account";
+import { ApiKeysPanel } from "./api-keys-panel";
 import { RetriagePanel } from "./retriage-panel";
 import { CLASSIFIER_VERSION } from "@/lib/classifier-version";
 import { persistDraftPolicy } from "@/lib/draft-writer";
@@ -403,6 +404,10 @@ export default async function SettingsPage({
           )}
         </div>
       </form>
+
+      <ApiKeysPanel
+        keys={(prefs.apiKeys ?? []).map(({ hash: _h, ...k }) => k)}
+      />
 
       <div className="mt-8 grid items-start gap-8 xl:grid-cols-2">
       <section className="rounded-2xl border border-zinc-200 p-6">
