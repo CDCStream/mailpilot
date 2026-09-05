@@ -27,7 +27,7 @@ export default function DocsPage() {
         <section>
           <h2 className="text-lg font-semibold text-zinc-900">2. Onboarding</h2>
           <p className="mt-2">
-            We create <code className="rounded bg-zinc-100 px-1">Wingman/*</code> labels, learn your
+            We create colored Gmail labels (To Respond, FYI, Notification, and the rest), learn your
             voice from recent sent mail, and triage a sample of your inbox.
           </p>
         </section>

@@ -294,6 +294,16 @@ export const syncAccount = inngest.createFunction(
   async ({ event, step }) => {
     const { accountId } = event.data as { accountId: string };
 
+    await step.run("ensure-labels", async () => {
+      const account = await db.query.emailAccounts.findFirst({
+        where: eq(emailAccounts.id, accountId),
+      });
+      if (!account || account.status !== "active") return;
+      const gmail = getGmailClient(account.refreshTokenEnc);
+      const map = await ensureLabels(gmail);
+      await db.update(emailAccounts).set({ labelMap: map }).where(eq(emailAccounts.id, accountId));
+    });
+
     const changes = await step.run("fetch-history", async () => {
       const account = await db.query.emailAccounts.findFirst({
         where: eq(emailAccounts.id, accountId),

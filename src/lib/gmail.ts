@@ -3,6 +3,18 @@ import { decryptSecret } from "@/lib/crypto";
 import type { Category } from "@/lib/db/schema";
 
 export const CATEGORY_LABELS: Record<Category, string> = {
+  to_respond: "To Respond",
+  fyi: "FYI",
+  newsletter: "Newsletter",
+  marketing: "Marketing",
+  notification: "Notification",
+  cold_email: "Cold Email",
+  money: "Money",
+  security: "Security",
+};
+
+/** Pre-2026 nested names. Keep so we can rename in place (same Gmail label id). */
+const LEGACY_CATEGORY_LABELS: Record<Category, string> = {
   to_respond: "Wingman/To Respond",
   fyi: "Wingman/FYI",
   newsletter: "Wingman/Newsletter",
@@ -11,6 +23,18 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   cold_email: "Wingman/Cold Email",
   money: "Wingman/Money",
   security: "Wingman/Security",
+};
+
+/** Gmail only accepts this palette on users.labels.color. */
+const CATEGORY_LABEL_COLORS: Record<Category, { backgroundColor: string; textColor: string }> = {
+  to_respond: { backgroundColor: "#fb4c2f", textColor: "#ffffff" },
+  fyi: { backgroundColor: "#ffad47", textColor: "#000000" },
+  newsletter: { backgroundColor: "#4a86e8", textColor: "#ffffff" },
+  marketing: { backgroundColor: "#f691b2", textColor: "#000000" },
+  notification: { backgroundColor: "#16a766", textColor: "#ffffff" },
+  cold_email: { backgroundColor: "#a479e2", textColor: "#ffffff" },
+  money: { backgroundColor: "#fbe983", textColor: "#000000" },
+  security: { backgroundColor: "#ac2b16", textColor: "#ffffff" },
 };
 
 export function getGmailClient(encryptedRefreshToken: string): gmail_v1.Gmail {
@@ -22,27 +46,68 @@ export function getGmailClient(encryptedRefreshToken: string): gmail_v1.Gmail {
   return google.gmail({ version: "v1", auth: oauth2 });
 }
 
-/** Creates the Wingman label set if missing; returns category -> labelId map. */
+function colorsMatch(
+  current: gmail_v1.Schema$LabelColor | undefined,
+  want: { backgroundColor: string; textColor: string },
+): boolean {
+  return (
+    current?.backgroundColor?.toLowerCase() === want.backgroundColor.toLowerCase() &&
+    current?.textColor?.toLowerCase() === want.textColor.toLowerCase()
+  );
+}
+
+/** Creates or renames the triage labels (no Wingman/ nest) and applies colors. */
 export async function ensureLabels(gmail: gmail_v1.Gmail): Promise<Record<string, string>> {
   const { data } = await gmail.users.labels.list({ userId: "me" });
-  const existing = new Map((data.labels ?? []).map((l) => [l.name, l.id]));
+  const byName = new Map((data.labels ?? []).filter((l) => l.name && l.id).map((l) => [l.name!, l]));
   const map: Record<string, string> = {};
 
-  for (const [category, name] of Object.entries(CATEGORY_LABELS)) {
-    const found = existing.get(name);
-    if (found) {
-      map[category] = found;
+  for (const [category, name] of Object.entries(CATEGORY_LABELS) as [Category, string][]) {
+    const color = CATEGORY_LABEL_COLORS[category];
+    const current = byName.get(name);
+    const legacy = byName.get(LEGACY_CATEGORY_LABELS[category]);
+
+    if (current?.id) {
+      if (!colorsMatch(current.color, color)) {
+        await gmail.users.labels.update({
+          userId: "me",
+          id: current.id,
+          requestBody: { name, color },
+        });
+      }
+      map[category] = current.id;
       continue;
     }
+
+    if (legacy?.id) {
+      await gmail.users.labels.update({
+        userId: "me",
+        id: legacy.id,
+        requestBody: { name, color },
+      });
+      map[category] = legacy.id;
+      continue;
+    }
+
     const { data: created } = await gmail.users.labels.create({
       userId: "me",
       requestBody: {
         name,
         labelListVisibility: "labelShow",
         messageListVisibility: "show",
+        color,
       },
     });
     map[category] = created.id!;
+  }
+
+  const orphan = byName.get("Wingman");
+  if (orphan?.id) {
+    try {
+      await gmail.users.labels.delete({ userId: "me", id: orphan.id });
+    } catch {
+      // Still has mail or children; leave it.
+    }
   }
   return map;
 }
