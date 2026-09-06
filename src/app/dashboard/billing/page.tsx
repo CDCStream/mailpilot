@@ -2,6 +2,10 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db, subscriptions } from "@/lib/db";
 import { billingEnabled } from "@/lib/billing";
+import {
+  shouldSyncPaddleSubscription,
+  syncPaddleSubscriptionForUser,
+} from "@/lib/paddle-sync";
 import { CREDIT_COSTS, PLANS, TRIAL_CREDITS, TRIAL_DAYS } from "@/lib/plans";
 import { getCreditBalance } from "@/lib/usage";
 import { BillingButtons } from "./buttons";
@@ -24,17 +28,41 @@ export default async function BillingPage({
   const session = await auth();
   const userId = session!.user.id;
   const sp = await searchParams;
-  const sub = await db.query.subscriptions.findFirst({
+  const planOk = sp.status === "success";
+  const topupOk = sp.topup === "success";
+  const topupCredits = typeof sp.credits === "string" ? sp.credits : null;
+
+  let sub = await db.query.subscriptions.findFirst({
     where: eq(subscriptions.userId, userId),
   });
+  if (
+    shouldSyncPaddleSubscription({
+      status: sub?.status ?? "none",
+      subscriptionId: sub?.stripeSubscriptionId,
+      force: planOk,
+    })
+  ) {
+    try {
+      await syncPaddleSubscriptionForUser(userId);
+      sub = await db.query.subscriptions.findFirst({
+        where: eq(subscriptions.userId, userId),
+      });
+    } catch (error) {
+      console.error("Paddle billing sync:", error);
+    }
+  }
+
   const billingOn = billingEnabled();
   const status = sub?.status ?? "none";
+  const paidPlan = status === "active" || status === "past_due";
   const copy =
     status === "trialing"
       ? STATUS_COPY.trialing
-      : !billingOn
-        ? { label: "Early access", cls: "bg-teal-100 text-teal-800" }
-        : (STATUS_COPY[status] ?? STATUS_COPY.none);
+      : paidPlan
+        ? (STATUS_COPY[status] ?? STATUS_COPY.active)
+        : !billingOn
+          ? { label: "Early access", cls: "bg-teal-100 text-teal-800" }
+          : (STATUS_COPY[status] ?? STATUS_COPY.none);
   const hasSubscription = status === "active" || status === "trialing" || status === "past_due";
   const planId = sub?.plan === "wingman" ? "wingman" : sub?.plan === "pilot" ? "pilot" : null;
   const plan = planId ? PLANS[planId] : null;
@@ -43,10 +71,6 @@ export default async function BillingPage({
     credits.planLimit > 0
       ? Math.min(100, Math.round((credits.planUsed / credits.planLimit) * 100))
       : 0;
-
-  const topupOk = sp.topup === "success";
-  const planOk = sp.status === "success";
-  const topupCredits = typeof sp.credits === "string" ? sp.credits : null;
 
   return (
     <div className="w-full px-6 py-10 lg:px-10">
@@ -57,7 +81,9 @@ export default async function BillingPage({
 
       {planOk && (
         <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Checkout complete. Your plan updates after payment is confirmed (usually a few seconds).
+          {paidPlan && plan
+            ? `You're on ${plan.name}. Payment confirmed.`
+            : "Checkout complete. Your plan updates after payment is confirmed (usually a few seconds). Refresh if it hasn't flipped yet."}
         </p>
       )}
 
@@ -69,11 +95,16 @@ export default async function BillingPage({
         </p>
       )}
 
-      {!billingOn && (
+      {!billingOn && !paidPlan && (
         <p className="mt-6 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-800">
           You&apos;re on a <strong>{TRIAL_DAYS}-day free trial</strong> — {TRIAL_CREDITS} AI
           credits, no card. Sandbox checkout is open so you can test payment; live billing is
           still off.
+        </p>
+      )}
+      {!billingOn && paidPlan && (
+        <p className="mt-6 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-800">
+          Sandbox payment is recorded. Live billing is still off.
         </p>
       )}
 

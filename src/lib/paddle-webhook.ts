@@ -15,8 +15,7 @@ import {
 } from "@paddle/paddle-node-sdk";
 import { eq } from "drizzle-orm";
 import { db, creditTopups, subscriptions, users } from "@/lib/db";
-import { planFromPaddlePriceId } from "@/lib/paddle";
-import { isPlanId, planFromPriceId, type PlanId } from "@/lib/plans";
+import { applyPaddleSubscription } from "@/lib/paddle-sync";
 import { grantBonusCredits } from "@/lib/usage";
 
 type SubscriptionEvent =
@@ -64,41 +63,7 @@ export async function processPaddleEvent(event: EventEntity): Promise<void> {
 }
 
 async function upsertSubscription(event: SubscriptionEvent): Promise<void> {
-  const sub = event.data;
-  const custom = (sub.customData ?? {}) as Record<string, unknown>;
-  const userId = customString(custom, "userId");
-  const priceId = sub.items[0]?.price?.id ?? null;
-  const planFromMeta = customString(custom, "plan");
-  const plan: PlanId | null = isPlanId(planFromMeta)
-    ? planFromMeta
-    : planFromPaddlePriceId(priceId) ?? planFromPriceId(priceId);
-
-  const periodEnd = sub.currentBillingPeriod?.endsAt
-    ? new Date(sub.currentBillingPeriod.endsAt)
-    : null;
-
-  const values = {
-    stripeCustomerId: sub.customerId,
-    stripeSubscriptionId: sub.id,
-    status: sub.status,
-    priceId,
-    currentPeriodEnd: periodEnd,
-    updatedAt: new Date(),
-    ...(plan ? { plan } : {}),
-  };
-
-  if (userId) {
-    await db
-      .insert(subscriptions)
-      .values({ userId, ...values })
-      .onConflictDoUpdate({ target: subscriptions.userId, set: values });
-    return;
-  }
-
-  await db
-    .update(subscriptions)
-    .set(values)
-    .where(eq(subscriptions.stripeCustomerId, sub.customerId));
+  await applyPaddleSubscription(event.data);
 }
 
 async function handleTopupTransaction(event: TransactionCompletedEvent): Promise<void> {
