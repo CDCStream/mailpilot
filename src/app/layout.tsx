@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AhrefsAnalytics } from "@/components/ahrefs-analytics";
 import { CookieConsent } from "@/components/cookie-consent";
 import { GaConversions } from "@/components/ga-conversions";
 import { GoogleTag } from "@/components/google-tag";
 import { PageViewTracker } from "@/components/page-view-tracker";
+import { AHREFS_KEY } from "@/lib/ahrefs";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,8 +35,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-white text-zinc-900">
+        {AHREFS_KEY ? (
+          // Ahrefs reads data-key from document.currentScript — must be a static tag.
+          // eslint-disable-next-line @next/next/no-sync-scripts
+          <script src="https://analytics.ahrefs.com/analytics.js" data-key={AHREFS_KEY} async />
+        ) : null}
         <GoogleTag />
-        <AhrefsAnalytics />
         <PageViewTracker />
         <GaConversions />
         {children}

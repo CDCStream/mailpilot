@@ -151,11 +151,12 @@ export default function PrivacyPage() {
             Message metadata and account data are kept while your account is active and deleted
             when you delete your account. Billing records are retained by our payment provider
             as required by law. We use a login session cookie and a first-party visitor
-            cookie to stitch page views before you sign in. If you accept analytics cookies,
-            we also load Google Analytics 4, Ahrefs Web Analytics, and (when configured)
-            Google Ads tags via Consent Mode, to measure visits and conversions. Those tags
-            receive page path and conversion events only — never Gmail content, never your
-            email address. You can reject them; the product still works.
+            cookie to stitch page views before you sign in. Ahrefs Web Analytics loads on
+            all pages and is cookie-free. If you accept analytics cookies, we also load
+            Google Analytics 4 and (when configured) Google Ads tags via Consent Mode, to
+            measure visits and conversions. Those tags receive page path and conversion
+            events only — never Gmail content, never your email address. You can reject
+            them; the product still works.
           </p>
         </section>
         <section>
