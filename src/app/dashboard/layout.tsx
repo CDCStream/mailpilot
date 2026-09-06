@@ -41,9 +41,8 @@ export default async function DashboardLayout({
     where: eq(subscriptions.userId, session.user.id),
     columns: { stripeCustomerId: true },
   });
-  const paddleCustomerId = isPaddleCustomerId(sub?.stripeCustomerId)
-    ? sub.stripeCustomerId
-    : null;
+  const paddleCustomerId =
+    sub && isPaddleCustomerId(sub.stripeCustomerId) ? sub.stripeCustomerId : null;
   const canAdd = accounts.length < maxAccountsFor(plan);
   const switcher = (
     <AccountSwitcher accounts={accounts} activeId={activeId} canAdd={canAdd} />
