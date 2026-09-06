@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MarketingShell } from "@/components/marketing-shell";
+import { LEGAL_EFFECTIVE_DATE } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Data request — Inbox Wingman",
@@ -12,7 +13,8 @@ export default function DataRequestPage() {
       <p className="text-sm font-medium uppercase tracking-widest text-teal-700">Legal</p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">Data request</h1>
       <p className="mt-3 text-zinc-600">
-        Access, correction, export, or deletion of personal data we store about you.
+        Access, correction, export, or deletion of personal data we store about you. Last
+        updated: {LEGAL_EFFECTIVE_DATE}.
       </p>
 
       <div className="mt-10 space-y-6 text-sm leading-relaxed text-zinc-700">

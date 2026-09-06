@@ -139,12 +139,12 @@
     3. ✅ Lab raporu / LOV
     4. ✅ Google'a AL1 teyidi
     5. ✅ Rozet sunumu: [Serif Security](https://www.serif.ai/security) modeli → `/security`
-- 🔄 **Paddle entegrasyonu** — sandbox checkout/webhook/portal yazıldı; canlı hesap ve `BILLING_ENABLED=true` bekliyor.
-  - ✅ Sandbox hesabı (CaptAPI ile aynı) + katalog (Pilot, Wingman, AI credits)
-  - 🔄 Overlay checkout + webhook + portal + top-up + hesap silmede iptal (Inbox Wingman webhook destination + client token hâlâ gerekli)
-  - ⬜ Canlı Paddle hesabı + site onayı, `BILLING_ENABLED=true`
-- ⬜ **Production veritabanını temizleme** — Lansmandan hemen önce test verilerini sıfırla (`scripts/reset-all-data.mjs` hazır).
-- ⬜ **Privacy, Terms, DPA sayfalarını güncelleme** — Paddle (merchant of record) geçişini yansıt; OpenAI alt işleyici listesi güncel mi kontrol et; effective date güncelle.
+- ✅ **Paddle entegrasyonu** — overlay checkout, webhook, portal, top-up, hesap silmede iptal; canlı hesap + site onayı + `BILLING_ENABLED=true`.
+  - ✅ Sandbox hesabı (ayrı Inbox Wingman hesabı) + katalog (Pilot, Wingman, AI credits)
+  - ✅ Overlay checkout + webhook + portal + top-up + hesap silmede iptal (canlı destination + client token)
+  - ✅ Canlı Paddle hesabı + site onayı, `BILLING_ENABLED=true`
+- ✅ **Production veritabanını temizleme** — Test verisi sıfırlandı (`scripts/reset-all-data.mjs`, 6 Eyl 2026). Yeniden giriş + Gmail bağla + Billing aç (Pilot ve 600 kredi Paddle’dan döner).
+- ✅ **Privacy, Terms, DPA sayfalarını güncelleme** — Paddle MoR + Buyer Terms; OpenAI 30 gün abuse log (train yok); Railway→Vercel; effective date 6 Eyl 2026.
 - ⬜ **Landing page'e son halini verme** — Metinlerin son okuması, ekran görüntülerinin güncel ürünle eşleşmesi, fiyat kartları Paddle fiyatlarıyla senkron.
 
 ## 2. Analitik & izleme

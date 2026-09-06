@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { LEGAL_EFFECTIVE_DATE } from "@/lib/legal";
 
 export const metadata: Metadata = { title: "Refund & cancellation — Inbox Wingman" };
 
@@ -9,7 +10,7 @@ export default function RefundPage() {
     <MarketingShell>
       <p className="text-sm font-medium uppercase tracking-widest text-teal-700">Legal</p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">Refund & cancellation</h1>
-      <p className="mt-2 text-sm text-zinc-500">Last updated: {new Date().toDateString()}</p>
+      <p className="mt-2 text-sm text-zinc-500">Last updated: {LEGAL_EFFECTIVE_DATE}</p>
 
       <div className="mt-8 space-y-6 text-sm leading-relaxed text-zinc-700">
         <section>

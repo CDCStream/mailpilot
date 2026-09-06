@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { LEGAL_EFFECTIVE_DATE, PADDLE_BUYER_TERMS } from "@/lib/legal";
 
 export const metadata: Metadata = { title: "Terms of Service — Inbox Wingman" };
 
@@ -9,7 +10,7 @@ export default function TermsPage() {
     <MarketingShell>
       <p className="text-sm font-medium uppercase tracking-widest text-teal-700">Legal</p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">Terms of Service</h1>
-      <p className="mt-2 text-sm text-zinc-500">Last updated: {new Date().toDateString()}</p>
+      <p className="mt-2 text-sm text-zinc-500">Last updated: {LEGAL_EFFECTIVE_DATE}</p>
 
       <div className="mt-8 space-y-6 text-sm leading-relaxed text-zinc-700">
         <section>
@@ -23,12 +24,17 @@ export default function TermsPage() {
         <section>
           <h2 className="text-lg font-semibold text-zinc-900">2. Subscriptions</h2>
           <p className="mt-2">
-            Inbox Wingman is billed monthly (Pilot or Wingman) after a 14-day free trial, via our
-            payment provider Paddle, which acts as merchant of record for your purchase. Listed
-            prices exclude tax; VAT or sales tax is added at checkout where the customer&apos;s
-            location requires it. Plans include a monthly AI credit allowance; when credits run out, AI triage
-            and drafts pause until the next period or an upgrade. You can cancel anytime from
-            the billing portal; access continues until the end of the paid period. See our{" "}
+            Inbox Wingman is billed monthly (Pilot or Wingman) after a 14-day cardless trial.
+            Checkout and invoicing are handled by Paddle.com Market Ltd as merchant of record.
+            Your purchase is also subject to{" "}
+            <a href={PADDLE_BUYER_TERMS} className="underline">
+              Paddle&apos;s Checkout Buyer Terms
+            </a>
+            . Listed prices exclude tax; VAT or sales tax is added at checkout where your
+            location requires it. Plans include a monthly AI credit allowance; when credits run
+            out, drafts, briefs, and Ask pause until the next period or a top-up. You can cancel
+            anytime from the Paddle billing portal; access continues until the end of the paid
+            period. See our{" "}
             <Link href="/refund" className="underline">
               Refund & cancellation
             </Link>{" "}

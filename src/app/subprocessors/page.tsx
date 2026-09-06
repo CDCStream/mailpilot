@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MarketingShell } from "@/components/marketing-shell";
+import { LEGAL_EFFECTIVE_DATE } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Sub-processors — Inbox Wingman",
@@ -14,7 +15,8 @@ const ROWS = [
   },
   {
     name: "OpenAI",
-    purpose: "Transient classification, drafts, summaries — API data not used for training",
+    purpose:
+      "Classification, drafts, summaries via API — not used to train models; default abuse logs up to 30 days",
     region: "USA / provider regions",
   },
   {
@@ -23,13 +25,13 @@ const ROWS = [
     region: "As configured for the deployment",
   },
   {
-    name: "Railway",
+    name: "Vercel",
     purpose: "Application hosting",
-    region: "As configured for the deployment",
+    region: "USA / provider regions",
   },
   {
     name: "Paddle",
-    purpose: "Merchant of record — subscriptions and credit top-up payments",
+    purpose: "Merchant of record — checkout, tax, invoices, subscriptions, credit top-ups",
     region: "UK / provider regions",
   },
   {
@@ -73,7 +75,7 @@ export default function SubprocessorsPage() {
           </tbody>
         </table>
       </div>
-      <p className="mt-6 text-sm text-zinc-500">Last updated: {new Date().toDateString()}</p>
+      <p className="mt-6 text-sm text-zinc-500">Last updated: {LEGAL_EFFECTIVE_DATE}</p>
     </MarketingShell>
   );
 }

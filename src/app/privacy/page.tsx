@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { LEGAL_EFFECTIVE_DATE, PADDLE_PRIVACY } from "@/lib/legal";
 
 export const metadata: Metadata = { title: "Privacy Policy — Inbox Wingman" };
 
@@ -9,7 +10,7 @@ export default function PrivacyPage() {
     <MarketingShell>
       <p className="text-sm font-medium uppercase tracking-widest text-teal-700">Legal</p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">Privacy Policy</h1>
-      <p className="mt-2 text-sm text-zinc-500">Last updated: {new Date().toDateString()}</p>
+      <p className="mt-2 text-sm text-zinc-500">Last updated: {LEGAL_EFFECTIVE_DATE}</p>
 
       <div className="mt-8 space-y-6 text-sm leading-relaxed text-zinc-700">
         <section>
@@ -66,11 +67,12 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-lg font-semibold text-zinc-900">AI processing</h2>
           <p className="mt-2">
-            Email content is sent to our AI provider (OpenAI) transiently to classify messages
-            and generate drafts. Per OpenAI&apos;s API terms, this data is not used to train
-            their models; OpenAI may retain API data for up to 30 days solely for abuse
-            monitoring, after which it is deleted. We never store the AI provider&apos;s copy of
-            your content ourselves.
+            Email content is sent to our AI provider (OpenAI) over their API to classify
+            messages and generate drafts. Per OpenAI&apos;s API data controls, API customer
+            content is not used to train their models. By default OpenAI may keep abuse-monitoring
+            logs (which can include prompts and responses) for up to 30 days, then delete them,
+            unless law requires longer retention. We do not store OpenAI&apos;s copy of your
+            content.
           </p>
           <p className="mt-2">
             If you opt in to voice matching, we derive a short writing-style profile from
@@ -82,8 +84,15 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-lg font-semibold text-zinc-900">Payments</h2>
           <p className="mt-2">
-            Purchases are handled by Paddle as merchant of record. We never see or store your
-            card details; we only store your plan, subscription status, and credit balance.
+            Inbox Wingman uses Paddle.com Market Ltd as merchant of record. Paddle takes your
+            payment, issues the receipt, and handles VAT/sales tax. Card and tax identity data
+            go to Paddle, not to us. We only store your plan, subscription status, Paddle
+            customer/subscription ids, and credit balance. Paddle processes that payment data
+            under{" "}
+            <a href={PADDLE_PRIVACY} className="underline">
+              Paddle&apos;s privacy policy
+            </a>
+            .
           </p>
         </section>
         <section>

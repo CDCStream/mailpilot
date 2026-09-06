@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { LEGAL_EFFECTIVE_DATE, PADDLE_PRIVACY } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Data Processing Agreement — Inbox Wingman",
@@ -12,7 +13,7 @@ export default function DpaPage() {
     <MarketingShell>
       <p className="text-sm font-medium uppercase tracking-widest text-teal-700">Legal</p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">Data Processing Agreement</h1>
-      <p className="mt-2 text-sm text-zinc-500">Summary · Last updated: {new Date().toDateString()}</p>
+      <p className="mt-2 text-sm text-zinc-500">Summary · Last updated: {LEGAL_EFFECTIVE_DATE}</p>
 
       <div className="mt-8 space-y-6 text-sm leading-relaxed text-zinc-700">
         <p>
@@ -37,9 +38,22 @@ export default function DpaPage() {
           </p>
         </section>
         <section>
+          <h2 className="text-lg font-semibold text-zinc-900">Payments</h2>
+          <p className="mt-2">
+            Paddle.com Market Ltd is merchant of record. For card details, invoices, and tax,
+            Paddle acts as an independent controller under{" "}
+            <a href={PADDLE_PRIVACY} className="underline">
+              Paddle&apos;s privacy policy
+            </a>
+            . We receive only subscription status, plan, and Paddle customer/subscription ids
+            needed to unlock the product.
+          </p>
+        </section>
+        <section>
           <h2 className="text-lg font-semibold text-zinc-900">Sub-processors</h2>
           <p className="mt-2">
-            Current list:{" "}
+            We use authorized sub-processors (including OpenAI for transient classification and
+            drafts, Vercel for hosting, and Supabase for the application database). Current list:{" "}
             <Link href="/subprocessors" className="underline">
               Sub-processors
             </Link>
