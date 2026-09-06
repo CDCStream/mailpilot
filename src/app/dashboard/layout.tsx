@@ -3,11 +3,13 @@ import { redirect } from "next/navigation";
 import NextTopLoader from "nextjs-toploader";
 import { eq } from "drizzle-orm";
 import { auth, signOut } from "@/auth";
-import { db, emailAccounts, users } from "@/lib/db";
+import { db, emailAccounts, subscriptions, users } from "@/lib/db";
+import { isPaddleCustomerId } from "@/lib/paddle";
 import { maxAccountsFor } from "@/lib/plans";
 import { resolveCreditLimit } from "@/lib/usage";
 import { ensureCardlessTrial } from "@/lib/trial";
 import { BrandLogo } from "@/components/brand-logo";
+import { PaddleBoot } from "@/components/paddle-boot";
 import { AccountSwitcher } from "./account-switcher";
 import { getActiveAccountId } from "./active-account";
 import { CreditsBanner } from "./credits-banner";
@@ -35,6 +37,13 @@ export default async function DashboardLayout({
   const cookieId = await getActiveAccountId();
   const activeId = accounts.some((a) => a.id === cookieId) ? cookieId : null;
   const { plan } = await resolveCreditLimit(session.user.id);
+  const sub = await db.query.subscriptions.findFirst({
+    where: eq(subscriptions.userId, session.user.id),
+    columns: { stripeCustomerId: true },
+  });
+  const paddleCustomerId = isPaddleCustomerId(sub?.stripeCustomerId)
+    ? sub.stripeCustomerId
+    : null;
   const canAdd = accounts.length < maxAccountsFor(plan);
   const switcher = (
     <AccountSwitcher accounts={accounts} activeId={activeId} canAdd={canAdd} />
@@ -55,6 +64,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen">
+      <PaddleBoot customerId={paddleCustomerId} />
       {/* Subtle page-transition indicator along the very top */}
       <NextTopLoader color="#0d9488" height={3} showSpinner={false} shadow={false} />
 

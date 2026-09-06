@@ -5,15 +5,31 @@ import type { PlanId } from "@/lib/plans";
 
 let paddlePromise: Promise<Paddle | undefined> | null = null;
 
-function getPaddleBrowser(): Promise<Paddle | undefined> {
-  const token = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
+function isPaddleCustomerId(id: string | null | undefined): id is string {
+  return !!id && id.startsWith("ctm_");
+}
+
+export async function bootPaddle(customerId?: string | null): Promise<Paddle | undefined> {
+  const paddle = await getPaddleBrowser(customerId);
+  if (paddle && isPaddleCustomerId(customerId)) {
+    paddle.Update({ pwCustomer: { id: customerId } });
+  }
+  return paddle;
+}
+
+function getPaddleBrowser(customerId?: string | null): Promise<Paddle | undefined> {
+  const token =
+    process.env.NEXT_PUBLIC_PADDLE_ENV === "production"
+      ? process.env.NEXT_PUBLIC_PADDLE_LIVE_CLIENT_TOKEN ||
+        process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN
+      : process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
   if (!token) return Promise.resolve(undefined);
   if (!paddlePromise) {
+    const sandbox = process.env.NEXT_PUBLIC_PADDLE_ENV === "sandbox";
     paddlePromise = initializePaddle({
       token,
-      environment: (process.env.NEXT_PUBLIC_PADDLE_ENV ?? "sandbox") as
-        | "sandbox"
-        | "production",
+      ...(sandbox ? { environment: "sandbox" as const } : {}),
+      ...(isPaddleCustomerId(customerId) ? { pwCustomer: { id: customerId } } : {}),
       eventCallback: (event) => {
         if (event.name === "checkout.error") {
           console.error("[paddle] checkout.error", event);
@@ -43,7 +59,7 @@ export async function openPaddleCheckout(body: PaddleCheckoutBody): Promise<stri
     return data.error ?? "Checkout failed";
   }
 
-  const paddle = await getPaddleBrowser();
+  const paddle = await bootPaddle(data.customer?.id);
   if (!paddle) return "Paddle checkout isn't configured.";
 
   const path = data.successUrl

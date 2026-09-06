@@ -37,6 +37,7 @@ yarn-error.log*
 .env*
 !.env.example
 .paddle-catalog.sandbox.json
+.paddle-catalog.live.json
 
 # vercel
 .vercel

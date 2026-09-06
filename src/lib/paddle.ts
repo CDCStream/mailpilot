@@ -2,7 +2,12 @@ import { Environment, LogLevel, Paddle, type PaddleOptions } from "@paddle/paddl
 import { eq } from "drizzle-orm";
 import { db, subscriptions, users } from "@/lib/db";
 import type { PlanId } from "@/lib/plans";
-import { PADDLE_SANDBOX_PLAN_PRICES, PADDLE_SANDBOX_TOPUP_PRICES } from "@/lib/paddle-catalog";
+import {
+  PADDLE_LIVE_PLAN_PRICES,
+  PADDLE_SANDBOX_PLAN_PRICES,
+  paddlePlanPrices,
+  paddleTopupPrices,
+} from "@/lib/paddle-catalog";
 
 export function paddleEnvironment(): Environment {
   return process.env.NEXT_PUBLIC_PADDLE_ENV === "production"
@@ -11,8 +16,11 @@ export function paddleEnvironment(): Environment {
 }
 
 export function getPaddleInstance(): Paddle {
-  const key = process.env.PADDLE_API_KEY;
-  if (!key) throw new Error("PADDLE_API_KEY is not set");
+  const live = paddleEnvironment() === Environment.production;
+  const key = live
+    ? process.env.PADDLE_LIVE_API_KEY || process.env.PADDLE_API_KEY
+    : process.env.PADDLE_API_KEY;
+  if (!key) throw new Error(live ? "PADDLE_LIVE_API_KEY is not set" : "PADDLE_API_KEY is not set");
   const options: PaddleOptions = {
     environment: paddleEnvironment(),
     logLevel: LogLevel.error,
@@ -21,21 +29,34 @@ export function getPaddleInstance(): Paddle {
 }
 
 export function paddlePriceIdForPlan(plan: PlanId): string | undefined {
+  const catalog = paddlePlanPrices();
   if (plan === "pilot") {
-    return process.env.PADDLE_PRICE_ID_PILOT || PADDLE_SANDBOX_PLAN_PRICES.pilot;
+    return process.env.PADDLE_PRICE_ID_PILOT || catalog.pilot;
   }
-  return process.env.PADDLE_PRICE_ID_WINGMAN || PADDLE_SANDBOX_PLAN_PRICES.wingman;
+  return process.env.PADDLE_PRICE_ID_WINGMAN || catalog.wingman;
 }
 
 export function paddlePriceIdForTopup(packId: string): string | undefined {
   const fromEnv = process.env[`PADDLE_PRICE_ID_TOPUP_${packId}`];
-  return fromEnv || PADDLE_SANDBOX_TOPUP_PRICES[packId];
+  return fromEnv || paddleTopupPrices()[packId];
 }
 
 export function planFromPaddlePriceId(priceId: string | null | undefined): PlanId | null {
   if (!priceId) return null;
-  if (priceId === paddlePriceIdForPlan("pilot")) return "pilot";
-  if (priceId === paddlePriceIdForPlan("wingman")) return "wingman";
+  if (
+    priceId === paddlePriceIdForPlan("pilot") ||
+    priceId === PADDLE_SANDBOX_PLAN_PRICES.pilot ||
+    priceId === PADDLE_LIVE_PLAN_PRICES.pilot
+  ) {
+    return "pilot";
+  }
+  if (
+    priceId === paddlePriceIdForPlan("wingman") ||
+    priceId === PADDLE_SANDBOX_PLAN_PRICES.wingman ||
+    priceId === PADDLE_LIVE_PLAN_PRICES.wingman
+  ) {
+    return "wingman";
+  }
   return null;
 }
 

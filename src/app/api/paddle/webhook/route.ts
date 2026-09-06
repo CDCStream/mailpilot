@@ -1,17 +1,36 @@
 import { NextRequest } from "next/server";
 import { getPaddleInstance } from "@/lib/paddle";
+import { ipInCidrList, paddleWebhookCidrs, requestClientIp } from "@/lib/paddle-ips";
 import { processPaddleEvent } from "@/lib/paddle-webhook";
+
+function webhookSecret(): string {
+  if (process.env.NEXT_PUBLIC_PADDLE_ENV === "production") {
+    return (
+      process.env.PADDLE_LIVE_NOTIFICATION_WEBHOOK_SECRET ||
+      process.env.PADDLE_NOTIFICATION_WEBHOOK_SECRET ||
+      ""
+    );
+  }
+  return process.env.PADDLE_NOTIFICATION_WEBHOOK_SECRET ?? "";
+}
 
 export async function POST(request: NextRequest) {
   const signature = request.headers.get("paddle-signature") ?? "";
   const rawBody = await request.text();
-  const secret = process.env.PADDLE_NOTIFICATION_WEBHOOK_SECRET ?? "";
+  const secret = webhookSecret();
 
   if (!signature || !rawBody) {
     return Response.json({ error: "Missing signature or body" }, { status: 400 });
   }
 
   try {
+    const cidrs = await paddleWebhookCidrs();
+    const ip = requestClientIp(request);
+    if (cidrs.length > 0 && ip && !ipInCidrList(ip, cidrs)) {
+      console.warn("Paddle webhook rejected: source IP not on allowlist");
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const paddle = getPaddleInstance();
     const eventData = await paddle.webhooks.unmarshal(rawBody, secret, signature);
     if (eventData) {
