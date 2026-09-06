@@ -428,3 +428,22 @@ export const analyticsEvents = pgTable(
     index("events_anon_idx").on(t.anonId),
   ],
 );
+
+/** Articles ingested from the Outrank webhook (Vercel cannot write markdown files). */
+export const blogArticles = pgTable(
+  "blog_articles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    outrankId: text("outrank_id"),
+    slug: text("slug").notNull(),
+    title: text("title").notNull(),
+    description: text("description").notNull().default(""),
+    content: text("content").notNull().default(""),
+    tags: jsonb("tags").$type<string[]>().notNull().default([]),
+    imageUrl: text("image_url"),
+    status: text("status").notNull().default("published"),
+    publishedAt: timestamp("published_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("blog_articles_slug_idx").on(t.slug)],
+);

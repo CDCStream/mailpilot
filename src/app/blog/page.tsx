@@ -17,8 +17,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function BlogIndexPage() {
-  const articles = getAllArticles();
+export default async function BlogIndexPage() {
+  const articles = await getAllArticles();
 
   return (
     <MarketingShell wide>

@@ -6,12 +6,14 @@ import { ContentCta } from "@/components/content-cta";
 import { MarketingShell } from "@/components/marketing-shell";
 import { getAllArticles, getArticle } from "@/lib/blog";
 import { FREE_TOOLS } from "@/lib/free-tools";
-import { jsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
+import { absoluteUrl, jsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 type Params = { slug: string };
 
-export function generateStaticParams(): Params[] {
-  return getAllArticles().map((a) => ({ slug: a.slug }));
+export const dynamicParams = true;
+
+export async function generateStaticParams(): Promise<Params[]> {
+  return (await getAllArticles()).map((a) => ({ slug: a.slug }));
 }
 
 export async function generateMetadata({
@@ -20,7 +22,7 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const article = getArticle(slug);
+  const article = await getArticle(slug);
   if (!article) return {};
   const url = article.canonical ?? `${SITE_URL}/blog/${article.slug}`;
   return {
@@ -34,7 +36,7 @@ export async function generateMetadata({
       type: "article",
       publishedTime: article.date,
       modifiedTime: article.updated ?? undefined,
-      images: [{ url: `${SITE_URL}${article.featuredImage}`, alt: article.featuredImageAlt }],
+      images: [{ url: absoluteUrl(article.featuredImage), alt: article.featuredImageAlt }],
     },
     twitter: {
       card: "summary",
@@ -46,12 +48,12 @@ export async function generateMetadata({
 
 export default async function BlogArticlePage({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
-  const article = getArticle(slug);
+  const article = await getArticle(slug);
   if (!article) notFound();
 
-  const related = article.relatedSlugs
-    .map((s) => getArticle(s))
-    .filter((a): a is NonNullable<typeof a> => a !== null);
+  const related = (
+    await Promise.all(article.relatedSlugs.map((s) => getArticle(s)))
+  ).filter((a): a is NonNullable<typeof a> => a !== null);
   const relatedTools = FREE_TOOLS.filter((t) => article.relatedToolSlugs.includes(t.slug));
 
   const articleLd = jsonLd({
@@ -61,7 +63,7 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
     description: article.description,
     datePublished: article.date,
     dateModified: article.updated ?? article.date,
-    image: `${SITE_URL}${article.featuredImage}`,
+    image: absoluteUrl(article.featuredImage),
     author: { "@type": "Organization", name: article.author, url: SITE_URL },
     publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
     mainEntityOfPage: `${SITE_URL}/blog/${article.slug}`,

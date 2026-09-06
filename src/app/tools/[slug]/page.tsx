@@ -46,9 +46,9 @@ export default async function ToolPage({ params }: { params: Promise<Params> }) 
   const relatedTools = tool.relatedToolSlugs
     .map((s) => getFreeTool(s))
     .filter((t): t is NonNullable<typeof t> => t !== null);
-  const relatedArticles = tool.relatedArticleSlugs
-    .map((s) => getArticle(s))
-    .filter((a): a is NonNullable<typeof a> => a !== null);
+  const relatedArticles = (
+    await Promise.all(tool.relatedArticleSlugs.map((s) => getArticle(s)))
+  ).filter((a): a is NonNullable<typeof a> => a !== null);
 
   const appLd = jsonLd({
     "@context": "https://schema.org",

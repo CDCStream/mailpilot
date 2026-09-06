@@ -176,7 +176,7 @@
 
 ### Faz 2 — İçerik motoru (31.-60. gün)
 
-- 🔶 **outrank.so blog entegrasyonu** — `/blog` rotası hazır (markdown+frontmatter, `content/blog/`, JSON-LD, sitemap'te). İçerik keyword planı bekleniyor; haftada 2-3 içerik.
+- 🔶 **outrank.so blog entegrasyonu** — `/blog` + `/api/outrank/webhook` hazır (Bearer token, Postgres ingest, sitemap). Outrank panelinde Create + ilk yayın.
 - ⬜ **İçerik sırası (çoğu kurucunun tersine)** — 1) karşılaştırma/alternatif sayfaları (en yüksek dönüşüm) → 2) use-case sayfaları → 3) problem-aware blog → 4) düşünce liderliği.
 - ⬜ **Repurpose kuralı** — her blog yazısı = 1 LinkedIn postu + 1 X thread'i.
 - ⬜ **Backlink başlangıç paketi (60. güne 10 referring domain)** — Dizinler: Product Hunt, G2, Capterra, SaaSHub, AlternativeTo, Betalist. Topluluk: IndieHackers, Reddit. 1 güçlü misafir yazı (DR 40+). 2-3 kurucuyla karşılıklı link takası.

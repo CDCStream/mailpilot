@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { desc } from "drizzle-orm";
+import { db, blogArticles } from "@/lib/db";
 
 /**
  * File-based blog: one markdown file per article in content/blog/*.md.
@@ -114,16 +116,67 @@ function parseArticle(filePath: string): Article | null {
   };
 }
 
-export function getAllArticles(options?: { includeUnpublished?: boolean }): Article[] {
+function loadFileArticles(): Article[] {
   if (!fs.existsSync(BLOG_DIR)) return [];
-  const files = fs.readdirSync(BLOG_DIR).filter((f) => /\.mdx?$/.test(f));
-  const articles = files
+  return fs
+    .readdirSync(BLOG_DIR)
+    .filter((f) => /\.mdx?$/.test(f))
     .map((f) => parseArticle(path.join(BLOG_DIR, f)))
-    .filter((a): a is Article => a !== null)
-    .filter((a) => options?.includeUnpublished || a.status === "published");
-  return articles.sort((a, b) => b.date.localeCompare(a.date));
+    .filter((a): a is Article => a !== null);
 }
 
-export function getArticle(slug: string): Article | null {
-  return getAllArticles().find((a) => a.slug === slug) ?? null;
+function fromDbRow(row: typeof blogArticles.$inferSelect): Article {
+  const date = row.publishedAt.toISOString().slice(0, 10);
+  const updated = row.updatedAt.toISOString().slice(0, 10);
+  const words = row.content.split(/\s+/).filter(Boolean).length;
+  return {
+    title: row.title,
+    slug: row.slug,
+    description: row.description,
+    keyword: "",
+    secondaryKeywords: [],
+    tags: row.tags ?? [],
+    category: "Guides",
+    date,
+    updated: updated !== date ? updated : null,
+    author: "Inbox Wingman",
+    status: row.status === "published" ? "published" : "draft",
+    featuredImage: row.imageUrl || "/logo.png",
+    featuredImageAlt: row.title,
+    canonical: null,
+    faq: [],
+    relatedSlugs: [],
+    relatedToolSlugs: [],
+    cta: DEFAULT_CTA,
+    content: row.content,
+    readingMinutes: Math.max(1, Math.round(words / 200)),
+  };
+}
+
+async function loadDbArticles(): Promise<Article[]> {
+  try {
+    const rows = await db.select().from(blogArticles).orderBy(desc(blogArticles.publishedAt));
+    return rows.map(fromDbRow);
+  } catch (error) {
+    console.error("blog_articles read failed:", error);
+    return [];
+  }
+}
+
+export async function getAllArticles(options?: { includeUnpublished?: boolean }): Promise<Article[]> {
+  const [files, dbRows] = await Promise.all([
+    Promise.resolve(loadFileArticles()),
+    loadDbArticles(),
+  ]);
+  // File articles win on slug collision so the in-repo stub cannot be overwritten.
+  const bySlug = new Map<string, Article>();
+  for (const a of dbRows) bySlug.set(a.slug, a);
+  for (const a of files) bySlug.set(a.slug, a);
+  return [...bySlug.values()]
+    .filter((a) => options?.includeUnpublished || a.status === "published")
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export async function getArticle(slug: string): Promise<Article | null> {
+  return (await getAllArticles()).find((a) => a.slug === slug) ?? null;
 }
