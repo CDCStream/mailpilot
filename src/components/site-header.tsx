@@ -16,11 +16,11 @@ export function SiteHeader({ ctaHref = "/login", ctaLabel = "Sign in" }: { ctaHr
           <Link href="/security" className="hidden text-zinc-600 hover:text-zinc-900 sm:inline">
             Security
           </Link>
+          <Link href="/use-cases" className="hidden text-zinc-600 hover:text-zinc-900 sm:inline">
+            Use Cases
+          </Link>
           <Link href="/#pricing" className="text-zinc-600 hover:text-zinc-900">
             Pricing
-          </Link>
-          <Link href="/#faq" className="hidden text-zinc-600 hover:text-zinc-900 md:inline">
-            FAQ
           </Link>
           <Link href="/blog" className="hidden text-zinc-600 hover:text-zinc-900 md:inline">
             Blog

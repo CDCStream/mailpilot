@@ -131,17 +131,14 @@ export default function LandingPage() {
             <span className="text-xl font-semibold tracking-tight">Inbox Wingman</span>
           </span>
           <nav className="flex items-center gap-6 text-sm">
-            <a href="#deadlines" className="hidden text-zinc-600 hover:text-zinc-900 sm:inline">
-              Deadlines
-            </a>
             <a href="#features" className="text-zinc-600 hover:text-zinc-900">
               Features
             </a>
+            <Link href="/use-cases" className="hidden text-zinc-600 hover:text-zinc-900 sm:inline">
+              Use Cases
+            </Link>
             <a href="#pricing" className="text-zinc-600 hover:text-zinc-900">
               Pricing
-            </a>
-            <a href="#faq" className="hidden text-zinc-600 hover:text-zinc-900 sm:inline">
-              FAQ
             </a>
             <Link href="/blog" className="hidden text-zinc-600 hover:text-zinc-900 sm:inline">
               Blog
