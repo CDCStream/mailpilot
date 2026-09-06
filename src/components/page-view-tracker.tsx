@@ -2,7 +2,7 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
-import { gaEvent } from "@/lib/gtag";
+import { readConsent, sendPageView } from "@/lib/gtag";
 
 function Tracker() {
   const pathname = usePathname();
@@ -23,12 +23,15 @@ function Tracker() {
       keepalive: true,
     }).catch(() => {});
 
-    // Path only — query strings can contain a Gmail address (`linked=`).
+    const consented = readConsent() === "granted";
+    if (!consented) return;
+    // First load is also sent by gtag config when consent was already granted.
     if (!gaInitialDone.current) {
       gaInitialDone.current = true;
+      sendPageView(pathname);
       return;
     }
-    gaEvent("page_view", { page_path: pathname, page_location: `${window.location.origin}${pathname}` });
+    sendPageView(pathname);
   }, [pathname, search]);
 
   return null;

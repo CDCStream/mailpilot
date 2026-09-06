@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AhrefsAnalytics } from "@/components/ahrefs-analytics";
 import { CookieConsent } from "@/components/cookie-consent";
 import { GaConversions } from "@/components/ga-conversions";
 import { GoogleTag } from "@/components/google-tag";
@@ -35,6 +36,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-white text-zinc-900">
         <GoogleTag />
+        <AhrefsAnalytics />
         <PageViewTracker />
         <GaConversions />
         {children}

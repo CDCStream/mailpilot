@@ -150,8 +150,8 @@
 ## 2. Analitik & izleme
 
 - ✅ **Supabase kullanıcı event tablosu** — `events` + `/dashboard/funnel` (sadece admin e-posta). Adımlar: Visitors → Signups → Gmail → Onboarded → First draft → Still active → Checkout → Paid.
-- ✅ **GA4 bağlama** — `G-83RT884KSZ` + Consent Mode v2 + `sign_up` / `begin_checkout` / `purchase`. Ads etiketleri kampanya açılınca.
-- ⬜ **Ahrefs** — Site Audit + Rank Tracker; GSC entegrasyonunu da bağla.
+- ✅ **GA4 bağlama** — `G-83RT884KSZ` + Ads `AW-15728739136` + Consent Mode v2 + `sign_up` / `begin_checkout` / `purchase`. Ads dönüşüm etiketleri (signup/subscribe label) kampanya açılınca.
+- ✅ **Ahrefs** — Web Analytics `3x1DvUrthpB4QAyR77MYiQ` (consent sonrası). Site Audit + Rank Tracker + GSC bağlama Ahrefs uygulamasında.
 - 💡 **Sentry (backend hata izleme)** — Next.js SDK; server action ve Inngest hatalarını yakalar. Lansman sonrası ilk hafta için çok değerli.
 - 💡 **Uptime monitoring** — UptimeRobot/BetterStack ile `/` ve `/api/health` ping'i; Vercel + Inngest kesintilerini erken haber verir. *(benim önerim)*
 

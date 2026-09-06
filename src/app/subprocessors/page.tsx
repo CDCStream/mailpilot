@@ -50,6 +50,12 @@ const ROWS = [
       "Optional visit and conversion measurement (Consent Mode). No Gmail content or email addresses.",
     region: "USA / provider regions",
   },
+  {
+    name: "Ahrefs",
+    purpose:
+      "Optional web analytics plus site audit / rank tracking. No Gmail content or email addresses.",
+    region: "USA / provider regions",
+  },
 ];
 
 export default function SubprocessorsPage() {

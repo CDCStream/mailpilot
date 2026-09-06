@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AHREFS_KEY, loadAhrefs } from "@/lib/ahrefs";
 import { applyConsent, googleTagsEnabled, readConsent } from "@/lib/gtag";
 
 export function CookieConsent() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!googleTagsEnabled()) return;
+    if (!googleTagsEnabled() && !AHREFS_KEY) return;
     setVisible(readConsent() === null);
   }, []);
 
@@ -15,6 +16,7 @@ export function CookieConsent() {
 
   function choose(choice: "granted" | "denied") {
     applyConsent(choice);
+    if (choice === "granted") loadAhrefs();
     setVisible(false);
   }
 
@@ -22,8 +24,8 @@ export function CookieConsent() {
     <div className="fixed inset-x-0 bottom-0 z-50 p-4">
       <div className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-zinc-200 bg-white/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-zinc-600">
-          We use Google Analytics and Ads (Consent Mode) to measure visits and sign-ups.
-          Gmail content is never sent.{" "}
+          We use Google Analytics, Ads, and Ahrefs (Consent Mode) to measure visits and
+          sign-ups. Gmail content is never sent.{" "}
           <a href="/privacy" className="underline">
             Privacy
           </a>

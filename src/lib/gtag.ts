@@ -2,7 +2,7 @@
 
 /** Public IDs only — leave unset and nothing loads. */
 export const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "G-83RT884KSZ";
-export const ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || "";
+export const ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || "AW-15728739136";
 export const ADS_SUBSCRIBE_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_SUBSCRIBE_LABEL || "";
 export const ADS_SIGNUP_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL || "";
 
@@ -46,6 +46,18 @@ export function applyConsent(choice: ConsentChoice): void {
     ad_storage: choice,
     ad_user_data: choice,
     ad_personalization: choice,
+  });
+  if (choice === "granted") sendPageView();
+}
+
+/** Path only — never send query strings (they can include a Gmail address). */
+export function sendPageView(pathname?: string): void {
+  if (typeof window === "undefined" || !window.gtag) return;
+  const path = pathname || window.location.pathname;
+  window.gtag("event", "page_view", {
+    page_path: path,
+    page_title: document.title,
+    page_location: `${window.location.origin}${path}`,
   });
 }
 
