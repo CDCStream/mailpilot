@@ -60,11 +60,11 @@ export function planFromPaddlePriceId(priceId: string | null | undefined): PlanI
   return null;
 }
 
-export function isPaddleCustomerId(id: string | null | undefined): boolean {
+export function isPaddleCustomerId(id: string | null | undefined): id is string {
   return !!id && id.startsWith("ctm_");
 }
 
-export function isPaddleSubscriptionId(id: string | null | undefined): boolean {
+export function isPaddleSubscriptionId(id: string | null | undefined): id is string {
   return !!id && id.startsWith("sub_");
 }
 

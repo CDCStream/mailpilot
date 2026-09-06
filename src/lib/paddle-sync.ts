@@ -136,9 +136,10 @@ export async function applyTopupFromTransaction(txn: {
   if (customString(custom, "type") !== "credit_topup" && !pack) return false;
 
   let userId = customString(custom, "userId");
-  if (!userId && isPaddleCustomerId(txn.customerId)) {
+  const customerId = txn.customerId;
+  if (!userId && isPaddleCustomerId(customerId)) {
     const row = await db.query.subscriptions.findFirst({
-      where: eq(subscriptions.stripeCustomerId, txn.customerId),
+      where: eq(subscriptions.stripeCustomerId, customerId),
     });
     userId = row?.userId ?? "";
   }
