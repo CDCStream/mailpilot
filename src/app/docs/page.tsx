@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
-import { CREDIT_COSTS, TRIAL_CREDITS } from "@/lib/plans";
+import { CREDIT_COSTS, TRIAL_CREDITS, TRIAL_DAYS } from "@/lib/plans";
 
 export const metadata: Metadata = {
   title: "Documentation — Inbox Wingman",
@@ -34,7 +34,8 @@ export default function DocsPage() {
         <section>
           <h2 className="text-lg font-semibold text-zinc-900">3. Credits</h2>
           <p className="mt-2">
-            Trial includes {TRIAL_CREDITS} credits. Costs: triage {CREDIT_COSTS.triage} · draft{" "}
+            The {TRIAL_DAYS}-day trial includes {TRIAL_CREDITS} credits. Costs: triage{" "}
+            {CREDIT_COSTS.triage} · draft{" "}
             {CREDIT_COSTS.draft} · brief {CREDIT_COSTS.brief}. Top-ups need an active plan and never
             expire. Track usage on the dashboard.
           </p>

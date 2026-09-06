@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db, subscriptions } from "@/lib/db";
 import { billingEnabled } from "@/lib/billing";
-import { CREDIT_COSTS, PLANS, TRIAL_CREDITS } from "@/lib/plans";
+import { CREDIT_COSTS, PLANS, TRIAL_CREDITS, TRIAL_DAYS } from "@/lib/plans";
 import { getCreditBalance } from "@/lib/usage";
 import { BillingButtons } from "./buttons";
 import { CreditTopupScroller } from "@/components/credit-topup";
@@ -29,9 +29,12 @@ export default async function BillingPage({
   });
   const billingOn = billingEnabled();
   const status = sub?.status ?? "none";
-  const copy = !billingOn
-    ? { label: "Early access", cls: "bg-teal-100 text-teal-800" }
-    : (STATUS_COPY[status] ?? STATUS_COPY.none);
+  const copy =
+    status === "trialing"
+      ? STATUS_COPY.trialing
+      : !billingOn
+        ? { label: "Early access", cls: "bg-teal-100 text-teal-800" }
+        : (STATUS_COPY[status] ?? STATUS_COPY.none);
   const hasSubscription = status === "active" || status === "trialing" || status === "past_due";
   const planId = sub?.plan === "wingman" ? "wingman" : sub?.plan === "pilot" ? "pilot" : null;
   const plan = planId ? PLANS[planId] : null;
@@ -68,8 +71,9 @@ export default async function BillingPage({
 
       {!billingOn && (
         <p className="mt-6 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-800">
-          You&apos;re on <strong>early access</strong> — every feature is included with the full
-          Wingman allowance, free while we finish rolling out payments. No card needed.
+          You&apos;re on a <strong>{TRIAL_DAYS}-day free trial</strong> — {TRIAL_CREDITS} AI
+          credits, no card. Sandbox checkout is open so you can test payment; live billing is
+          still off.
         </p>
       )}
 
@@ -86,13 +90,11 @@ export default async function BillingPage({
               ) : null}
             </p>
             <p className="mt-1 text-sm text-zinc-500">
-              {!billingOn
-                ? `${PLANS.wingman.credits.toLocaleString("en-US")} AI credits / month · full Wingman allowance`
-                : status === "trialing"
-                  ? `${TRIAL_CREDITS} credits during your 7-day trial`
-                  : plan
-                    ? `${plan.credits.toLocaleString("en-US")} AI credits / month`
-                    : "Pick a plan to unlock triage & drafts"}
+              {status === "trialing" || (!billingOn && !plan)
+                ? `${TRIAL_CREDITS} credits during your ${TRIAL_DAYS}-day trial`
+                : plan
+                  ? `${plan.credits.toLocaleString("en-US")} AI credits / month`
+                  : "Pick a plan to unlock triage & drafts"}
             </p>
           </div>
           <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${copy.cls}`}>
@@ -135,16 +137,12 @@ export default async function BillingPage({
           </p>
         )}
 
-        {billingOn ? (
-          <BillingButtons hasSubscription={hasSubscription} showPlanPicker={!hasSubscription} />
-        ) : (
-          <p className="mt-6 text-sm text-zinc-500">
-            Checkout opens when billing goes live. Until then, use Wingman freely — no card.
-          </p>
-        )}
+        <BillingButtons
+          hasSubscription={hasSubscription && status !== "trialing"}
+          showPlanPicker={status === "trialing" || !hasSubscription}
+        />
       </div>
 
-      {billingOn && (
       <section>
         <h2 className="text-lg font-semibold">Top up credits</h2>
         <p className="mt-1 text-sm text-zinc-500">
@@ -154,10 +152,9 @@ export default async function BillingPage({
           <CreditTopupScroller signedIn hasActivePlan={hasSubscription} />
         </div>
       </section>
-      )}
       </div>
 
-      {billingOn && !hasSubscription && (
+      {(status === "trialing" || !hasSubscription) && (
         <div className="mt-10 grid gap-4 sm:grid-cols-2">
           {Object.values(PLANS).map((p) => (
             <div

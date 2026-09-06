@@ -78,7 +78,7 @@ export default function FeaturesPage() {
           href="/login"
           className="inline-flex rounded-full bg-zinc-900 px-6 py-3 text-sm font-semibold text-white hover:bg-zinc-800"
         >
-          Connect Gmail — free for 7 days
+          Connect Gmail — free for 14 days
         </Link>
       </div>
     </MarketingShell>

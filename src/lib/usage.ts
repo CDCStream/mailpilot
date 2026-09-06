@@ -9,6 +9,7 @@ import {
   type CreditAction,
   type PlanId,
 } from "@/lib/plans";
+import { isTrialExpired } from "@/lib/trial";
 
 function currentPeriod(): string {
   return new Date().toISOString().slice(0, 7); // YYYY-MM UTC
@@ -32,23 +33,10 @@ export async function resolveCreditLimit(userId: string): Promise<{
   plan: CreditBalance["plan"];
   planName: string;
 }> {
-  if (!billingEnabled()) {
-    // Never surface env/internal names ("BILLING_ENABLED") to the UI.
-    return {
-      limit: PLANS.wingman.credits,
-      plan: "early_access",
-      planName: "Early access",
-    };
-  }
-
   const sub = await db.query.subscriptions.findFirst({
     where: eq(subscriptions.userId, userId),
   });
   const status = sub?.status ?? "none";
-
-  if (status === "trialing") {
-    return { limit: TRIAL_CREDITS, plan: "trial", planName: "Free trial" };
-  }
 
   if (status === "active" || status === "past_due") {
     const planId = (sub?.plan === "wingman" ? "wingman" : "pilot") as PlanId;
@@ -56,7 +44,19 @@ export async function resolveCreditLimit(userId: string): Promise<{
     return { limit: plan.credits, plan: planId, planName: plan.name };
   }
 
-  return { limit: 20, plan: "none", planName: "No plan" };
+  if (billingEnabled() && (status !== "trialing" || isTrialExpired(sub?.currentPeriodEnd))) {
+    return { limit: 0, plan: "none", planName: "No plan" };
+  }
+
+  if (!billingEnabled() && status !== "trialing") {
+    return {
+      limit: TRIAL_CREDITS,
+      plan: "early_access",
+      planName: "Early access",
+    };
+  }
+
+  return { limit: TRIAL_CREDITS, plan: "trial", planName: "Free trial" };
 }
 
 /**

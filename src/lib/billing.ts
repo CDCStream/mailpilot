@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { eq } from "drizzle-orm";
 import { db, subscriptions } from "@/lib/db";
 import type { PlanId } from "@/lib/plans";
+import { isTrialExpired } from "@/lib/trial";
 
 let stripeSingleton: Stripe | null = null;
 
@@ -36,6 +37,10 @@ export async function getUserPlan(userId: string): Promise<PlanId | null> {
 /** Whether background processing (sync, drafts, brief) should run for this user. */
 export async function hasActiveAccess(userId: string): Promise<boolean> {
   if (!billingEnabled()) return true;
-  const status = await getBillingStatus(userId);
-  return status === "active" || status === "trialing" || status === "past_due";
+  const sub = await db.query.subscriptions.findFirst({
+    where: eq(subscriptions.userId, userId),
+  });
+  const status = (sub?.status as BillingStatus) ?? "none";
+  if (status === "trialing") return !isTrialExpired(sub?.currentPeriodEnd);
+  return status === "active" || status === "past_due";
 }

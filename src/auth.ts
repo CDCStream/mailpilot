@@ -3,6 +3,7 @@ import Google from "next-auth/providers/google";
 import { eq } from "drizzle-orm";
 import { db, users, emailAccounts, DEFAULT_PREFERENCES } from "@/lib/db";
 import { encryptSecret } from "@/lib/crypto";
+import { ensureCardlessTrial } from "@/lib/trial";
 
 const GMAIL_SCOPES = [
   "openid",
@@ -82,6 +83,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
           });
       }
+      await ensureCardlessTrial(dbUser.id);
       return true;
     },
     async jwt({ token }) {

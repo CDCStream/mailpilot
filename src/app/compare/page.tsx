@@ -89,7 +89,7 @@ export default function ComparePage() {
         <Link href="/login" className="font-medium text-zinc-900 underline">
           Connect Gmail
         </Link>{" "}
-        and try the 7-day trial.
+        and try the 14-day trial.
       </p>
     </MarketingShell>
   );

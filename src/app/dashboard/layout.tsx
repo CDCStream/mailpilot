@@ -6,6 +6,7 @@ import { auth, signOut } from "@/auth";
 import { db, emailAccounts, users } from "@/lib/db";
 import { maxAccountsFor } from "@/lib/plans";
 import { resolveCreditLimit } from "@/lib/usage";
+import { ensureCardlessTrial } from "@/lib/trial";
 import { BrandLogo } from "@/components/brand-logo";
 import { AccountSwitcher } from "./account-switcher";
 import { getActiveAccountId } from "./active-account";
@@ -24,6 +25,8 @@ export default async function DashboardLayout({
     columns: { id: true },
   });
   if (!dbUser) redirect("/api/session/clear");
+
+  await ensureCardlessTrial(session.user.id);
 
   const accounts = await db.query.emailAccounts.findMany({
     where: eq(emailAccounts.userId, session.user.id),

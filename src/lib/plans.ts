@@ -36,10 +36,15 @@ export type CreditAction = keyof typeof CREDIT_COSTS;
 export const TRIAGE_FAIR_USE_MONTHLY = 3000;
 
 /**
- * Trial abuse guard in credits. At 3 credits/draft this is ~25 drafts.
- * Do not surface a countdown in the UI (users hoard instead of trying).
+ * Cardless trial length. Clock starts on first sign-in; Paddle has no trial.
  */
-export const TRIAL_CREDITS = 75;
+export const TRIAL_DAYS = 14;
+
+/**
+ * Trial abuse guard in credits. At 3 credits/draft this is ~33 drafts
+ * (~$2.40 LLM cost). Do not surface a countdown in the UI (users hoard).
+ */
+export const TRIAL_CREDITS = 100;
 
 /** Approximate draft capacity from a credit allowance (for marketing copy). */
 export function approxDraftsFromCredits(credits: number): number {

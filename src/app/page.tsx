@@ -6,12 +6,12 @@ import { InboxDemo } from "@/components/inbox-demo";
 import { SecurityAttestations } from "@/components/security-attestations";
 import { SiteFooter } from "@/components/site-footer";
 import { hasActiveAccess } from "@/lib/billing";
-import { CREDIT_COSTS, PLANS, TRIAL_CREDITS } from "@/lib/plans";
+import { CREDIT_COSTS, PLANS, TRIAL_CREDITS, TRIAL_DAYS } from "@/lib/plans";
 
 const FAQ = [
   {
     q: "What's included in the free trial?",
-    a: "7 days free — unlimited triage, drafts for every mail that needs one, daily brief, and plain-English rules. No credit card required.",
+    a: `${TRIAL_DAYS} days free — unlimited triage, ${TRIAL_CREDITS} AI credits for drafts, brief, and Ask AI, plus plain-English rules. No credit card required.`,
   },
   {
     q: "How do AI credits work?",
@@ -39,7 +39,7 @@ const FAQ = [
   },
   {
     q: "Do I need a credit card to start?",
-    a: "No. Start the 7-day trial with Google sign-in only — no card. Add payment later if you want to keep Wingman after the trial.",
+    a: `No. Start the ${TRIAL_DAYS}-day trial with Google sign-in only — no card. Add payment later if you want to keep Wingman after the trial.`,
   },
   {
     q: "Can I cancel anytime?",
@@ -86,7 +86,7 @@ const FEATURES = [
   },
   {
     title: "Pay for drafts, not triage",
-    body: "Unlimited triage included. Credits only meter voice drafts, briefs, and Ask AI. No card for the 7-day trial.",
+    body: `Unlimited triage included. Credits only meter voice drafts, briefs, and Ask AI. No card for the ${TRIAL_DAYS}-day trial.`,
   },
 ];
 
@@ -181,7 +181,7 @@ export default async function LandingPage() {
             </a>
           </div>
           <p className="mt-5 text-sm font-semibold text-teal-800">
-            7 days free · No credit card required
+            {TRIAL_DAYS} days free · No credit card required
           </p>
         </div>
 
@@ -252,8 +252,8 @@ export default async function LandingPage() {
           </p>
           <p className="mx-auto mt-3 max-w-lg text-zinc-600">
             Unlimited triage is included. Credits only meter voice drafts ({CREDIT_COSTS.draft}),
-            daily briefs ({CREDIT_COSTS.brief}), and Ask AI ({CREDIT_COSTS.ask}). 7-day trial — no
-            card required.
+            daily briefs ({CREDIT_COSTS.brief}), and Ask AI ({CREDIT_COSTS.ask}). {TRIAL_DAYS}-day
+            trial — no card required.
           </p>
           <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-sm font-medium text-amber-800">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
@@ -304,7 +304,7 @@ export default async function LandingPage() {
                       : "border border-zinc-300 text-zinc-900 hover:bg-zinc-50"
                   }`}
                 >
-                  Start 7-day free trial
+                  Start {TRIAL_DAYS}-day free trial
                 </Link>
               </div>
             ))}
@@ -383,7 +383,7 @@ export default async function LandingPage() {
                 className="inline-flex items-center gap-2.5 rounded-full bg-zinc-900 px-8 py-3.5 text-base font-semibold text-white hover:bg-zinc-800"
               >
                 <GoogleG className="h-5 w-5" />
-                Start your free week
+                Start your free trial
               </Link>
             </div>
             <p className="mt-4 text-xs text-zinc-500">
