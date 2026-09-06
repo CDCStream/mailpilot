@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db, subscriptions } from "@/lib/db";
 import { billingEnabled } from "@/lib/billing";
+import { isPaddleCustomerId } from "@/lib/paddle";
 import {
   shouldSyncPaddleSubscription,
   syncPaddleSubscriptionForUser,
@@ -52,7 +53,7 @@ export default async function BillingPage({
       console.error("Paddle billing sync:", error);
     }
   }
-  if (topupOk) {
+  if (topupOk || isPaddleCustomerId(sub?.stripeCustomerId)) {
     try {
       await syncPaddleTopupsForUser(userId);
     } catch (error) {
@@ -159,8 +160,7 @@ export default async function BillingPage({
               {credits.remaining.toLocaleString("en-US")} credits left
             </span>
             <span className="text-zinc-500">
-              {" "}
-              · {credits.planRemaining.toLocaleString("en-US")} on this month&apos;s plan
+              {` · ${credits.planRemaining.toLocaleString("en-US")} on this month's plan`}
               {credits.bonusCredits > 0
                 ? ` + ${credits.bonusCredits.toLocaleString("en-US")} in top-up wallet`
                 : ""}

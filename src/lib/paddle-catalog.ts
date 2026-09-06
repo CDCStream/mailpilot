@@ -43,3 +43,16 @@ export function paddlePlanPrices() {
 export function paddleTopupPrices() {
   return isPaddleLive() ? PADDLE_LIVE_TOPUP_PRICES : PADDLE_SANDBOX_TOPUP_PRICES;
 }
+
+/** Resolve a credit pack from any sandbox or live top-up price id. */
+export function packFromPaddlePriceId(
+  priceId: string | null | undefined,
+): { packId: string; credits: number } | null {
+  if (!priceId) return null;
+  for (const catalog of [PADDLE_LIVE_TOPUP_PRICES, PADDLE_SANDBOX_TOPUP_PRICES]) {
+    for (const [packId, id] of Object.entries(catalog)) {
+      if (id === priceId) return { packId, credits: Number(packId) };
+    }
+  }
+  return null;
+}

@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db, creditTopups, subscriptions } from "@/lib/db";
+import { packFromPaddlePriceId } from "@/lib/paddle-catalog";
 import {
   ensurePaddleCustomer,
   getPaddleInstance,
@@ -125,15 +126,25 @@ export async function syncPaddleSubscriptionForUser(userId: string): Promise<boo
 
 export async function applyTopupFromTransaction(txn: {
   id: string;
+  customerId?: string | null;
   customData?: Record<string, unknown> | null;
+  items?: { price?: { id?: string } | null }[];
   details?: { totals?: { total?: string | number | null } | null } | null;
 }): Promise<boolean> {
   const custom = (txn.customData ?? {}) as Record<string, unknown>;
-  if (customString(custom, "type") !== "credit_topup") return false;
+  const pack = packFromPaddlePriceId(txn.items?.[0]?.price?.id);
+  if (customString(custom, "type") !== "credit_topup" && !pack) return false;
 
-  const userId = customString(custom, "userId");
-  const packId = customString(custom, "packId") || "unknown";
-  const credits = Number(customString(custom, "credits"));
+  let userId = customString(custom, "userId");
+  if (!userId && isPaddleCustomerId(txn.customerId)) {
+    const row = await db.query.subscriptions.findFirst({
+      where: eq(subscriptions.stripeCustomerId, txn.customerId),
+    });
+    userId = row?.userId ?? "";
+  }
+
+  const packId = customString(custom, "packId") || pack?.packId || "unknown";
+  const credits = Number(customString(custom, "credits")) || pack?.credits || 0;
   if (!userId || !Number.isFinite(credits) || credits <= 0) return false;
 
   const amountCents = Number(txn.details?.totals?.total ?? 0);
@@ -177,7 +188,9 @@ export async function syncPaddleTopupsForUser(userId: string): Promise<number> {
   for await (const txn of collection) {
     const applied = await applyTopupFromTransaction({
       id: txn.id,
+      customerId: txn.customerId,
       customData: (txn.customData ?? null) as Record<string, unknown> | null,
+      items: txn.items,
       details: txn.details,
     });
     if (applied) granted += 1;
