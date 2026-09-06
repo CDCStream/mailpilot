@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
+import { SecurityBadgeStrip } from "@/components/security-attestations";
 
 const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
   {
@@ -66,6 +67,10 @@ export function SiteFooter() {
             <p className="mt-3 text-sm leading-relaxed text-zinc-500">
               AI email for freelance developers and small studios. Clients first, bots quiet,
               deadlines caught — never send without you.
+            </p>
+            <SecurityBadgeStrip className="mt-4" />
+            <p className="mt-3 text-xs text-zinc-400">
+              EU-ready: GDPR compliant, data deletable anytime.
             </p>
           </div>
           <div className="grid flex-1 grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5 lg:gap-6">

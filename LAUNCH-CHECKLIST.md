@@ -193,8 +193,7 @@
 
 ## 4. Güven & Avrupa müşterileri
 
-- 🔄 **Güven sinyalleri** — `/security` rozetleri canlı (Google Verified · CASA AL1 · GDPR). Kalan:
-  - Footer'a "EU-ready: GDPR compliant, data deletable anytime" satırı
+- ✅ **Güven sinyalleri** — `/security` kartları + landing altı + footer şeridi (Google Verified · CASA AL1 · GDPR). EU-ready satırı footer’da.
 - 💡 **DMARC kaydı** — SPF + DKIM tamam, DMARC eksik: `_dmarc TXT "v=DMARC1; p=none; rua=mailto:..."`. Brief e-postalarının spam'e düşmemesi ve domain itibarı için. DNS Vercel'de, 1 dakikalık iş. *(benim önerim)*
 - 💡 **Karşılama e-postası** — İlk bağlantıdan sonra "hoş geldin + ne beklemelisin" maili (Resend hazır). Aktivasyonu artırır. *(benim önerim)*
 

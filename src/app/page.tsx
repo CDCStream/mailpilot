@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { BrandLogo } from "@/components/brand-logo";
 import { CreditTopupScroller } from "@/components/credit-topup";
 import { InboxDemo } from "@/components/inbox-demo";
+import { SecurityAttestations } from "@/components/security-attestations";
 import { SiteFooter } from "@/components/site-footer";
 import { hasActiveAccess } from "@/lib/billing";
 import { CREDIT_COSTS, PLANS, TRIAL_CREDITS } from "@/lib/plans";
@@ -390,8 +391,6 @@ export default async function LandingPage() {
             </p>
             <ul className="mx-auto mt-8 flex max-w-2xl flex-wrap items-center justify-center gap-2 text-xs font-medium text-zinc-600">
               {[
-                "GDPR-ready",
-                "Google Limited Use compliant",
                 "No AI training on your mail",
                 "Email bodies never stored",
                 "Delete your data anytime",
@@ -404,6 +403,19 @@ export default async function LandingPage() {
                 </li>
               ))}
             </ul>
+          </div>
+          <div className="mt-10 text-left">
+            <p className="text-center text-xs font-semibold uppercase tracking-widest text-zinc-400">
+              Independently verified
+            </p>
+            <div className="mt-4">
+              <SecurityAttestations />
+            </div>
+            <p className="mt-4 text-center text-sm">
+              <Link href="/security" className="font-medium text-teal-800 hover:text-teal-900">
+                Read the security page →
+              </Link>
+            </p>
           </div>
         </div>
       </section>

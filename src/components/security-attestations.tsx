@@ -27,9 +27,9 @@ const ATTESTATIONS = [
   },
 ];
 
-function GoogleMark() {
+function GoogleMark({ className = "h-7 w-7" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden>
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
       <path
         fill="#4285F4"
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"
@@ -50,9 +50,9 @@ function GoogleMark() {
   );
 }
 
-function CasaMark() {
+function CasaMark({ className = "h-8 w-8" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className="h-8 w-8" aria-hidden>
+    <svg viewBox="0 0 32 32" className={className} aria-hidden>
       <path
         fill="currentColor"
         className="text-teal-700"
@@ -62,9 +62,9 @@ function CasaMark() {
   );
 }
 
-function GdprMark() {
+function GdprMark({ className = "h-8 w-8" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className="h-8 w-8" aria-hidden>
+    <svg viewBox="0 0 32 32" className={className} aria-hidden>
       <circle cx="16" cy="16" r="10" fill="none" stroke="currentColor" strokeWidth="1.6" className="text-zinc-700" />
       <path
         fill="currentColor"
@@ -75,10 +75,35 @@ function GdprMark() {
   );
 }
 
-function Mark({ icon }: { icon: (typeof ATTESTATIONS)[number]["icon"] }) {
-  if (icon === "google") return <GoogleMark />;
-  if (icon === "casa") return <CasaMark />;
-  return <GdprMark />;
+function Mark({
+  icon,
+  className,
+}: {
+  icon: (typeof ATTESTATIONS)[number]["icon"];
+  className?: string;
+}) {
+  if (icon === "google") return <GoogleMark className={className ?? "h-7 w-7"} />;
+  if (icon === "casa") return <CasaMark className={className ?? "h-8 w-8"} />;
+  return <GdprMark className={className ?? "h-8 w-8"} />;
+}
+
+/** Compact pills for the footer and other tight spots. */
+export function SecurityBadgeStrip({ className = "" }: { className?: string }) {
+  return (
+    <ul className={`flex flex-wrap items-center gap-2 ${className}`}>
+      {ATTESTATIONS.map((item) => (
+        <li key={item.title}>
+          <Link
+            href="/security"
+            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:border-zinc-300 hover:text-zinc-900"
+          >
+            <Mark icon={item.icon} className="h-3.5 w-3.5" />
+            {item.title}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function SecurityAttestations() {
