@@ -14,6 +14,11 @@ function getPaddleBrowser(): Promise<Paddle | undefined> {
       environment: (process.env.NEXT_PUBLIC_PADDLE_ENV ?? "sandbox") as
         | "sandbox"
         | "production",
+      eventCallback: (event) => {
+        if (event.name === "checkout.error") {
+          console.error("[paddle] checkout.error", event);
+        }
+      },
     });
   }
   return paddlePromise;
@@ -41,6 +46,12 @@ export async function openPaddleCheckout(body: PaddleCheckoutBody): Promise<stri
   const paddle = await getPaddleBrowser();
   if (!paddle) return "Paddle checkout isn't configured.";
 
+  const path = data.successUrl
+    ? new URL(data.successUrl, window.location.origin).pathname +
+      new URL(data.successUrl, window.location.origin).search
+    : "/dashboard/billing";
+  const successUrl = `${window.location.origin}${path}`;
+
   paddle.Checkout.open({
     items: [{ priceId: data.priceId, quantity: 1 }],
     ...(data.customer ? { customer: data.customer } : {}),
@@ -48,7 +59,7 @@ export async function openPaddleCheckout(body: PaddleCheckoutBody): Promise<stri
     settings: {
       variant: "one-page",
       allowLogout: false,
-      successUrl: data.successUrl,
+      successUrl,
     },
   });
   return null;

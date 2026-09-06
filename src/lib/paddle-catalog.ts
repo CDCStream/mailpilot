@@ -1,16 +1,16 @@
-/** Sandbox price IDs from scripts/seed-paddle-catalog.ts. Live overrides via env. */
+/** Sandbox price IDs from the Inbox Wingman Paddle account. Live overrides via env. */
 export const PADDLE_SANDBOX_PLAN_PRICES = {
-  pilot: "pri_01m1v18gjhx46z1w8texnejx3r",
-  wingman: "pri_01m1v18gxhrkkre4t7ddrhd5jx",
+  pilot: "pri_01m1v3xp7f4xkzy0jkfc8esswm",
+  wingman: "pri_01m1v3xpcb2ckv1maj7v6hrct3",
 } as const;
 
 export const PADDLE_SANDBOX_TOPUP_PRICES: Record<string, string> = {
-  "100": "pri_01m1v18h8rmef5aag7jwy7becp",
-  "250": "pri_01m1v18hemaw6hxnhzzrt797m9",
-  "500": "pri_01m1v18hmd33mj8348x75yf5bx",
-  "750": "pri_01m1v18htw7jr0tcrcsrx5j4we",
-  "1000": "pri_01m1v18j154tm5dzm03vze13bn",
-  "1500": "pri_01m1v18j7c726j0h3p8x9w6g7g",
-  "2000": "pri_01m1v18jd47ncq55d20ff416pq",
-  "3000": "pri_01m1v18jjzs0chvdvbwrxgz3gg",
+  "100": "pri_01m1v3xpgsdd4pprpm60b1satr",
+  "250": "pri_01m1v3xpn5r0063kqf0ymfqvt3",
+  "500": "pri_01m1v3xpwhp9kjrmf1vp3g2mdm",
+  "750": "pri_01m1v3xqd9d25r369cgm6wjeaz",
+  "1000": "pri_01m1v3xqhvx6ea0etdnkkx1v13",
+  "1500": "pri_01m1v3xqp1cjdr1cqyz07h6wm7",
+  "2000": "pri_01m1v3xqtdz45jqnrms3wacnhf",
+  "3000": "pri_01m1v3xqz00xzqpdw7j34yt7p0",
 };

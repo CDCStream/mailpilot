@@ -8,6 +8,17 @@ import {
 } from "@/lib/paddle";
 import { getTopupPack, isPlanId, type PlanId } from "@/lib/plans";
 
+function checkoutBaseUrl(req: Request): string {
+  const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "")
+    .split(",")[0]
+    .trim();
+  const proto =
+    req.headers.get("x-forwarded-proto") ??
+    (host.includes("localhost") ? "http" : "https");
+  if (host) return `${proto}://${host}`;
+  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
 export async function POST(req: Request) {
   const session = await auth();
   const userId = session?.user?.id;
@@ -23,7 +34,7 @@ export async function POST(req: Request) {
     // empty body → Pilot subscribe
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = checkoutBaseUrl(req);
 
   try {
     const customerId = await ensurePaddleCustomer(userId);
