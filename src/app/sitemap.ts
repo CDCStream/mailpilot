@@ -27,6 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/blog",
     "/tools",
     "/llms.txt",
+    "/llms-full.txt",
   ];
 
   const staticEntries: MetadataRoute.Sitemap = pages.map((path) => ({

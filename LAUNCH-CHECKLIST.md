@@ -170,7 +170,7 @@
 
 - ⬜ **Teknik denetim** — robots.txt bir şeyi yanlışlıkla engelliyor mu; canonical tag'ler (`/features` vs `/features/`); Core Web Vitals (LCP < 2.5s); tüm görsellere alt text; **login/dashboard/onboarding sayfalarına noindex**; sitemap temiz mi.
 - ⬜ **Lighthouse skorlarını yükseğe çıkarma** — ana sayfa + kilit marketing sayfalarında Performance 90+, SEO/Accessibility/Best Practices 95+ hedefi (mobil öncelikli). pagespeed.web.dev ile ölç; tipik kazançlar: görsel boyutları/lazy loading, kullanılmayan JS, font yükleme (display: swap), LCP elementini preload. Her deploy sonrası tekrar ölç.
-- ⬜ **robots.txt + llms.txt + llms-full.txt** — AI crawler'lara (GPTBot, ClaudeBot, PerplexityBot) izin ver; llms.txt'de ürün özeti, fiyatlar, karşılaştırmalar.
+- 🔶 **robots.txt + llms.txt + llms-full.txt** — Origin: named allow for GPTBot / ClaudeBot / PerplexityBot (and their search/user UAs); `/llms.txt` has product + dollar prices + Fyxer/AI Emaily; `/llms-full.txt` inlines the same. **Cloudflare still prepends Disallow for GPTBot/ClaudeBot** — Dashboard → inboxwingman.com → Overview / Security → Bot traffic: Block AI training bots = Do not block; Manage robots.txt = Disable. Until that toggle, live `/robots.txt` still blocks those two.
 - ⬜ **Keyword evreni: 20-30 kazanılabilir kelime** — sadece ilk 3 sonucu DR<50 sitelerden olan kelimeler; öncelik sırası: solution-aware ("best ai email assistant", "fyxer alternative") → problem-aware ("how to organize gmail inbox") → brand-aware (kendiliğinden gelir).
 - ⬜ **3 çekirdek sayfa** — Ana sayfa (H1'de birincil keyword), en spesifik use-case sayfası, **ilk karşılaştırma sayfası (vs Fyxer)** — karşılaştırma sayfaları en hızlı rank alan içerik.
 
