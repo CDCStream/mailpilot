@@ -139,11 +139,10 @@
     3. ✅ Lab raporu / LOV
     4. ✅ Google'a AL1 teyidi
     5. ✅ Rozet sunumu: [Serif Security](https://www.serif.ai/security) modeli → `/security`
-- ⬜ **Paddle entegrasyonu** — CASA'ya geçerken paralel yapılacak.
-  - ⬜ Sandbox hesabı aç (sandbox-login.paddle.com), API key + client token al
-  - ⬜ Ürün/fiyatları API ile oluştur (Pilot, Wingman abonelikleri + kredi top-up)
-  - ⬜ Stripe kodunu Paddle'a çevir: checkout overlay, webhook, portal, top-up, hesap silmede abonelik iptali
-  - ⬜ Canlı Paddle hesabı + site onayı (1-3 iş günü), `BILLING_ENABLED=true`
+- 🔄 **Paddle entegrasyonu** — sandbox checkout/webhook/portal yazıldı; canlı hesap ve `BILLING_ENABLED=true` bekliyor.
+  - ✅ Sandbox hesabı (CaptAPI ile aynı) + katalog (Pilot, Wingman, AI credits)
+  - 🔄 Overlay checkout + webhook + portal + top-up + hesap silmede iptal (Inbox Wingman webhook destination + client token hâlâ gerekli)
+  - ⬜ Canlı Paddle hesabı + site onayı, `BILLING_ENABLED=true`
 - ⬜ **Production veritabanını temizleme** — Lansmandan hemen önce test verilerini sıfırla (`scripts/reset-all-data.mjs` hazır).
 - ⬜ **Privacy, Terms, DPA sayfalarını güncelleme** — Paddle (merchant of record) geçişini yansıt; OpenAI alt işleyici listesi güncel mi kontrol et; effective date güncelle.
 - ⬜ **Landing page'e son halini verme** — Metinlerin son okuması, ekran görüntülerinin güncel ürünle eşleşmesi, fiyat kartları Paddle fiyatlarıyla senkron.

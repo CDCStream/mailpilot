@@ -27,6 +27,7 @@ import {
 import { forgetSenderCategory } from "@/lib/sender-cache";
 import { buildAndSendBrief } from "@/lib/brief";
 import { getStripe } from "@/lib/billing";
+import { getPaddleInstance, isPaddleSubscriptionId } from "@/lib/paddle";
 import { decryptSecret } from "@/lib/crypto";
 import { applyLabels, getGmailClient } from "@/lib/gmail";
 import { RULE_TEMPLATES } from "@/lib/rule-templates";
@@ -326,13 +327,18 @@ export async function deleteAccount(formData: FormData) {
   if (confirm !== user.email.toLowerCase()) return;
 
   // Cancel any live subscription first so the user isn't billed again.
-  // (Stripe today; swap for Paddle when the billing migration lands.)
   const sub = await db.query.subscriptions.findFirst({
     where: eq(subscriptions.userId, userId),
   });
   if (sub?.stripeSubscriptionId) {
     try {
-      await getStripe().subscriptions.cancel(sub.stripeSubscriptionId);
+      if (isPaddleSubscriptionId(sub.stripeSubscriptionId)) {
+        await getPaddleInstance().subscriptions.cancel(sub.stripeSubscriptionId, {
+          effectiveFrom: "immediately",
+        });
+      } else {
+        await getStripe().subscriptions.cancel(sub.stripeSubscriptionId);
+      }
     } catch {
       // Already canceled or billing not configured — don't block deletion.
     }

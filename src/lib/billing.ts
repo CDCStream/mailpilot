@@ -16,7 +16,7 @@ export function billingEnabled(): boolean {
   return process.env.BILLING_ENABLED !== "false";
 }
 
-export type BillingStatus = "active" | "trialing" | "past_due" | "canceled" | "none";
+export type BillingStatus = "active" | "trialing" | "past_due" | "canceled" | "paused" | "none";
 
 export async function getBillingStatus(userId: string): Promise<BillingStatus> {
   const sub = await db.query.subscriptions.findFirst({
@@ -37,5 +37,5 @@ export async function getUserPlan(userId: string): Promise<PlanId | null> {
 export async function hasActiveAccess(userId: string): Promise<boolean> {
   if (!billingEnabled()) return true;
   const status = await getBillingStatus(userId);
-  return status === "active" || status === "trialing";
+  return status === "active" || status === "trialing" || status === "past_due";
 }

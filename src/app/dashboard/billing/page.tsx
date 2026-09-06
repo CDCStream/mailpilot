@@ -11,6 +11,7 @@ const STATUS_COPY: Record<string, { label: string; cls: string }> = {
   active: { label: "Active", cls: "bg-emerald-100 text-emerald-700" },
   trialing: { label: "Free trial", cls: "bg-teal-100 text-teal-800" },
   past_due: { label: "Payment failed", cls: "bg-rose-100 text-rose-700" },
+  paused: { label: "Paused", cls: "bg-zinc-100 text-zinc-600" },
   canceled: { label: "Canceled", cls: "bg-zinc-100 text-zinc-600" },
   none: { label: "No subscription", cls: "bg-zinc-100 text-zinc-600" },
 };
@@ -41,6 +42,7 @@ export default async function BillingPage({
       : 0;
 
   const topupOk = sp.topup === "success";
+  const planOk = sp.status === "success";
   const topupCredits = typeof sp.credits === "string" ? sp.credits : null;
 
   return (
@@ -49,6 +51,12 @@ export default async function BillingPage({
       <p className="mt-1 text-sm text-zinc-500">
         Monthly plans plus optional top-ups when you need more AI.
       </p>
+
+      {planOk && (
+        <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Checkout complete. Your plan updates after payment is confirmed (usually a few seconds).
+        </p>
+      )}
 
       {topupOk && (
         <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">

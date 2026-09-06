@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { openPaddleCheckout } from "@/lib/paddle-client";
 import {
   CREDIT_COSTS,
   TOPUP_PACKS,
@@ -58,17 +59,8 @@ export function CreditTopupScroller({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/stripe/topup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packId: pack.id }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-        return;
-      }
-      setError(data.error ?? "Checkout failed");
+      const message = await openPaddleCheckout({ packId: pack.id });
+      if (message) setError(message);
     } catch {
       setError("Checkout failed");
     }
@@ -80,7 +72,7 @@ export function CreditTopupScroller({
     : !hasActivePlan
       ? "Start a plan first"
       : loading
-        ? "Redirecting…"
+        ? "Opening checkout…"
         : "Purchase";
 
   return (
