@@ -44,6 +44,12 @@ const ROWS = [
     purpose: "Background job orchestration",
     region: "USA / provider regions",
   },
+  {
+    name: "Google Analytics / Google Ads",
+    purpose:
+      "Optional visit and conversion measurement (Consent Mode). No Gmail content or email addresses.",
+    region: "USA / provider regions",
+  },
 ];
 
 export default function SubprocessorsPage() {

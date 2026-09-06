@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
+import { SignupBeacon } from "@/components/ga-conversions";
 import { db, users } from "@/lib/db";
 import { OnboardingProgress } from "./progress";
 
@@ -13,8 +14,11 @@ export default async function OnboardingPage() {
   if (!user) redirect("/api/session/clear");
   if (user.onboardedAt) redirect("/dashboard");
 
+  const freshSignup = Date.now() - user.createdAt.getTime() < 30 * 60 * 1000;
+
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-10 lg:px-12">
+      <SignupBeacon enabled={freshSignup} />
       <div className="w-full max-w-6xl">
         <h1 className="text-center text-3xl font-bold tracking-tight md:text-4xl">
           Set up your inbox

@@ -63,8 +63,9 @@ export default function PrivacyPage() {
               Google API Services User Data Policy
             </a>
             , including the Limited Use requirements. Gmail data is used only to provide the
-            features you see in the product. It is never used for advertising, never sold, and
-            never used to train generalized AI or machine-learning models.
+            features you see in the product. It is never used for advertising, never sold,
+            never sent to Google Analytics or Google Ads, and never used to train generalized
+            AI or machine-learning models.
           </p>
         </section>
         <section>
@@ -116,9 +117,10 @@ export default function PrivacyPage() {
           <p className="mt-2">
             For users in the EU/EEA and UK, we process personal data on these bases:{" "}
             <strong>performance of a contract</strong> (providing triage, drafts, and briefs you
-            signed up for), <strong>consent</strong> (Gmail access via Google OAuth, which you
-            can withdraw at any time), and <strong>legitimate interests</strong> (securing the
-            service, preventing abuse, and first-party product analytics).
+            signed up for), <strong>consent</strong> (Gmail access via Google OAuth, and optional
+            Google Analytics / Ads cookies, which you can withdraw at any time), and{" "}
+            <strong>legitimate interests</strong> (securing the service, preventing abuse, and
+            first-party product analytics).
           </p>
         </section>
         <section>
@@ -149,8 +151,11 @@ export default function PrivacyPage() {
             Message metadata and account data are kept while your account is active and deleted
             when you delete your account. Billing records are retained by our payment provider
             as required by law. We use a login session cookie and a first-party visitor
-            cookie to stitch page views before you sign in. No third-party advertising or
-            analytics trackers.
+            cookie to stitch page views before you sign in. If you accept analytics cookies,
+            we also load Google Analytics 4 and (when configured) Google Ads tags via Consent
+            Mode, to measure visits and conversions. Those tags receive page path and
+            conversion events only — never Gmail content, never your email address. You can
+            reject them; the product still works.
           </p>
         </section>
         <section>

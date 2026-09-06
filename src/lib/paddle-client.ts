@@ -1,7 +1,8 @@
 "use client";
 
 import { initializePaddle, type Paddle } from "@paddle/paddle-js";
-import type { PlanId } from "@/lib/plans";
+import { beginCheckout } from "@/lib/gtag";
+import { getTopupPack, PLANS, type PlanId } from "@/lib/plans";
 
 let paddlePromise: Promise<Paddle | undefined> | null = null;
 
@@ -57,6 +58,16 @@ export async function openPaddleCheckout(body: PaddleCheckoutBody): Promise<stri
   };
   if (!res.ok || !data.priceId) {
     return data.error ?? "Checkout failed";
+  }
+
+  if ("plan" in body) {
+    beginCheckout({ type: `plan:${body.plan}`, value: PLANS[body.plan].priceMonthly });
+  } else {
+    const pack = getTopupPack(body.packId);
+    beginCheckout({
+      type: `topup:${body.packId}`,
+      value: pack ? pack.priceCents / 100 : undefined,
+    });
   }
 
   const paddle = await bootPaddle(data.customer?.id);

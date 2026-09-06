@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { CookieConsent } from "@/components/cookie-consent";
+import { GaConversions } from "@/components/ga-conversions";
+import { GoogleTag } from "@/components/google-tag";
 import { PageViewTracker } from "@/components/page-view-tracker";
 import "./globals.css";
 
@@ -31,8 +34,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-white text-zinc-900">
+        <GoogleTag />
         <PageViewTracker />
+        <GaConversions />
         {children}
+        <CookieConsent />
       </body>
     </html>
   );
