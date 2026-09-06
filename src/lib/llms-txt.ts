@@ -9,6 +9,7 @@ import {
   TRIAL_DAYS,
 } from "@/lib/plans";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
+import { USE_CASE_HUB, USE_CASES } from "@/lib/use-cases";
 
 /** llmstxt.org files for answer engines. File-only — no database. */
 
@@ -43,6 +44,9 @@ export function buildLlmsTxt(): string {
     `- [Compare](${SITE_URL}/compare): Gmail add-on vs doing it manually vs a full AI client.`,
     `- [Alternatives](${SITE_URL}/alternatives): Inbox Wingman vs Fyxer and vs AI Emaily.`,
     `- [Use cases](${SITE_URL}/use-cases): Freelance developers and small studios.`,
+    ...USE_CASES.map(
+      (c) => `- [${c.nameH1}](${SITE_URL}/use-cases/${c.slug}): ${c.tagline}`,
+    ),
     `- [Docs](${SITE_URL}/docs): How the product works.`,
     `- [About](${SITE_URL}/about): Company and product principles.`,
     `- [Security](${SITE_URL}/security): Privacy and security posture.`,
@@ -167,25 +171,13 @@ export function buildLlmsFullTxt(): string {
     .join("\n");
 
   const useCases = [
-    [
-      "Founders",
-      "Investor threads, customer mail, and newsletters collide. Wingman labels what needs a reply, drafts in your voice, and keeps the noise out of your inbox.",
-    ],
-    [
-      "Operators and PMs",
-      "Cross-functional threads pile up. Triage keeps To Respond separate from FYI and notifications; rules archive receipts and skip drafts for bots.",
-    ],
-    [
-      "Executives",
-      "One morning brief instead of scrolling — replies you owe, deadlines, newsletter takeaways, and bills and deliveries, deep-linked to Gmail.",
-    ],
-    [
-      "Multi-inbox pros",
-      "Work + side project + consulting Gmail. Connect several accounts under one Wingman plan and keep the same labels and draft style everywhere.",
-    ],
-  ]
-    .map(([title, body]) => `### ${title}\n\n${body}`)
-    .join("\n\n");
+    ...USE_CASES.map((c) => {
+      const pains = c.pains.map((p) => `- ${p.title}: ${p.body}`).join("\n");
+      const scenes = c.scenes.map((s) => `- ${s.title}: ${s.body}`).join("\n");
+      return `### ${c.nameH1}\n\nSource: ${SITE_URL}/use-cases/${c.slug}\n\n${c.intro}\n\nPains:\n${pains}\n\nWhat Wingman does:\n${scenes}`;
+    }),
+    ...USE_CASE_HUB.filter((c) => !c.href).map((c) => `### ${c.title}\n\n${c.body}`),
+  ].join("\n\n");
 
   const alternatives = ALTERNATIVES.map((a) => {
     const rows = a.rows

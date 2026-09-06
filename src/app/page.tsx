@@ -10,9 +10,9 @@ import { faqPageLd, marketingMetadata, softwareApplicationLd } from "@/lib/seo";
 export const dynamic = "force-static";
 
 export const metadata = marketingMetadata({
-  title: "Inbox Wingman — Your Gmail, triaged and drafted by AI",
+  title: "AI Email Assistant for Gmail — Inbox Wingman",
   description:
-    "AI Gmail assistant for freelancers and small studios. Triage clients and deadlines, draft in your voice, never send without you. 14-day trial, no card.",
+    "AI email assistant for Gmail. Triage clients and deadlines, draft in your voice, never send without you. 14-day trial, no card.",
   path: "/",
 });
 
@@ -182,7 +182,7 @@ export default function LandingPage() {
 
         <div className="mx-auto max-w-4xl px-6 text-center">
           <h1 className="text-4xl font-bold leading-[1.1] tracking-tight text-zinc-900 sm:text-5xl">
-            Your Gmail, triaged and drafted by AI
+            AI email assistant for Gmail
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-xl font-semibold tracking-tight text-teal-800 sm:text-2xl">
             325 emails in two weeks. 8 needed me. 3 had deadlines I&apos;d have missed.
@@ -196,7 +196,14 @@ export default function LandingPage() {
             Works inside Gmail · nothing to install · never sends without you
           </p>
           <p className="mt-2 text-sm text-zinc-500">
-            For freelance developers and small studios who run on Gmail
+            For{" "}
+            <Link
+              href="/use-cases/freelance-developers"
+              className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800"
+            >
+              freelance developers
+            </Link>{" "}
+            and small studios who run on Gmail
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link

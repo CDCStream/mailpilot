@@ -96,7 +96,7 @@ export function softwareApplicationLd(): Record<string, unknown> {
     url: SITE_URL,
     image: SITE_LOGO,
     description:
-      "AI Gmail assistant that triages your inbox, drafts replies in your voice, and never sends without you.",
+      "AI email assistant for Gmail that triages your inbox, drafts replies in your voice, and never sends without you.",
     applicationCategory: "email productivity",
     operatingSystem: "Web",
     browserRequirements: "Requires a Google account with Gmail.",

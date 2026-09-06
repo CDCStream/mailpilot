@@ -9,9 +9,9 @@ import { jsonLd, marketingMetadata, organizationLd, SITE_NAME, SITE_URL } from "
 import "./globals.css";
 
 const homeMeta = marketingMetadata({
-  title: "Inbox Wingman — Your Gmail, triaged and drafted by AI",
+  title: "AI Email Assistant for Gmail — Inbox Wingman",
   description:
-    "AI Gmail assistant for freelancers and small studios. Triage clients and deadlines, draft in your voice, never send without you. 14-day trial, no card.",
+    "AI email assistant for Gmail. Triage clients and deadlines, draft in your voice, never send without you. 14-day trial, no card.",
   path: "/",
 });
 

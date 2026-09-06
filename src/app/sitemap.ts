@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { ALTERNATIVES } from "@/lib/alternatives";
 import { getAllArticles } from "@/lib/blog";
 import { FREE_TOOLS } from "@/lib/free-tools";
+import { USE_CASES } from "@/lib/use-cases";
 
 const BASE = "https://www.inboxwingman.com";
 
@@ -58,5 +59,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticEntries, ...articleEntries, ...toolEntries, ...alternativeEntries];
+  const useCaseEntries: MetadataRoute.Sitemap = USE_CASES.map((c) => ({
+    url: `${BASE}/use-cases/${c.slug}`,
+    lastModified: new Date(`${c.updated}T00:00:00Z`),
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
+  return [
+    ...staticEntries,
+    ...articleEntries,
+    ...toolEntries,
+    ...alternativeEntries,
+    ...useCaseEntries,
+  ];
 }
