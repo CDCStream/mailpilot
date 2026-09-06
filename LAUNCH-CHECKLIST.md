@@ -1,6 +1,6 @@
 # Inbox Wingman — Lansman Yapılacaklar Listesi
 
-> Son güncelleme: 2 Ağustos 2026
+> Son güncelleme: 6 Eylül 2026
 > Durum işaretleri: ✅ bitti · 🔄 devam ediyor · ⬜ bekliyor · 💡 opsiyonel
 
 ## 0. Aksiyon planı — ICP: freelance developers & small studios (2 Ağu, kilit)
@@ -132,13 +132,13 @@
 
 ## 1. Lansman blokerleri (bunlar bitmeden gerçek kullanıcı alamayız)
 
-- 🔄 **Google OAuth doğrulaması** — Google 2 Ağu'da CASA istedi. Deadline: **31 Ekim 2026**. Tamamlanınca maile yanıt + Console'da güncelle.
-  - ⬜ **CASA AL1 (eski Tier 2)** — zorunlu; AL2 (Tier 3) Marketplace badge için opsiyonel, şimdilik gerek yok.
-    1. ⬜ TAC Security veya başka [ADA-authorized lab](https://appdefensealliance.dev/casa) ile iletişime geç (TAC = Google preferred, indirimli)
-    2. ⬜ Self-assessment / tarama sürecini başlat (tipik 2–6 hafta)
-    3. ⬜ Lab raporunu/onayını al
-    4. ⬜ Google'ın `[Action Needed]` mailine **reply** ile “CASA AL1 completed / in progress” teyidi
-    5. ⬜ Rozet sunumu: [Serif Security](https://www.serif.ai/security) modeli → `/security`
+- ✅ **Google OAuth doğrulaması** — branding + `gmail.modify` data access verified (Eyl 2026). Audience Production olmalı.
+  - ✅ **CASA AL1 (eski Tier 2)** — TAC raporu: In Compliance (PASS). AL2 Marketplace badge şimdilik yok.
+    1. ✅ TAC Security (ADA-authorized lab)
+    2. ✅ Self-assessment / tarama
+    3. ✅ Lab raporu / LOV
+    4. ✅ Google'a AL1 teyidi
+    5. ✅ Rozet sunumu: [Serif Security](https://www.serif.ai/security) modeli → `/security`
 - ⬜ **Paddle entegrasyonu** — CASA'ya geçerken paralel yapılacak.
   - ⬜ Sandbox hesabı aç (sandbox-login.paddle.com), API key + client token al
   - ⬜ Ürün/fiyatları API ile oluştur (Pilot, Wingman abonelikleri + kredi top-up)
@@ -193,10 +193,7 @@
 
 ## 4. Güven & Avrupa müşterileri
 
-- ⬜ **Güven sinyalleri** — Mevcut: GDPR bölümü, DPA, data-request sayfası, alt işleyici listesi. Eklenebilecekler:
-  - CASA rozeti (sertifika gelince security sayfasına)
-  - "Verified by Google" ifadesi (doğrulama bitince)
-  - Trust/security sayfasında şifreleme detayları (AES-256-GCM, TLS) — kısmen var, rozetlerle görselleştir
+- 🔄 **Güven sinyalleri** — `/security` rozetleri canlı (Google Verified · CASA AL1 · GDPR). Kalan:
   - Footer'a "EU-ready: GDPR compliant, data deletable anytime" satırı
 - 💡 **DMARC kaydı** — SPF + DKIM tamam, DMARC eksik: `_dmarc TXT "v=DMARC1; p=none; rua=mailto:..."`. Brief e-postalarının spam'e düşmemesi ve domain itibarı için. DNS Vercel'de, 1 dakikalık iş. *(benim önerim)*
 - 💡 **Karşılama e-postası** — İlk bağlantıdan sonra "hoş geldin + ne beklemelisin" maili (Resend hazır). Aktivasyonu artırır. *(benim önerim)*

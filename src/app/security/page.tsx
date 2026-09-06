@@ -1,22 +1,61 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { SecurityAttestations } from "@/components/security-attestations";
 
 export const metadata: Metadata = {
   title: "Security — Inbox Wingman",
-  description: "How Inbox Wingman protects Gmail data: encryption, no AI training on your mail, no auto-send.",
+  description:
+    "Google Verified and CASA AL1 (In Compliance). How Inbox Wingman protects Gmail: encryption, no AI training, no auto-send.",
 };
 
 export default function SecurityPage() {
   return (
-    <MarketingShell>
-      <p className="text-sm font-medium uppercase tracking-widest text-teal-700">Resources</p>
+    <MarketingShell wide>
+      <p className="text-sm font-medium uppercase tracking-widest text-teal-700">Trust</p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">Security</h1>
-      <p className="mt-3 text-zinc-600">
-        Is my email safe? Short answer: we design so the blast radius stays small.
+      <p className="mt-3 max-w-2xl text-lg text-zinc-600">
+        Email is personal. We built Wingman so only you — and the assistant working for you — can
+        reach it, and so the blast radius stays small.
       </p>
 
-      <div className="mt-10 space-y-8 text-sm leading-relaxed text-zinc-700">
+      <Link
+        href="/security/secrets"
+        className="mt-8 flex items-center justify-between gap-4 rounded-2xl border border-teal-100 bg-teal-50/70 px-5 py-4 transition hover:border-teal-200 hover:bg-teal-50"
+      >
+        <span>
+          <span className="block text-sm font-semibold text-zinc-900">
+            Visit secrets management
+          </span>
+          <span className="mt-0.5 block text-sm text-zinc-600">
+            View controls, encryption, rotation, and decrypt audit →
+          </span>
+        </span>
+      </Link>
+
+      <div className="mt-10">
+        <SecurityAttestations />
+      </div>
+
+      <p className="mt-8 max-w-3xl text-sm leading-relaxed text-zinc-700">
+        Our systems have been audited by a third-party security lab. Inbox Wingman is{" "}
+        <strong className="font-semibold text-zinc-900">Google Verified</strong> and{" "}
+        <strong className="font-semibold text-zinc-900">CASA AL1</strong> accredited (In
+        Compliance, TAC Security / App Defense Alliance). We have never sold your data, and we
+        never will.
+      </p>
+
+      <div className="mt-12 space-y-8 text-sm leading-relaxed text-zinc-700">
+        <section>
+          <h2 className="text-lg font-semibold text-zinc-900">Our commitment to you</h2>
+          <ul className="mt-3 space-y-2">
+            <li>Your mail is never used to train general AI models — ours or anyone else&apos;s.</li>
+            <li>Gmail tokens are encrypted at rest (AES-256-GCM). Access tokens are never stored.</li>
+            <li>We keep metadata and short summaries — not full message bodies.</li>
+            <li>Wingman writes drafts and labels. Nothing sends without you.</li>
+            <li>Your data is yours: disconnect or delete anytime.</li>
+          </ul>
+        </section>
         <section>
           <h2 className="text-lg font-semibold text-zinc-900">We never train on your mail</h2>
           <p className="mt-2">
@@ -73,6 +112,10 @@ export default function SecurityPage() {
           Full legal detail:{" "}
           <Link href="/privacy" className="underline">
             Privacy Policy
+          </Link>
+          ,{" "}
+          <Link href="/terms" className="underline">
+            Terms
           </Link>
           ,{" "}
           <Link href="/dpa" className="underline">
