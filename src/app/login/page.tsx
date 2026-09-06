@@ -2,6 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, signIn } from "@/auth";
 import { BrandLogo } from "@/components/brand-logo";
+import { marketingMetadata } from "@/lib/seo";
+
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman — Sign in and connect Gmail",
+  description:
+    "Sign in to Inbox Wingman with Google and connect Gmail. Triage, voice drafts, and a daily brief — we never send without you.",
+  path: "/login",
+});
 
 export default async function LoginPage({
   searchParams,

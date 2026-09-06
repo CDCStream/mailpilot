@@ -1,34 +1,22 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
 import { ALTERNATIVES } from "@/lib/alternatives";
 import {
   breadcrumbLd,
   jsonLd,
+  marketingMetadata,
   organizationLd,
-  SITE_LOGO,
-  SITE_NAME,
   SITE_URL,
 } from "@/lib/seo";
 
-const TITLE = "Alternatives — Inbox Wingman vs Fyxer and AI Emaily";
 const DESCRIPTION =
   "Honest comparisons: Inbox Wingman vs Fyxer and vs AI Emaily. Gmail add-on, never sends without you. 14-day trial, no card.";
 
-export const metadata: Metadata = {
-  title: TITLE,
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Alternatives — vs Fyxer and AI Emaily",
   description: DESCRIPTION,
-  alternates: { canonical: `${SITE_URL}/alternatives` },
-  openGraph: {
-    title: TITLE,
-    description: DESCRIPTION,
-    url: `${SITE_URL}/alternatives`,
-    type: "website",
-    siteName: SITE_NAME,
-    images: [{ url: SITE_LOGO, alt: SITE_NAME }],
-  },
-  twitter: { card: "summary", title: TITLE, description: DESCRIPTION, images: [SITE_LOGO] },
-};
+  path: "/alternatives",
+});
 
 export default function AlternativesIndexPage() {
   const collectionLd = jsonLd({

@@ -1,9 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
 import { LEGAL_EFFECTIVE_DATE, PADDLE_PRIVACY } from "@/lib/legal";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Privacy Policy — Inbox Wingman" };
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Privacy Policy — How we handle Gmail data",
+  description:
+    "How Inbox Wingman collects, stores, and uses Gmail data. No AI training on your mail. Read the full privacy policy.",
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (

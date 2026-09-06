@@ -1,5 +1,14 @@
 import Link from "next/link";
 import { auth } from "@/auth";
+import { marketingMetadata } from "@/lib/seo";
+
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman — Your Gmail, triaged and drafted by AI",
+  description:
+    "AI Gmail assistant for freelancers and small studios. Triage clients and deadlines, draft in your voice, never send without you. 14-day trial, no card.",
+  path: "/",
+});
+
 import { BrandLogo } from "@/components/brand-logo";
 import { CreditTopupScroller } from "@/components/credit-topup";
 import { InboxDemo } from "@/components/inbox-demo";

@@ -1,21 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
 import { getAllArticles } from "@/lib/blog";
-import { SITE_URL } from "@/lib/seo";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Blog — Inbox Wingman",
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Blog — Gmail triage and inbox guides",
   description:
     "Practical guides on Gmail, email triage, and getting out of your inbox faster — from the team behind Inbox Wingman.",
-  alternates: { canonical: `${SITE_URL}/blog` },
-  openGraph: {
-    title: "Inbox Wingman Blog",
-    description: "Practical guides on Gmail, email triage, and getting out of your inbox faster.",
-    url: `${SITE_URL}/blog`,
-    type: "website",
-  },
-};
+  path: "/blog",
+});
 
 export default async function BlogIndexPage() {
   const articles = await getAllArticles();

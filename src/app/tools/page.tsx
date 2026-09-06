@@ -1,39 +1,23 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
 import { FREE_TOOLS } from "@/lib/free-tools";
 import {
   breadcrumbLd,
   jsonLd,
+  marketingMetadata,
   organizationLd,
-  SITE_LOGO,
   SITE_NAME,
   SITE_URL,
 } from "@/lib/seo";
 
-const TITLE = "Free Email Tools — Inbox Wingman";
 const DESCRIPTION =
   "Free, no-signup Gmail tools: subject line tester, email signature generator, and unsubscribe helper. Everything runs in your browser.";
 
-export const metadata: Metadata = {
-  title: TITLE,
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Free Tools — Subject tester, signature, unsubscribe",
   description: DESCRIPTION,
-  alternates: { canonical: `${SITE_URL}/tools` },
-  openGraph: {
-    title: TITLE,
-    description: DESCRIPTION,
-    url: `${SITE_URL}/tools`,
-    type: "website",
-    siteName: SITE_NAME,
-    images: [{ url: SITE_LOGO, alt: SITE_NAME }],
-  },
-  twitter: {
-    card: "summary",
-    title: TITLE,
-    description: DESCRIPTION,
-    images: [SITE_LOGO],
-  },
-};
+  path: "/tools",
+});
 
 export default function ToolsIndexPage() {
   const collectionLd = jsonLd({

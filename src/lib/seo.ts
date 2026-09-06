@@ -1,7 +1,55 @@
+import type { Metadata } from "next";
+
 /** Canonical base for marketing/SEO surfaces (matches sitemap.ts). */
 export const SITE_URL = "https://www.inboxwingman.com";
 
 export const SITE_NAME = "Inbox Wingman";
+
+/** Google typically displays ~155 characters of a meta description. */
+export const META_DESC_MAX = 155;
+
+export function clipMetaDescription(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= META_DESC_MAX) return trimmed;
+  return `${trimmed.slice(0, META_DESC_MAX - 1).trimEnd()}…`;
+}
+
+/** Unique title, ≤155-char description, canonical, OG image, and Twitter card. */
+export function marketingMetadata({
+  title,
+  description,
+  path,
+}: {
+  title: string;
+  description: string;
+  path: string;
+}): Metadata {
+  const desc = clipMetaDescription(description);
+  const url =
+    path === "/" || path === ""
+      ? SITE_URL
+      : `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const images = [{ url: SITE_LOGO, alt: SITE_NAME }];
+  return {
+    title,
+    description: desc,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description: desc,
+      url,
+      type: "website",
+      siteName: SITE_NAME,
+      images,
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description: desc,
+      images: [SITE_LOGO],
+    },
+  };
+}
 
 /** Serialize a JSON-LD object for a <script type="application/ld+json"> tag. */
 export function jsonLd(data: Record<string, unknown>): string {

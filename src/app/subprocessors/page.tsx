@@ -1,11 +1,13 @@
-import type { Metadata } from "next";
 import { MarketingShell } from "@/components/marketing-shell";
 import { LEGAL_EFFECTIVE_DATE } from "@/lib/legal";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Sub-processors — Inbox Wingman",
-  description: "Third parties that process data for Inbox Wingman.",
-};
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Sub-processors — Who processes your data",
+  description:
+    "Third parties that process data for Inbox Wingman: hosting, auth, billing, email, and error monitoring. Updated list.",
+  path: "/subprocessors",
+});
 
 const ROWS = [
   {

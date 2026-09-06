@@ -6,7 +6,7 @@ import { ContentCta } from "@/components/content-cta";
 import { MarketingShell } from "@/components/marketing-shell";
 import { getAllArticles, getArticle } from "@/lib/blog";
 import { FREE_TOOLS } from "@/lib/free-tools";
-import { absoluteUrl, jsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
+import { absoluteUrl, clipMetaDescription, jsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 type Params = { slug: string };
 
@@ -25,23 +25,30 @@ export async function generateMetadata({
   const article = await getArticle(slug);
   if (!article) return {};
   const url = article.canonical ?? `${SITE_URL}/blog/${article.slug}`;
+  const description = clipMetaDescription(article.description);
+  const ogImage = {
+    url: absoluteUrl(article.featuredImage || "/logo.png"),
+    alt: article.featuredImageAlt || SITE_NAME,
+  };
   return {
     title: `${article.title} — ${SITE_NAME}`,
-    description: article.description,
+    description,
     alternates: { canonical: url },
     openGraph: {
       title: article.title,
-      description: article.description,
+      description,
       url,
       type: "article",
+      siteName: SITE_NAME,
       publishedTime: article.date,
       modifiedTime: article.updated ?? undefined,
-      images: [{ url: absoluteUrl(article.featuredImage), alt: article.featuredImageAlt }],
+      images: [ogImage],
     },
     twitter: {
       card: "summary",
       title: article.title,
-      description: article.description,
+      description,
+      images: [ogImage.url],
     },
   };
 }

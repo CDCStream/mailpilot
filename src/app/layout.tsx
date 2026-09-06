@@ -5,8 +5,15 @@ import { GaConversions } from "@/components/ga-conversions";
 import { GoogleTag } from "@/components/google-tag";
 import { PageViewTracker } from "@/components/page-view-tracker";
 import { AHREFS_KEY } from "@/lib/ahrefs";
-import { jsonLd, organizationLd, SITE_NAME, SITE_URL } from "@/lib/seo";
+import { jsonLd, marketingMetadata, organizationLd, SITE_NAME, SITE_URL } from "@/lib/seo";
 import "./globals.css";
+
+const homeMeta = marketingMetadata({
+  title: "Inbox Wingman — Your Gmail, triaged and drafted by AI",
+  description:
+    "AI Gmail assistant for freelancers and small studios. Triage clients and deadlines, draft in your voice, never send without you. 14-day trial, no card.",
+  path: "/",
+});
 
 const organizationJson = jsonLd({
   "@context": "https://schema.org",
@@ -31,10 +38,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.inboxwingman.com"),
-  title: "Inbox Wingman — Your Gmail, triaged and drafted by AI",
-  description:
-    "AI email assistant for Gmail — for freelance developers and small studios. Surface clients and deadlines, quiet bots, draft in your voice. Works inside Gmail, nothing to install, never sends without you. No credit card for the 14-day trial.",
+  metadataBase: new URL(SITE_URL),
+  title: homeMeta.title,
+  description: homeMeta.description,
+  openGraph: {
+    title: homeMeta.openGraph?.title,
+    description: homeMeta.openGraph?.description,
+    type: "website",
+    siteName: SITE_NAME,
+    images: homeMeta.openGraph?.images,
+  },
+  twitter: homeMeta.twitter,
 };
 
 export default function RootLayout({

@@ -1,11 +1,13 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Contact — Inbox Wingman",
-  description: "Contact Inbox Wingman support and privacy requests.",
-};
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Contact — Support and privacy requests",
+  description:
+    "Email Inbox Wingman support for product questions, billing, or privacy and data requests. We reply from support@inboxwingman.com.",
+  path: "/contact",
+});
 
 export default function ContactPage() {
   return (

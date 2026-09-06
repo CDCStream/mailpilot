@@ -1,12 +1,13 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Secrets management — Inbox Wingman",
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Secrets — How we store and encrypt keys",
   description:
     "How Inbox Wingman stores, encrypts, access-controls, and monitors server-side secrets (CASA 6.7.1).",
-};
+  path: "/security/secrets",
+});
 
 const INVENTORY = [
   {

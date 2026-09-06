@@ -7,6 +7,7 @@ import { ALTERNATIVES, getAlternative, type Alternative } from "@/lib/alternativ
 import { PLANS, TRIAL_DAYS } from "@/lib/plans";
 import {
   breadcrumbLd,
+  clipMetaDescription,
   formatDisplayDate,
   jsonLd,
   organizationLd,
@@ -47,13 +48,14 @@ export async function generateMetadata({
   const alt = getAlternative(slug);
   if (!alt) return {};
   const url = pageUrl(alt.slug);
+  const description = clipMetaDescription(alt.description);
   return {
     title: `${alt.nameH1} — ${SITE_NAME}`,
-    description: alt.description,
+    description,
     alternates: { canonical: url },
     openGraph: {
       title: alt.nameH1,
-      description: alt.description,
+      description,
       url,
       type: "website",
       siteName: SITE_NAME,
@@ -62,7 +64,7 @@ export async function generateMetadata({
     twitter: {
       card: "summary",
       title: alt.nameH1,
-      description: alt.description,
+      description,
       images: [SITE_LOGO],
     },
   };

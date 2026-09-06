@@ -1,11 +1,13 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "About — Inbox Wingman",
-  description: "Why we built Inbox Wingman for busy Gmail users.",
-};
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman About — Why we built a Gmail AI that never auto-sends",
+  description:
+    "Why we built Inbox Wingman for busy Gmail users who want triage and drafts — without a new inbox or auto-send.",
+  path: "/about",
+});
 
 export default function AboutPage() {
   return (

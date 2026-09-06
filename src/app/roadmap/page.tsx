@@ -1,10 +1,12 @@
-import type { Metadata } from "next";
 import { MarketingShell } from "@/components/marketing-shell";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Roadmap — Inbox Wingman",
-  description: "What Inbox Wingman is shipping next.",
-};
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Roadmap — What we are shipping next",
+  description:
+    "What Inbox Wingman is shipping next: triage, drafts, briefs, and Gmail workflows. See what is live and what is coming.",
+  path: "/roadmap",
+});
 
 const ITEMS: { status: string; title: string; body: string; cls: string }[] = [
   {

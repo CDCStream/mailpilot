@@ -1,9 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
 import { LEGAL_EFFECTIVE_DATE, PADDLE_BUYER_TERMS } from "@/lib/legal";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Terms of Service — Inbox Wingman" };
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Terms of Service — Use of the Gmail AI assistant",
+  description:
+    "Terms for using Inbox Wingman: Gmail access, billing via Paddle, acceptable use, and what we never do (auto-send).",
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return (

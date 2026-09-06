@@ -11,6 +11,7 @@ import { FREE_TOOLS, getFreeTool, type FreeTool } from "@/lib/free-tools";
 import {
   absoluteUrl,
   breadcrumbLd,
+  clipMetaDescription,
   formatDisplayDate,
   jsonLd,
   organizationLd,
@@ -103,13 +104,14 @@ export async function generateMetadata({
   if (!tool) return {};
   const url = toolUrl(tool.slug);
   const image = { url: SITE_LOGO, alt: SITE_NAME };
+  const description = clipMetaDescription(tool.description);
   return {
     title: `${tool.name} — ${SITE_NAME}`,
-    description: tool.description,
+    description,
     alternates: { canonical: url },
     openGraph: {
       title: tool.name,
-      description: tool.description,
+      description,
       url,
       type: "website",
       siteName: SITE_NAME,
@@ -118,7 +120,7 @@ export async function generateMetadata({
     twitter: {
       card: "summary",
       title: tool.name,
-      description: tool.description,
+      description,
       images: [absoluteUrl("/logo.png")],
     },
   };

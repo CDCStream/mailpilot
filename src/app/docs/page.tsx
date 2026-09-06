@@ -1,12 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
 import { CREDIT_COSTS, TRIAL_CREDITS, TRIAL_DAYS } from "@/lib/plans";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Documentation — Inbox Wingman",
-  description: "How Inbox Wingman connects to Gmail, spends credits, and stays private.",
-};
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Docs — How Gmail connect, credits, and privacy work",
+  description:
+    "How Inbox Wingman connects to Gmail, spends AI credits, and keeps your inbox private. Never sends without you.",
+  path: "/docs",
+});
 
 export default function DocsPage() {
   return (

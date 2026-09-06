@@ -1,12 +1,13 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Compare — Inbox Wingman",
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Compare — vs manual Gmail vs a full AI client",
   description:
-    "Inbox Wingman vs doing it manually vs a full AI client. For Fyxer and AI Emaily, see /alternatives.",
-};
+    "Compare Inbox Wingman to doing Gmail yourself or switching to a full AI email client. See Fyxer and AI Emaily on /alternatives.",
+  path: "/compare",
+});
 
 const ROWS: { label: string; wingman: string; manual: string; client: string }[] = [
   {

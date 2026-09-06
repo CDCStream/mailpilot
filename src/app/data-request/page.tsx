@@ -1,11 +1,13 @@
-import type { Metadata } from "next";
 import { MarketingShell } from "@/components/marketing-shell";
 import { LEGAL_EFFECTIVE_DATE } from "@/lib/legal";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Data request — Inbox Wingman",
-  description: "Request access, export, or deletion of your Inbox Wingman data.",
-};
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Data Request — Access, export, or delete your data",
+  description:
+    "Request access, export, or deletion of your Inbox Wingman account and Gmail-connected data. We respond to GDPR/CCPA requests.",
+  path: "/data-request",
+});
 
 export default function DataRequestPage() {
   return (

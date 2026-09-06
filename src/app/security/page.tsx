@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
 import { SecurityAttestations } from "@/components/security-attestations";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Security — Inbox Wingman",
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Security — How we protect your Gmail",
   description:
-    "Google Verified and CASA Tier 2 AL1 (In Compliance). How Inbox Wingman protects Gmail: encryption, no AI training, no auto-send.",
-};
+    "Google Verified and CASA Tier 2 AL1 (In Compliance). Encryption, no AI training on your mail, no auto-send.",
+  path: "/security",
+});
 
 export default function SecurityPage() {
   return (

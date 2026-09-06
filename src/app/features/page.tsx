@@ -1,12 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
 import { CREDIT_COSTS, PLANS } from "@/lib/plans";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Features — Inbox Wingman",
-  description: "Smart triage, voice drafts, daily brief, rules, multi-inbox, and credit-based AI for Gmail.",
-};
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Features — Gmail triage, voice drafts, and a daily brief",
+  description:
+    "Smart Gmail triage, drafts in your voice, a daily brief, rules, multi-inbox, and credit-based AI. Works inside Gmail — nothing to install.",
+  path: "/features",
+});
 
 const SECTIONS = [
   {

@@ -1,11 +1,13 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Use cases — Inbox Wingman",
-  description: "How founders, operators, and execs use Inbox Wingman to stay on top of Gmail.",
-};
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Use Cases — How founders stay on top of Gmail",
+  description:
+    "How founders, operators, and execs use Inbox Wingman to triage Gmail, draft replies, and catch what matters.",
+  path: "/use-cases",
+});
 
 const CASES = [
   {

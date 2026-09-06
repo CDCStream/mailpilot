@@ -1,9 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
 import { LEGAL_EFFECTIVE_DATE } from "@/lib/legal";
+import { marketingMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Refund & cancellation — Inbox Wingman" };
+export const metadata = marketingMetadata({
+  title: "Inbox Wingman Refunds — Cancellation and money-back policy",
+  description:
+    "How to cancel Inbox Wingman and when refunds apply. Billing is handled by Paddle. Trial does not require a card.",
+  path: "/refund",
+});
 
 export default function RefundPage() {
   return (
