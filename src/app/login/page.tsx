@@ -9,6 +9,7 @@ export const metadata = marketingMetadata({
   description:
     "Sign in to Inbox Wingman with Google and connect Gmail. Triage, voice drafts, and a daily brief — we never send without you.",
   path: "/login",
+  index: false,
 });
 
 export default async function LoginPage({

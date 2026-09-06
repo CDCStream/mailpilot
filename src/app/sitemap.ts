@@ -8,7 +8,6 @@ const BASE = "https://www.inboxwingman.com";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages = [
     "",
-    "/login",
     "/features",
     "/use-cases",
     "/compare",

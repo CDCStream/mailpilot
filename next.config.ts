@@ -40,11 +40,17 @@ const nextConfig: NextConfig = {
     return [{ source: "/dashboard/overview", destination: "/dashboard", permanent: true }];
   },
   async headers() {
+    const noIndex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
     return [
       {
         source: "/:path*",
         headers: securityHeaders,
       },
+      { source: "/login", headers: noIndex },
+      { source: "/dashboard", headers: noIndex },
+      { source: "/dashboard/:path*", headers: noIndex },
+      { source: "/onboarding", headers: noIndex },
+      { source: "/onboarding/:path*", headers: noIndex },
     ];
   },
 };

@@ -20,10 +20,12 @@ export function marketingMetadata({
   title,
   description,
   path,
+  index = true,
 }: {
   title: string;
   description: string;
   path: string;
+  index?: boolean;
 }): Metadata {
   const desc = clipMetaDescription(description);
   const url =
@@ -34,6 +36,7 @@ export function marketingMetadata({
   return {
     title,
     description: desc,
+    robots: index ? undefined : { index: false, follow: false },
     alternates: { canonical: url },
     openGraph: {
       title,

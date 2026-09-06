@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { SignupBeacon } from "@/components/ga-conversions";
 import { db, users } from "@/lib/db";
 import { OnboardingProgress } from "./progress";
+
+export const metadata: Metadata = {
+  title: "Set up your inbox",
+  robots: { index: false, follow: false },
+};
 
 export default async function OnboardingPage() {
   const session = await auth();
