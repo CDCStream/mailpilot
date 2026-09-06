@@ -1,7 +1,13 @@
+import nextDynamic from "next/dynamic";
 import Link from "next/link";
-import { auth } from "@/auth";
+import { BrandLogo } from "@/components/brand-logo";
 import { JsonLd } from "@/components/json-ld";
+import { SecurityAttestations } from "@/components/security-attestations";
+import { SiteFooter } from "@/components/site-footer";
+import { CREDIT_COSTS, PLANS, TRIAL_CREDITS, TRIAL_DAYS } from "@/lib/plans";
 import { faqPageLd, marketingMetadata, softwareApplicationLd } from "@/lib/seo";
+
+export const dynamic = "force-static";
 
 export const metadata = marketingMetadata({
   title: "Inbox Wingman — Your Gmail, triaged and drafted by AI",
@@ -10,13 +16,24 @@ export const metadata = marketingMetadata({
   path: "/",
 });
 
-import { BrandLogo } from "@/components/brand-logo";
-import { CreditTopupScroller } from "@/components/credit-topup";
-import { InboxDemo } from "@/components/inbox-demo";
-import { SecurityAttestations } from "@/components/security-attestations";
-import { SiteFooter } from "@/components/site-footer";
-import { hasActiveAccess } from "@/lib/billing";
-import { CREDIT_COSTS, PLANS, TRIAL_CREDITS, TRIAL_DAYS } from "@/lib/plans";
+const InboxDemo = nextDynamic(
+  () => import("@/components/inbox-demo").then((m) => ({ default: m.InboxDemo })),
+  {
+    loading: () => (
+      <div
+        className="mx-auto h-[28rem] max-w-3xl rounded-2xl border border-zinc-200 bg-white"
+        aria-hidden
+      />
+    ),
+  },
+);
+
+const CreditTopupScroller = nextDynamic(
+  () => import("@/components/credit-topup").then((m) => ({ default: m.CreditTopupScroller })),
+  {
+    loading: () => <div className="mx-auto h-40 max-w-xl rounded-2xl border border-zinc-200 bg-white" aria-hidden />,
+  },
+);
 
 const FAQ = [
   {
@@ -100,11 +117,9 @@ const FEATURES = [
   },
 ];
 
-export default async function LandingPage() {
-  const session = await auth();
-  const cta = session?.user ? "/dashboard" : "/login";
-  const hasPlan = session?.user?.id ? await hasActiveAccess(session.user.id) : false;
+const CTA = "/login";
 
+export default function LandingPage() {
   return (
     <main className="flex-1">
       <JsonLd data={softwareApplicationLd()} />
@@ -112,7 +127,7 @@ export default async function LandingPage() {
       <header className="relative z-20 border-b border-zinc-100/80 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <span className="flex items-center gap-3">
-            <BrandLogo size={40} />
+            <BrandLogo size={40} priority />
             <span className="text-xl font-semibold tracking-tight">Inbox Wingman</span>
           </span>
           <nav className="flex items-center gap-6 text-sm">
@@ -135,10 +150,10 @@ export default async function LandingPage() {
               Free tools
             </Link>
             <Link
-              href={cta}
+              href={CTA}
               className="rounded-full bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-800"
             >
-              {session?.user ? "Dashboard" : "Sign in"}
+              Sign in
             </Link>
           </nav>
         </div>
@@ -185,7 +200,7 @@ export default async function LandingPage() {
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link
-              href={cta}
+              href={CTA}
               className="inline-flex items-center gap-2.5 rounded-full bg-zinc-900 px-7 py-3 text-base font-semibold text-white hover:bg-zinc-800"
             >
               <GoogleG className="h-5 w-5" />
@@ -316,7 +331,7 @@ export default async function LandingPage() {
                   ))}
                 </ul>
                 <Link
-                  href={session?.user ? "/dashboard/billing" : "/login"}
+                  href={CTA}
                   className={`mt-8 block rounded-full px-6 py-3 text-center font-semibold ${
                     p.popular
                       ? "bg-zinc-900 text-white hover:bg-zinc-800"
@@ -337,10 +352,7 @@ export default async function LandingPage() {
               Scroll to pick a pack. Credits never expire and stack on top of your monthly plan.
             </p>
             <div className="mt-6">
-              <CreditTopupScroller
-                signedIn={Boolean(session?.user)}
-                hasActivePlan={hasPlan}
-              />
+              <CreditTopupScroller />
             </div>
           </div>
         </div>
@@ -398,7 +410,7 @@ export default async function LandingPage() {
             </p>
             <div className="mt-8 flex justify-center">
               <Link
-                href={cta}
+                href={CTA}
                 className="inline-flex items-center gap-2.5 rounded-full bg-zinc-900 px-8 py-3.5 text-base font-semibold text-white hover:bg-zinc-800"
               >
                 <GoogleG className="h-5 w-5" />

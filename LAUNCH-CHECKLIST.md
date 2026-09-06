@@ -163,7 +163,7 @@
 
 - ✅ **Her sayfaya benzersiz meta** — title + 155 karakterlik description + OG image + Twitter card, sadece ana sayfa değil TÜM sayfalar. Title = ürün adı + ne işe yaradığı. Helper: `marketingMetadata` in `src/lib/seo.ts`.
 - ✅ **Yapılandırılmış veri (JSON-LD)** — `SoftwareApplication` şeması (kategori: email productivity) + kilit sayfalara `FAQPage` şeması. Helpers: `softwareApplicationLd` / `faqPageLd` in `src/lib/seo.ts`. Product schema on `/`, `/features`, `/compare`. FAQPage on those plus `/docs`, `/security`, and existing tool / alternative / blog FAQs.
-- ⬜ **Sitemap'i GSC + Bing Webmaster'a gönderme** — `sitemap.xml` üret (Next dosya konvansiyonu), GSC'ye gönder + en önemli 5 sayfa için elle "Request Indexing". Bing Webmaster'a GSC'den import et (ChatGPT aramasını Bing besliyor).
+- ✅ **Sitemap'i GSC + Bing Webmaster'a gönderme** — `sitemap.xml` üret (Next dosya konvansiyonu), GSC'ye gönder + en önemli 5 sayfa için elle "Request Indexing". Bing Webmaster'a GSC'den import et (ChatGPT aramasını Bing besliyor).
 - ⬜ **İlk gün linki** — X/LinkedIn'den siteye gerçek trafik gönderen bir tanıtım postu; varsa başka bir mülkten (blog, newsletter) link.
 
 ### Faz 1 — Temel (1.-30. gün)
