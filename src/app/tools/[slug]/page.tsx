@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ContentCta } from "@/components/content-cta";
 import { MarketingShell } from "@/components/marketing-shell";
+import { SignatureGenerator } from "@/components/tools/signature-generator";
 import { SubjectLineChecker } from "@/components/tools/subject-line-checker";
+import { UnsubscribeHelper } from "@/components/tools/unsubscribe-helper";
 import { getArticle } from "@/lib/blog";
 import { FREE_TOOLS, getFreeTool } from "@/lib/free-tools";
 import { jsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
@@ -11,6 +13,8 @@ import { jsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
 /** Maps a tool slug to its interactive client component. */
 const TOOL_COMPONENTS: Record<string, React.ComponentType> = {
   "email-subject-line-tester": SubjectLineChecker,
+  "email-signature-generator": SignatureGenerator,
+  "gmail-unsubscribe": UnsubscribeHelper,
 };
 
 type Params = { slug: string };
