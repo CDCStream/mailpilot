@@ -9,14 +9,12 @@ import {
   type SubscriptionResumedEvent,
   type SubscriptionTrialingEvent,
   type SubscriptionUpdatedEvent,
-  type TransactionCompletedEvent,
   type CustomerCreatedEvent,
   type CustomerUpdatedEvent,
 } from "@paddle/paddle-node-sdk";
 import { eq } from "drizzle-orm";
-import { db, creditTopups, subscriptions, users } from "@/lib/db";
-import { applyPaddleSubscription } from "@/lib/paddle-sync";
-import { grantBonusCredits } from "@/lib/usage";
+import { db, subscriptions, users } from "@/lib/db";
+import { applyPaddleSubscription, applyTopupFromTransaction } from "@/lib/paddle-sync";
 
 type SubscriptionEvent =
   | SubscriptionCreatedEvent
@@ -51,7 +49,7 @@ export async function processPaddleEvent(event: EventEntity): Promise<void> {
       await upsertSubscription(event);
       return;
     case EventName.TransactionCompleted:
-      await handleTopupTransaction(event);
+      await applyTopupFromTransaction(event.data);
       return;
     case EventName.CustomerCreated:
     case EventName.CustomerUpdated:
@@ -64,34 +62,6 @@ export async function processPaddleEvent(event: EventEntity): Promise<void> {
 
 async function upsertSubscription(event: SubscriptionEvent): Promise<void> {
   await applyPaddleSubscription(event.data);
-}
-
-async function handleTopupTransaction(event: TransactionCompletedEvent): Promise<void> {
-  const txn = event.data;
-  const custom = (txn.customData ?? {}) as Record<string, unknown>;
-  if (customString(custom, "type") !== "credit_topup") return;
-
-  const userId = customString(custom, "userId");
-  const packId = customString(custom, "packId") || "unknown";
-  const credits = Number(customString(custom, "credits"));
-  if (!userId || !Number.isFinite(credits) || credits <= 0) return;
-
-  const amountCents = Number(txn.details?.totals?.total ?? 0);
-
-  const inserted = await db
-    .insert(creditTopups)
-    .values({
-      userId,
-      stripeSessionId: txn.id,
-      packId,
-      credits,
-      amountCents: Number.isFinite(amountCents) ? amountCents : 0,
-    })
-    .onConflictDoNothing()
-    .returning({ id: creditTopups.id });
-
-  if (inserted.length === 0) return;
-  await grantBonusCredits(userId, credits);
 }
 
 async function upsertCustomer(

@@ -5,6 +5,7 @@ import { billingEnabled } from "@/lib/billing";
 import {
   shouldSyncPaddleSubscription,
   syncPaddleSubscriptionForUser,
+  syncPaddleTopupsForUser,
 } from "@/lib/paddle-sync";
 import { CREDIT_COSTS, PLANS, TRIAL_CREDITS, TRIAL_DAYS } from "@/lib/plans";
 import { getCreditBalance } from "@/lib/usage";
@@ -51,6 +52,13 @@ export default async function BillingPage({
       console.error("Paddle billing sync:", error);
     }
   }
+  if (topupOk) {
+    try {
+      await syncPaddleTopupsForUser(userId);
+    } catch (error) {
+      console.error("Paddle top-up sync:", error);
+    }
+  }
 
   const billingOn = billingEnabled();
   const status = sub?.status ?? "none";
@@ -89,9 +97,9 @@ export default async function BillingPage({
 
       {topupOk && (
         <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Top-up checkout complete
-          {topupCredits ? ` — ${Number(topupCredits).toLocaleString("en-US")} credits` : ""}. They appear
-          in your wallet after payment is confirmed (usually a few seconds).
+          {credits.bonusCredits > 0
+            ? `${credits.bonusCredits.toLocaleString("en-US")} credits are in your top-up wallet (separate from the monthly ${credits.planLimit.toLocaleString("en-US")} plan bar). ${credits.remaining.toLocaleString("en-US")} total left.`
+            : `Top-up checkout complete${topupCredits ? ` — ${Number(topupCredits).toLocaleString("en-US")} credits` : ""}. Refresh if the wallet hasn't updated yet.`}
         </p>
       )}
 
@@ -147,13 +155,15 @@ export default async function BillingPage({
             />
           </div>
           <p className="mt-3 text-sm text-zinc-600">
-            Top-up wallet:{" "}
             <span className="font-semibold text-zinc-900">
-              {credits.bonusCredits.toLocaleString("en-US")} credits
+              {credits.remaining.toLocaleString("en-US")} credits left
             </span>
-            <span className="text-zinc-400">
+            <span className="text-zinc-500">
               {" "}
-              · {credits.remaining.toLocaleString("en-US")} total left
+              · {credits.planRemaining.toLocaleString("en-US")} on this month&apos;s plan
+              {credits.bonusCredits > 0
+                ? ` + ${credits.bonusCredits.toLocaleString("en-US")} in top-up wallet`
+                : ""}
             </span>
           </p>
           <p className="mt-2 text-xs text-zinc-400">

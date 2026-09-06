@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { db, subscriptions } from "@/lib/db";
+import { db, creditTopups, subscriptions } from "@/lib/db";
 import {
   ensurePaddleCustomer,
   getPaddleInstance,
@@ -8,6 +8,7 @@ import {
   planFromPaddlePriceId,
 } from "@/lib/paddle";
 import { isPlanId, planFromPriceId, type PlanId } from "@/lib/plans";
+import { grantBonusCredits } from "@/lib/usage";
 
 export type PaddleSubscriptionSnapshot = {
   id: string;
@@ -120,6 +121,68 @@ export async function syncPaddleSubscriptionForUser(userId: string): Promise<boo
 
   await applyPaddleSubscription(latest, userId);
   return true;
+}
+
+export async function applyTopupFromTransaction(txn: {
+  id: string;
+  customData?: Record<string, unknown> | null;
+  details?: { totals?: { total?: string | number | null } | null } | null;
+}): Promise<boolean> {
+  const custom = (txn.customData ?? {}) as Record<string, unknown>;
+  if (customString(custom, "type") !== "credit_topup") return false;
+
+  const userId = customString(custom, "userId");
+  const packId = customString(custom, "packId") || "unknown";
+  const credits = Number(customString(custom, "credits"));
+  if (!userId || !Number.isFinite(credits) || credits <= 0) return false;
+
+  const amountCents = Number(txn.details?.totals?.total ?? 0);
+
+  const inserted = await db
+    .insert(creditTopups)
+    .values({
+      userId,
+      stripeSessionId: txn.id,
+      packId,
+      credits,
+      amountCents: Number.isFinite(amountCents) ? amountCents : 0,
+    })
+    .onConflictDoNothing()
+    .returning({ id: creditTopups.id });
+
+  if (inserted.length === 0) return false;
+  await grantBonusCredits(userId, credits);
+  return true;
+}
+
+/**
+ * Grant completed one-time top-ups when the webhook is late or missing.
+ * Idempotent via credit_topups.stripe_session_id = Paddle transaction id.
+ */
+export async function syncPaddleTopupsForUser(userId: string): Promise<number> {
+  const row = await db.query.subscriptions.findFirst({
+    where: eq(subscriptions.userId, userId),
+  });
+  const customerId = row?.stripeCustomerId ?? "";
+  if (!isPaddleCustomerId(customerId)) return 0;
+
+  const paddle = getPaddleInstance();
+  const collection = paddle.transactions.list({
+    customerId: [customerId],
+    status: ["completed"],
+    perPage: 30,
+  });
+
+  let granted = 0;
+  for await (const txn of collection) {
+    const applied = await applyTopupFromTransaction({
+      id: txn.id,
+      customData: (txn.customData ?? null) as Record<string, unknown> | null,
+      details: txn.details,
+    });
+    if (applied) granted += 1;
+  }
+  return granted;
 }
 
 export function shouldSyncPaddleSubscription(opts: {
