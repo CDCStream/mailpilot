@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 // Start in Report-Only mode; watch the browser console for a few days,
 // then rename to "Content-Security-Policy" to enforce.
@@ -9,7 +10,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   // Sender avatars/brand logos load from external hosts.
   "img-src 'self' data: https:",
-  "connect-src 'self' https://accounts.google.com",
+  "connect-src 'self' https://accounts.google.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.sentry.io",
   "font-src 'self' data:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -48,4 +49,11 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG || "captapi",
+  project: process.env.SENTRY_PROJECT || "inbox-wingman",
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  tunnelRoute: "/monitoring",
+});
