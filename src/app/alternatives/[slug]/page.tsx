@@ -11,6 +11,8 @@ import {
   formatDisplayDate,
   jsonLd,
   organizationLd,
+  OG_IMAGE,
+  shareImages,
   SITE_LOGO,
   SITE_NAME,
   SITE_URL,
@@ -59,13 +61,13 @@ export async function generateMetadata({
       url,
       type: "website",
       siteName: SITE_NAME,
-      images: [{ url: SITE_LOGO, alt: SITE_NAME }],
+      images: shareImages(alt.nameH1),
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: alt.nameH1,
       description,
-      images: [SITE_LOGO],
+      images: [OG_IMAGE.url],
     },
   };
 }

@@ -48,8 +48,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: homeMeta.openGraph?.title,
     description: homeMeta.openGraph?.description,
+    url: SITE_URL,
     type: "website",
     siteName: SITE_NAME,
+    locale: "en_US",
     images: homeMeta.openGraph?.images,
   },
   twitter: homeMeta.twitter,

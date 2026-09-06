@@ -7,7 +7,15 @@ import { MarketingShell } from "@/components/marketing-shell";
 import { getAllArticles, getArticle } from "@/lib/blog";
 import { FREE_TOOLS } from "@/lib/free-tools";
 import { JsonLd } from "@/components/json-ld";
-import { absoluteUrl, clipMetaDescription, faqPageLd, jsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
+import {
+  absoluteUrl,
+  clipMetaDescription,
+  faqPageLd,
+  jsonLd,
+  shareImageFor,
+  SITE_NAME,
+  SITE_URL,
+} from "@/lib/seo";
 
 type Params = { slug: string };
 
@@ -27,10 +35,10 @@ export async function generateMetadata({
   if (!article) return {};
   const url = article.canonical ?? `${SITE_URL}/blog/${article.slug}`;
   const description = clipMetaDescription(article.description);
-  const ogImage = {
-    url: absoluteUrl(article.featuredImage || "/logo.png"),
-    alt: article.featuredImageAlt || SITE_NAME,
-  };
+  const ogImage = shareImageFor(
+    article.featuredImage,
+    article.featuredImageAlt || article.title,
+  );
   return {
     title: `${article.title} — ${SITE_NAME}`,
     description,
@@ -46,7 +54,7 @@ export async function generateMetadata({
       images: [ogImage],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: article.title,
       description,
       images: [ogImage.url],
@@ -71,7 +79,7 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
     description: article.description,
     datePublished: article.date,
     dateModified: article.updated ?? article.date,
-    image: absoluteUrl(article.featuredImage),
+    image: shareImageFor(article.featuredImage, article.featuredImageAlt || article.title).url,
     author: { "@type": "Organization", name: article.author, url: SITE_URL },
     publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
     mainEntityOfPage: `${SITE_URL}/blog/${article.slug}`,

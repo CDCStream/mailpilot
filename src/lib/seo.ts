@@ -32,7 +32,7 @@ export function marketingMetadata({
     path === "/" || path === ""
       ? SITE_URL
       : `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
-  const images = [{ url: SITE_LOGO, alt: SITE_NAME }];
+  const images = shareImages();
   return {
     title,
     description: desc,
@@ -44,13 +44,14 @@ export function marketingMetadata({
       url,
       type: "website",
       siteName: SITE_NAME,
+      locale: "en_US",
       images,
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description: desc,
-      images: [SITE_LOGO],
+      images: [OG_IMAGE.url],
     },
   };
 }
@@ -67,6 +68,47 @@ export function absoluteUrl(path: string): string {
 }
 
 export const SITE_LOGO = absoluteUrl("/logo.png");
+
+/** 1200×630 share card — WhatsApp / iMessage / Slack / LinkedIn / X. */
+export const OG_IMAGE = {
+  url: absoluteUrl("/og.png"),
+  secureUrl: absoluteUrl("/og.png"),
+  width: 1200,
+  height: 630,
+  alt: `${SITE_NAME} — AI email assistant for Gmail. Never sends without you.`,
+  type: "image/png",
+} as const;
+
+export function shareImages(alt?: string) {
+  return [
+    {
+      url: OG_IMAGE.url,
+      secureUrl: OG_IMAGE.secureUrl,
+      width: OG_IMAGE.width,
+      height: OG_IMAGE.height,
+      alt: alt ?? OG_IMAGE.alt,
+      type: OG_IMAGE.type,
+    },
+  ];
+}
+
+/** Square logo is too small for WhatsApp — treat it as "no image". */
+export function isDefaultShareImage(path: string | null | undefined): boolean {
+  if (!path) return true;
+  const rel = path.replace(SITE_URL, "").split("?")[0];
+  return rel === "/logo.png" || rel.endsWith("/logo.png");
+}
+
+export function shareImageFor(path: string | null | undefined, alt: string) {
+  if (isDefaultShareImage(path)) return shareImages(alt)[0];
+  return {
+    url: absoluteUrl(path!),
+    width: OG_IMAGE.width,
+    height: OG_IMAGE.height,
+    alt,
+    type: "image/png",
+  };
+}
 
 export type FaqItem = { q: string; a: string };
 

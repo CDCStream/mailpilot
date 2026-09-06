@@ -9,13 +9,14 @@ import { UnsubscribeHelper } from "@/components/tools/unsubscribe-helper";
 import { getArticle } from "@/lib/blog";
 import { FREE_TOOLS, getFreeTool, type FreeTool } from "@/lib/free-tools";
 import {
-  absoluteUrl,
   breadcrumbLd,
   clipMetaDescription,
   faqPageLd,
   formatDisplayDate,
   jsonLd,
   organizationLd,
+  OG_IMAGE,
+  shareImages,
   SITE_LOGO,
   SITE_NAME,
   SITE_URL,
@@ -95,7 +96,6 @@ export async function generateMetadata({
   const tool = getFreeTool(slug);
   if (!tool) return {};
   const url = toolUrl(tool.slug);
-  const image = { url: SITE_LOGO, alt: SITE_NAME };
   const description = clipMetaDescription(tool.description);
   return {
     title: `${tool.name} — ${SITE_NAME}`,
@@ -107,13 +107,13 @@ export async function generateMetadata({
       url,
       type: "website",
       siteName: SITE_NAME,
-      images: [image],
+      images: shareImages(tool.name),
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: tool.name,
       description,
-      images: [absoluteUrl("/logo.png")],
+      images: [OG_IMAGE.url],
     },
   };
 }

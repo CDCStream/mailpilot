@@ -27,6 +27,7 @@ faq:
     a: Keep receipts, invoices, shipping, and billing. Filter them to a label and skip the inbox. Unsubscribe from newsletters and noreply marketing you never open.
 relatedSlugs:
   - email-subject-line-length
+  - how-to-organize-gmail-inbox
 relatedToolSlugs:
   - gmail-unsubscribe
 cta:
