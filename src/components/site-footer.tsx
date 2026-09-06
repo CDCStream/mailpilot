@@ -27,6 +27,8 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
   {
     title: "Resources",
     links: [
+      { href: "/blog", label: "Blog" },
+      { href: "/tools", label: "Free tools" },
       { href: "/docs", label: "Documentation" },
       { href: "/security", label: "Security" },
       { href: "/security/secrets", label: "Secrets management" },

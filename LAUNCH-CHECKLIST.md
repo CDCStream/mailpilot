@@ -176,7 +176,7 @@
 
 ### Faz 2 — İçerik motoru (31.-60. gün)
 
-- ⬜ **outrank.so blog entegrasyonu** — `/blog` rotası; haftada 2-3 içerik.
+- 🔶 **outrank.so blog entegrasyonu** — `/blog` rotası hazır (markdown+frontmatter, `content/blog/`, JSON-LD, sitemap'te). İçerik keyword planı bekleniyor; haftada 2-3 içerik.
 - ⬜ **İçerik sırası (çoğu kurucunun tersine)** — 1) karşılaştırma/alternatif sayfaları (en yüksek dönüşüm) → 2) use-case sayfaları → 3) problem-aware blog → 4) düşünce liderliği.
 - ⬜ **Repurpose kuralı** — her blog yazısı = 1 LinkedIn postu + 1 X thread'i.
 - ⬜ **Backlink başlangıç paketi (60. güne 10 referring domain)** — Dizinler: Product Hunt, G2, Capterra, SaaSHub, AlternativeTo, Betalist. Topluluk: IndieHackers, Reddit. 1 güçlü misafir yazı (DR 40+). 2-3 kurucuyla karşılıklı link takası.
@@ -200,7 +200,7 @@
 
 - ⬜ **Organik lansman (Show HN / Reddit bulgu / newsletter / X CASA)** — ayrıntı ve kapı listesi: **§0b**. P0 bitmeden yok. Sıra: newsletter → X ısınma → Show HN son.
 - ⬜ **Google Ads kampanyaları** — Önce GA4 + dönüşüm olayları (signup, subscribe) bağlanmalı. Başlangıç: marka + "ai email assistant for gmail" (landing H1 ile uyumlu Quality Score). Landing H1 ile reklam metni aynı dili konuşsun.
-- 💡 **Ücretsiz araçlar (risksiz)** — SEO mıknatısı olarak: e-posta konu satırı test aracı, "email tone checker", imza oluşturucu gibi tek sayfalık araçlar `/tools` altında.
+- 🔶 **Ücretsiz araçlar (risksiz)** — `/tools` rotası hazır; ilk araç canlı: e-posta konu satırı test aracı (`/tools/email-subject-line-tester`). Sırada: "email tone checker", imza oluşturucu (keyword planına göre).
 - 💡 **Product Hunt lansmanı** — Doğrulama bitip billing açılınca; social card + demo video zaten hazır olacak. *(benim önerim)*
 
 ## 6. Teknik borç / küçük işler *(benim önerilerim)*
