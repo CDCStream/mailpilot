@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const ATTESTATIONS = [
@@ -7,15 +8,15 @@ const ATTESTATIONS = [
     body: "Google verified our OAuth branding and the gmail.modify data-access request. Use of Gmail data follows Limited Use.",
     href: "https://developers.google.com/terms/api-services-user-data-policy",
     external: true,
-    icon: "google" as const,
+    image: null,
   },
   {
-    title: "CASA AL1",
+    title: "CASA Tier 2 AL1",
     status: "In Compliance",
     body: "Lab-tested and lab-verified by TAC Security, an App Defense Alliance authorized lab. Assessed September 2026.",
     href: "https://appdefensealliance.dev/casa",
     external: true,
-    icon: "casa" as const,
+    image: { src: "/badges/casa-tier2-al1.webp", alt: "CASA Tier 2 AL1 Verified" },
   },
   {
     title: "GDPR",
@@ -23,9 +24,9 @@ const ATTESTATIONS = [
     body: "EU-ready: legal bases, a signed DPA, sub-processor list, and delete-anytime. We do not sell your data.",
     href: "/dpa",
     external: false,
-    icon: "gdpr" as const,
+    image: { src: "/badges/gdpr.jpg", alt: "GDPR" },
   },
-];
+] as const;
 
 function GoogleMark({ className = "h-7 w-7" }: { className?: string }) {
   return (
@@ -50,41 +51,33 @@ function GoogleMark({ className = "h-7 w-7" }: { className?: string }) {
   );
 }
 
-function CasaMark({ className = "h-8 w-8" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <path
-        fill="currentColor"
-        className="text-teal-700"
-        d="M16 4 6 8v7.2c0 6.1 4.1 11.8 10 13.3 5.9-1.5 10-7.2 10-13.3V8L16 4zm-1.2 16.4-4.3-4.3 1.6-1.6 2.7 2.7 5.3-5.3 1.6 1.6-6.9 6.9z"
-      />
-    </svg>
-  );
-}
-
-function GdprMark({ className = "h-8 w-8" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <circle cx="16" cy="16" r="10" fill="none" stroke="currentColor" strokeWidth="1.6" className="text-zinc-700" />
-      <path
-        fill="currentColor"
-        className="text-zinc-700"
-        d="M16 10.2a4.4 4.4 0 0 0-4.4 4.4v1.1h-.7v5.6h10.2v-5.6h-.7v-1.1A4.4 4.4 0 0 0 16 10.2zm0 1.6a2.8 2.8 0 0 1 2.8 2.8v1.1h-5.6v-1.1A2.8 2.8 0 0 1 16 11.8z"
-      />
-    </svg>
-  );
-}
-
-function Mark({
-  icon,
-  className,
+function Seal({
+  item,
+  size,
 }: {
-  icon: (typeof ATTESTATIONS)[number]["icon"];
-  className?: string;
+  item: (typeof ATTESTATIONS)[number];
+  size: "card" | "strip";
 }) {
-  if (icon === "google") return <GoogleMark className={className ?? "h-7 w-7"} />;
-  if (icon === "casa") return <CasaMark className={className ?? "h-8 w-8"} />;
-  return <GdprMark className={className ?? "h-8 w-8"} />;
+  if (item.image) {
+    const px = size === "card" ? 80 : 20;
+    return (
+      <Image
+        src={item.image.src}
+        alt={item.image.alt}
+        width={px}
+        height={px}
+        className={size === "card" ? "h-20 w-20 object-contain" : "h-5 w-5 object-contain"}
+      />
+    );
+  }
+  if (size === "card") {
+    return (
+      <span className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-50 ring-1 ring-zinc-200">
+        <GoogleMark className="h-9 w-9" />
+      </span>
+    );
+  }
+  return <GoogleMark className="h-3.5 w-3.5" />;
 }
 
 /** Compact pills for the footer and other tight spots. */
@@ -97,7 +90,7 @@ export function SecurityBadgeStrip({ className = "" }: { className?: string }) {
             href="/security"
             className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:border-zinc-300 hover:text-zinc-900"
           >
-            <Mark icon={item.icon} className="h-3.5 w-3.5" />
+            <Seal item={item} size="strip" />
             {item.title}
           </Link>
         </li>
@@ -115,9 +108,7 @@ export function SecurityAttestations() {
         const inner = (
           <>
             <div className="flex items-start justify-between gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-50 ring-1 ring-zinc-200">
-                <Mark icon={item.icon} />
-              </span>
+              <Seal item={item} size="card" />
               <span className="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-teal-800">
                 {item.status}
               </span>

@@ -6,7 +6,7 @@ import { SecurityAttestations } from "@/components/security-attestations";
 export const metadata: Metadata = {
   title: "Security — Inbox Wingman",
   description:
-    "Google Verified and CASA AL1 (In Compliance). How Inbox Wingman protects Gmail: encryption, no AI training, no auto-send.",
+    "Google Verified and CASA Tier 2 AL1 (In Compliance). How Inbox Wingman protects Gmail: encryption, no AI training, no auto-send.",
 };
 
 export default function SecurityPage() {
@@ -40,7 +40,7 @@ export default function SecurityPage() {
       <p className="mt-8 max-w-3xl text-sm leading-relaxed text-zinc-700">
         Our systems have been audited by a third-party security lab. Inbox Wingman is{" "}
         <strong className="font-semibold text-zinc-900">Google Verified</strong> and{" "}
-        <strong className="font-semibold text-zinc-900">CASA AL1</strong> accredited (In
+        <strong className="font-semibold text-zinc-900">CASA Tier 2 AL1</strong> accredited (In
         Compliance, TAC Security / App Defense Alliance). We have never sold your data, and we
         never will.
       </p>
