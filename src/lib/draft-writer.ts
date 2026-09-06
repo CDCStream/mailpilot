@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull, ne } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { db, emailAccounts, messages, users, DEFAULT_PREFERENCES } from "@/lib/db";
 import { generateReplyDraft } from "@/lib/ai";
 import { detectDevNotification, shouldBlockDraft } from "@/lib/dev-notifications";
@@ -122,7 +122,7 @@ export async function writeDraftForMessageId(
   const account = accounts.find((a) => a.id === row.accountId);
   if (!account || account.status !== "active") return { status: "skipped", messageId, reason: "no-account" };
 
-  if (isNoActionSummary(latest.summary)) {
+  if (isNoActionSummary(latest.summary) && !opts.manual) {
     await db
       .update(messages)
       .set({
@@ -147,21 +147,25 @@ export async function writeDraftForMessageId(
   const prefs = user.preferences ?? DEFAULT_PREFERENCES;
   const style = resolveDraftStyle(prefs);
   const reasons: string[] = [];
-  if (!latest.summary) reasons.push("summary=null");
-  if (latest.category !== "to_respond") reasons.push(`category=${latest.category}`);
-  if (signal?.skipDraft) reasons.push("dev-skip");
-  if (
-    shouldBlockDraft({
-      fromEmail: meta.fromEmail,
-      from: meta.from,
-      category: latest.category,
-      listUnsubscribe: meta.listUnsubscribe,
-    })
-  ) {
-    reasons.push("blocked_gate");
+  if (!opts.manual) {
+    if (!latest.summary) reasons.push("summary=null");
+    if (latest.category !== "to_respond") reasons.push(`category=${latest.category}`);
+    if (signal?.skipDraft) reasons.push("dev-skip");
+    if (
+      shouldBlockDraft({
+        fromEmail: meta.fromEmail,
+        from: meta.from,
+        category: latest.category,
+        listUnsubscribe: meta.listUnsubscribe,
+      })
+    ) {
+      reasons.push("blocked_gate");
+    }
+    if (style === "manual") reasons.push("style=manual");
+    if (style === "important_only") reasons.push("important_only");
+  } else if (!latest.summary && !latest.snippet) {
+    reasons.push("no-content");
   }
-  if (!opts.manual && style === "manual") reasons.push("style=manual");
-  if (!opts.manual && style === "important_only") reasons.push("important_only");
 
   if (reasons.length > 0) {
     await db
@@ -196,7 +200,7 @@ export async function writeDraftForMessageId(
     from: meta.from,
     subject: meta.subject,
     bodyExcerpt: meta.bodyExcerpt,
-    summary: latest.summary ?? "",
+    summary: latest.summary ?? latest.snippet ?? "",
     threadContext,
   });
   if (!body) return { status: "skipped", messageId: latest.id, reason: "empty-draft" };
@@ -261,6 +265,15 @@ export async function processNextDraft(userId: string): Promise<DraftWriteResult
   });
   const accountIds = accounts.map((a) => a.id);
   if (accountIds.length === 0) return { status: "idle" };
+
+  const flagged = await db.query.messages.findFirst({
+    where: and(
+      inArray(messages.accountId, accountIds),
+      sql`(${messages.actions}->>'draftRequested') = 'true'`,
+    ),
+    orderBy: [desc(messages.receivedAt)],
+  });
+  if (flagged) return writeDraftForMessageId(userId, flagged.id, { manual: true });
 
   const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
   const pending = await db.query.messages.findMany({

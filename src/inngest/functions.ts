@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, lt } from "drizzle-orm";
 import { inngest } from "./client";
 import {
   db,
@@ -13,6 +13,7 @@ import { CLASSIFIER_VERSION } from "@/lib/classifier-version";
 import {
   deleteDraft,
   ensureLabels,
+  stampCategoryLabels,
   getCurrentHistoryId,
   getGmailClient,
   getSentTextsByIds,
@@ -302,6 +303,19 @@ export const syncAccount = inngest.createFunction(
       const gmail = getGmailClient(account.refreshTokenEnc);
       const map = await ensureLabels(gmail);
       await db.update(emailAccounts).set({ labelMap: map }).where(eq(emailAccounts.id, accountId));
+      const rows = await db.query.messages.findMany({
+        where: and(eq(messages.accountId, accountId), isNotNull(messages.category)),
+        columns: { gmailMessageId: true, category: true },
+        orderBy: desc(messages.receivedAt),
+        limit: 2000,
+      });
+      await stampCategoryLabels(
+        gmail,
+        rows.filter((r): r is { gmailMessageId: string; category: NonNullable<typeof r.category> } =>
+          Boolean(r.category),
+        ),
+        map,
+      );
     });
 
     const changes = await step.run("fetch-history", async () => {

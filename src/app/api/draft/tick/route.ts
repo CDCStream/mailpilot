@@ -1,18 +1,23 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { processNextDraft } from "@/lib/draft-writer";
+import { processNextDraft, writeDraftForMessageId } from "@/lib/draft-writer";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-/** Writes one queued or eligible auto-draft. */
-export async function POST() {
+/** Writes the requested message, or the next eligible auto-draft. */
+export async function POST(req: Request) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const body = await req.json().catch(() => ({}));
+  const messageId = String(body?.messageId ?? "");
+
   try {
-    const result = await processNextDraft(userId);
+    const result = messageId
+      ? await writeDraftForMessageId(userId, messageId, { manual: true })
+      : await processNextDraft(userId);
     return NextResponse.json(result);
   } catch (err) {
     console.error("draft tick failed", err);

@@ -450,6 +450,36 @@ export async function applyLabels(
   });
 }
 
+const BATCH_MODIFY_MAX = 1000;
+
+/** Add our category labels to already-triaged mail (idempotent). */
+export async function stampCategoryLabels(
+  gmail: gmail_v1.Gmail,
+  rows: { gmailMessageId: string; category: Category }[],
+  labelMap: Record<string, string>,
+): Promise<number> {
+  const byLabel = new Map<string, string[]>();
+  for (const row of rows) {
+    const labelId = labelMap[row.category];
+    if (!labelId || !row.gmailMessageId) continue;
+    const list = byLabel.get(labelId) ?? [];
+    list.push(row.gmailMessageId);
+    byLabel.set(labelId, list);
+  }
+  let stamped = 0;
+  for (const [labelId, ids] of byLabel) {
+    for (let i = 0; i < ids.length; i += BATCH_MODIFY_MAX) {
+      const chunk = ids.slice(i, i + BATCH_MODIFY_MAX);
+      await gmail.users.messages.batchModify({
+        userId: "me",
+        requestBody: { ids: chunk, addLabelIds: [labelId] },
+      });
+      stamped += chunk.length;
+    }
+  }
+  return stamped;
+}
+
 /** Creates a reply draft inside the original thread so it shows up natively in Gmail. */
 export async function createReplyDraft(
   gmail: gmail_v1.Gmail,

@@ -170,7 +170,21 @@ export async function processInboxMessage(
       })
       .onConflictDoNothing()
       .returning({ id: messages.id });
-    if (inserted.length === 0) return { status: "skipped", reason: "already processed" };
+    if (inserted.length === 0) {
+      const existing = await db.query.messages.findFirst({
+        where: and(eq(messages.accountId, ctx.account.id), eq(messages.gmailMessageId, meta.id)),
+        columns: { category: true },
+      });
+      const labelId = existing?.category ? (ctx.account.labelMap ?? {})[existing.category] : undefined;
+      if (labelId) {
+        try {
+          await applyLabels(ctx.gmail, meta.id, [labelId], []);
+        } catch (err) {
+          console.error("label recovery failed", { messageId: meta.id, err });
+        }
+      }
+      return { status: "skipped", reason: "already processed" };
+    }
     rowId = inserted[0].id;
   }
 
