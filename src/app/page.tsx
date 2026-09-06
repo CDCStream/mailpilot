@@ -116,6 +116,12 @@ export default async function LandingPage() {
             <a href="#faq" className="hidden text-zinc-600 hover:text-zinc-900 sm:inline">
               FAQ
             </a>
+            <Link href="/blog" className="hidden text-zinc-600 hover:text-zinc-900 sm:inline">
+              Blog
+            </Link>
+            <Link href="/tools" className="hidden text-zinc-600 hover:text-zinc-900 md:inline">
+              Free tools
+            </Link>
             <Link
               href={cta}
               className="rounded-full bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-800"

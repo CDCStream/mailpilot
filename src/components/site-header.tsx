@@ -25,6 +25,9 @@ export function SiteHeader({ ctaHref = "/login", ctaLabel = "Sign in" }: { ctaHr
           <Link href="/blog" className="hidden text-zinc-600 hover:text-zinc-900 md:inline">
             Blog
           </Link>
+          <Link href="/tools" className="hidden text-zinc-600 hover:text-zinc-900 lg:inline">
+            Free tools
+          </Link>
           <Link
             href={ctaHref}
             className="rounded-full bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-800"
