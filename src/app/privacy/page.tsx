@@ -43,7 +43,10 @@ export default function PrivacyPage() {
             <Link href="/security/secrets" className="underline">
               Secrets management
             </Link>{" "}
-            for access control, cryptography, and monitoring.
+            for access control, cryptography, and monitoring. We also store first-party
+            product events (page path, action name, and coarse location from the hosting
+            CDN) so we can operate the product. Those events are not sold, not used for
+            advertising, and identified rows are deleted with your account.
           </p>
         </section>
         <section>
@@ -100,8 +103,8 @@ export default function PrivacyPage() {
           <p className="mt-2">
             You can disconnect Gmail at any time from your Google Account&apos;s security
             settings, or delete your Inbox Wingman account from Settings — deletion immediately
-            and permanently removes your profile, encrypted tokens, message metadata, rules, and
-            usage records. For access, export, or correction requests see{" "}
+            and permanently removes your profile, encrypted tokens, message metadata, rules,
+            first-party events, and usage records. For access, export, or correction requests see{" "}
             <Link href="/data-request" className="underline">
               Data request
             </Link>{" "}
@@ -115,7 +118,7 @@ export default function PrivacyPage() {
             <strong>performance of a contract</strong> (providing triage, drafts, and briefs you
             signed up for), <strong>consent</strong> (Gmail access via Google OAuth, which you
             can withdraw at any time), and <strong>legitimate interests</strong> (securing the
-            service and preventing abuse).
+            service, preventing abuse, and first-party product analytics).
           </p>
         </section>
         <section>
@@ -145,8 +148,9 @@ export default function PrivacyPage() {
           <p className="mt-2">
             Message metadata and account data are kept while your account is active and deleted
             when you delete your account. Billing records are retained by our payment provider
-            as required by law. We use only strictly necessary cookies (your login session) — no
-            advertising or analytics trackers.
+            as required by law. We use a login session cookie and a first-party visitor
+            cookie to stitch page views before you sign in. No third-party advertising or
+            analytics trackers.
           </p>
         </section>
         <section>

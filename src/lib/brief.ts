@@ -307,6 +307,9 @@ export async function buildAndSendBrief(
     .onConflictDoNothing({ target: [briefs.userId, briefs.briefDate] })
     .returning({ id: briefs.id });
   if (inserted.length === 0) return false;
+  void import("@/lib/analytics").then(({ trackEvent }) =>
+    trackEvent({ event: "brief_generated", userId, properties: { briefDate } }),
+  );
   try {
     await sendEmail({ to: user.email, subject, html });
   } catch (e) {

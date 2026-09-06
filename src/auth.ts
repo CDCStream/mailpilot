@@ -3,6 +3,7 @@ import Google from "next-auth/providers/google";
 import { eq } from "drizzle-orm";
 import { db, users, emailAccounts, DEFAULT_PREFERENCES } from "@/lib/db";
 import { encryptSecret } from "@/lib/crypto";
+import { trackEvent } from "@/lib/analytics";
 import { ensureCardlessTrial } from "@/lib/trial";
 
 const GMAIL_SCOPES = [
@@ -44,6 +45,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return "/login?error=gmail-permission";
       }
 
+      const existing = await db.query.users.findFirst({
+        where: eq(users.email, user.email),
+        columns: { id: true },
+      });
+
       // Upsert the user record.
       const [dbUser] = await db
         .insert(users)
@@ -59,8 +65,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         })
         .returning();
 
+      if (!existing) {
+        void trackEvent({ event: "signup", userId: dbUser.id, path: "/login" });
+      }
+
       // Persist the (encrypted) refresh token when Google returns one.
       if (account.refresh_token) {
+        const alreadyLinked = await db.query.emailAccounts.findFirst({
+          where: eq(emailAccounts.userId, dbUser.id),
+          columns: { id: true },
+        });
         await db
           .insert(emailAccounts)
           .values({
@@ -82,6 +96,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               lastError: null,
             },
           });
+        if (!alreadyLinked) {
+          void trackEvent({ event: "account_connected", userId: dbUser.id, path: "/login" });
+        }
       }
       await ensureCardlessTrial(dbUser.id);
       return true;

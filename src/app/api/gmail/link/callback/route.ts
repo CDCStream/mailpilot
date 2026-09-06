@@ -7,6 +7,7 @@ import { encryptSecret } from "@/lib/crypto";
 import { inngest } from "@/inngest/client";
 import { resolveCreditLimit } from "@/lib/usage";
 import { maxAccountsFor } from "@/lib/plans";
+import { trackEvent } from "@/lib/analytics";
 
 export async function GET(req: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -95,6 +96,14 @@ export async function GET(req: Request) {
     // The mailbox is linked at this point; kicking off background setup is
     // best-effort. If the event can't be sent (e.g. Inngest unreachable), the
     // half-hourly safety net re-triggers setup for un-onboarded accounts.
+    void trackEvent({
+      event: "account_connected",
+      userId: sessionUserId,
+      path: "/api/gmail/link/callback",
+      properties: { email },
+      request: req,
+    });
+
     try {
       await inngest.send({ name: "app/account.connected", data: { accountId: row.id } });
     } catch (e) {

@@ -156,6 +156,8 @@ export const accountConnected = inngest.createFunction(
         .update(users)
         .set({ onboardedAt: new Date(), classifierVersion: CLASSIFIER_VERSION })
         .where(eq(users.id, account.userId));
+      const { trackEvent } = await import("@/lib/analytics");
+      await trackEvent({ event: "onboarded", userId: account.userId, path: "/onboarding" });
     });
 
     // Import the rest of the last few days in the background (Fyxer-style),

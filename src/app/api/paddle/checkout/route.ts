@@ -7,6 +7,7 @@ import {
   paddlePriceIdForTopup,
 } from "@/lib/paddle";
 import { getTopupPack, isPlanId, type PlanId } from "@/lib/plans";
+import { trackEvent } from "@/lib/analytics";
 
 function checkoutBaseUrl(req: Request): string {
   const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "")
@@ -52,6 +53,13 @@ export async function POST(req: Request) {
       if (!priceId) {
         return NextResponse.json({ error: "Top-up price is not configured." }, { status: 500 });
       }
+      void trackEvent({
+        event: "checkout_started",
+        userId,
+        path: "/dashboard/billing",
+        properties: { type: "credit_topup", packId: pack.id },
+        request: req,
+      });
       return NextResponse.json({
         priceId,
         customer: { id: customerId },
@@ -70,6 +78,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Plan price is not configured." }, { status: 500 });
     }
 
+    void trackEvent({
+      event: "checkout_started",
+      userId,
+      path: "/dashboard/billing",
+      properties: { type: "plan", plan },
+      request: req,
+    });
     return NextResponse.json({
       priceId,
       customer: { id: customerId },

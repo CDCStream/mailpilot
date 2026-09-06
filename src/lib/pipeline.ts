@@ -431,6 +431,12 @@ export async function processInboxMessage(
 
   await rememberSenderCategory(ctx.user.id, meta.fromEmail, outcome.category);
 
+  if (draftId) {
+    void import("@/lib/analytics").then(({ trackEvent }) =>
+      trackEvent({ event: "draft_created", userId: ctx.user.id, properties: { category: outcome.category } }),
+    );
+  }
+
   return { status: "processed", category: outcome.category, draftCreated: Boolean(draftId) };
 }
 
@@ -642,5 +648,10 @@ export async function retriageStoredRow(
     .where(eq(messages.id, row.id));
 
   await rememberSenderCategory(ctx.user.id, fromEmail, outcome.category);
+  if (draftId) {
+    void import("@/lib/analytics").then(({ trackEvent }) =>
+      trackEvent({ event: "draft_created", userId: ctx.user.id, properties: { category: outcome.category } }),
+    );
+  }
   return { status: "processed", category: outcome.category, draftCreated: Boolean(draftId) };
 }

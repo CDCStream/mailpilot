@@ -63,6 +63,11 @@ export async function applyPaddleSubscription(
       .insert(subscriptions)
       .values({ userId, ...values })
       .onConflictDoUpdate({ target: subscriptions.userId, set: values });
+    if (sub.status === "active") {
+      void import("@/lib/analytics").then(({ trackEvent }) =>
+        trackEvent({ event: "paid", userId, properties: { plan: plan ?? null } }),
+      );
+    }
     return;
   }
 

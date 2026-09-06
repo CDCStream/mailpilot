@@ -145,11 +145,11 @@
   - ✅ Canlı Paddle hesabı + site onayı, `BILLING_ENABLED=true`
 - ✅ **Production veritabanını temizleme** — Test verisi sıfırlandı (`scripts/reset-all-data.mjs`, 6 Eyl 2026). Yeniden giriş + Gmail bağla + Billing aç (Pilot ve 600 kredi Paddle’dan döner).
 - ✅ **Privacy, Terms, DPA sayfalarını güncelleme** — Paddle MoR + Buyer Terms; OpenAI 30 gün abuse log (train yok); Railway→Vercel; effective date 6 Eyl 2026.
-- ⬜ **Landing page'e son halini verme** — Metinlerin son okuması, ekran görüntülerinin güncel ürünle eşleşmesi, fiyat kartları Paddle fiyatlarıyla senkron.
+- ✅ **Landing page'e son halini verme** — Hero/demo/fiyat kartları güncel; $14/$43 + tax; Paddle overlay.
 
 ## 2. Analitik & izleme
 
-- ⬜ **Supabase kullanıcı event tablosu** — `events` tablosu: `id, user_id (nullable), anon_id, event, path, referrer, properties (jsonb), user_agent, country/region/city, created_at`. Page view + kritik aksiyonlar (signup, account_connected, brief_generated, checkout_started...). Vercel'in geo header'larından (`x-vercel-ip-country` vb.) ülke/şehir alınabilir, ücretsiz.
+- ✅ **Supabase kullanıcı event tablosu** — `events` + `/dashboard/funnel` (sadece admin e-posta). Adımlar: Visitors → Signups → Gmail → Onboarded → First draft → Still active → Checkout → Paid.
 - ⬜ **GA4 bağlama** — Google Ads dönüşüm takibi için de gerekli (madde: Ads kampanyaları).
 - ⬜ **Ahrefs** — Site Audit + Rank Tracker; GSC entegrasyonunu da bağla.
 - 💡 **Sentry (backend hata izleme)** — Next.js SDK; server action ve Inngest hatalarını yakalar. Lansman sonrası ilk hafta için çok değerli.

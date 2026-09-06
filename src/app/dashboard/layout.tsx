@@ -13,6 +13,7 @@ import { PaddleBoot } from "@/components/paddle-boot";
 import { AccountSwitcher } from "./account-switcher";
 import { getActiveAccountId } from "./active-account";
 import { CreditsBanner } from "./credits-banner";
+import { isFunnelAdmin } from "@/lib/funnel-admin";
 import { MobileNav, SidebarNav } from "./sidebar-nav";
 
 export default async function DashboardLayout({
@@ -43,6 +44,7 @@ export default async function DashboardLayout({
   });
   const paddleCustomerId =
     sub && isPaddleCustomerId(sub.stripeCustomerId) ? sub.stripeCustomerId : null;
+  const showFunnel = isFunnelAdmin(session.user.email);
   const canAdd = accounts.length < maxAccountsFor(plan);
   const switcher = (
     <AccountSwitcher accounts={accounts} activeId={activeId} canAdd={canAdd} />
@@ -77,7 +79,7 @@ export default async function DashboardLayout({
           Inbox Wingman
         </Link>
         <div className="mt-6">{switcher}</div>
-        <SidebarNav />
+        <SidebarNav showFunnel={showFunnel} />
         <div className="shrink-0 border-t border-zinc-200 px-3 pt-5">
           <p className="truncate text-sm text-zinc-400">{session.user.email}</p>
           <div className="mt-2">{signOutForm}</div>
@@ -95,7 +97,7 @@ export default async function DashboardLayout({
             {signOutForm}
           </div>
           <div className="px-4 pb-3">{switcher}</div>
-          <MobileNav />
+          <MobileNav showFunnel={showFunnel} />
         </header>
         <CreditsBanner userId={session.user.id} />
         {/* Pages size themselves; the inbox goes full-bleed for an email-client feel. */}

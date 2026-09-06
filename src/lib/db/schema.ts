@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -401,4 +402,29 @@ export const creditTopups = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("credit_topups_session_idx").on(t.stripeSessionId)],
+);
+
+/** First-party product analytics (page views + funnel actions). */
+export const analyticsEvents = pgTable(
+  "events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    anonId: text("anon_id").notNull(),
+    event: text("event").notNull(),
+    path: text("path"),
+    referrer: text("referrer"),
+    properties: jsonb("properties").$type<Record<string, unknown>>(),
+    userAgent: text("user_agent"),
+    country: text("country"),
+    region: text("region"),
+    city: text("city"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("events_created_idx").on(t.createdAt),
+    index("events_event_idx").on(t.event),
+    index("events_user_idx").on(t.userId),
+    index("events_anon_idx").on(t.anonId),
+  ],
 );
