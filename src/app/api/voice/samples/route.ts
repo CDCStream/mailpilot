@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
-import { db, emailAccounts, users } from "@/lib/db";
+import { db, emailAccounts, users, DEFAULT_PREFERENCES } from "@/lib/db";
 import { getGmailClient, getSentTextsByIds, listSentSamples } from "@/lib/gmail";
 import { buildVoiceProfile } from "@/lib/ai";
 
@@ -57,6 +57,13 @@ export async function POST(req: Request) {
   }
 
   const profile = await buildVoiceProfile(samples);
-  await db.update(users).set({ voiceProfile: profile }).where(eq(users.id, userId));
+  const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  await db
+    .update(users)
+    .set({
+      voiceProfile: profile,
+      preferences: { ...(user?.preferences ?? DEFAULT_PREFERENCES), voiceProfileLocked: false },
+    })
+    .where(eq(users.id, userId));
   return NextResponse.json({ ok: true, trainedOn: samples.length });
 }

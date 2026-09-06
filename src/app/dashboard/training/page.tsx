@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { db, users, DEFAULT_PREFERENCES, TONE_PRESET_INSTRUCTIONS } from "@/lib/db";
 import { toggleAutoRetrainVoice } from "../actions";
 import { RetrainButton } from "./retrain-button";
+import { VoiceProfileEditor } from "./voice-profile-editor";
 import { VoiceTrainer } from "./voice-trainer";
 
 export default async function TrainingPage({
@@ -41,44 +42,7 @@ export default async function TrainingPage({
           Built from your sent mail. This profile always wins over the tone preset in
           Settings — drafts follow the greeting, sign-off, and tone learned here.
         </p>
-        {voice ? (
-          <dl className="mt-4 space-y-2 text-sm">
-            <div>
-              <dt className="inline font-medium">Greeting: </dt>
-              <dd className="inline text-zinc-600">{voice.greetingStyle}</dd>
-            </div>
-            <div>
-              <dt className="inline font-medium">Sign-off: </dt>
-              <dd className="inline text-zinc-600">{voice.signOff}</dd>
-            </div>
-            <div>
-              <dt className="inline font-medium">Tone: </dt>
-              <dd className="inline text-zinc-600">
-                {voice.tone} · {voice.formality}
-              </dd>
-            </div>
-            <div>
-              <dt className="inline font-medium">Typical length: </dt>
-              <dd className="inline text-zinc-600">{voice.averageLength}</dd>
-            </div>
-            {voice.quirks.length > 0 && (
-              <div>
-                <dt className="inline font-medium">Habits: </dt>
-                <dd className="inline text-zinc-600">{voice.quirks.join("; ")}</dd>
-              </div>
-            )}
-            {voice.languages.length > 0 && (
-              <div>
-                <dt className="inline font-medium">Languages: </dt>
-                <dd className="inline text-zinc-600">{voice.languages.join(", ")}</dd>
-              </div>
-            )}
-          </dl>
-        ) : (
-          <p className="mt-3 text-sm text-zinc-500">
-            No profile yet — it&apos;s built from your sent mail during setup, or train it below.
-          </p>
-        )}
+        <VoiceProfileEditor voice={voice ?? null} locked={prefs.voiceProfileLocked === true} />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 p-6">

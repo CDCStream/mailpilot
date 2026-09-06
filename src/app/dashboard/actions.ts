@@ -22,6 +22,7 @@ import {
   type ParsedRule,
   type SummaryLanguage,
   type UserPreferences,
+  type VoiceProfile,
 } from "@/lib/db";
 import { forgetSenderCategory } from "@/lib/sender-cache";
 import { buildAndSendBrief } from "@/lib/brief";
@@ -107,6 +108,40 @@ export async function updatePreferences(formData: FormData) {
   await db.update(users).set({ preferences: next }).where(eq(users.id, userId));
   revalidatePath("/dashboard/settings");
   redirect("/dashboard/settings?saved=1");
+}
+
+function splitList(raw: string, sep: RegExp): string[] {
+  return raw
+    .split(sep)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 24);
+}
+
+export async function saveVoiceProfile(formData: FormData): Promise<{ error?: string } | void> {
+  const userId = await requireUserId();
+  const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  const current = user?.preferences ?? DEFAULT_PREFERENCES;
+  const profile: VoiceProfile = {
+    greetingStyle: String(formData.get("greetingStyle") ?? "").slice(0, 200),
+    signOff: String(formData.get("signOff") ?? "").slice(0, 400),
+    tone: String(formData.get("tone") ?? "").slice(0, 200),
+    formality: String(formData.get("formality") ?? "").slice(0, 200),
+    averageLength: String(formData.get("averageLength") ?? "").slice(0, 200),
+    quirks: splitList(String(formData.get("quirks") ?? ""), /[\n;]+/),
+    languages: splitList(String(formData.get("languages") ?? ""), /[,]+/),
+  };
+  if (!profile.greetingStyle && !profile.signOff && !profile.tone) {
+    return { error: "Add at least a greeting, sign-off, or tone." };
+  }
+  await db
+    .update(users)
+    .set({
+      voiceProfile: profile,
+      preferences: { ...current, voiceProfileLocked: true },
+    })
+    .where(eq(users.id, userId));
+  revalidatePath("/dashboard/training");
 }
 
 export async function toggleRule(ruleId: string) {

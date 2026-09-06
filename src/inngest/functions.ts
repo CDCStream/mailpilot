@@ -545,6 +545,7 @@ export const weeklyVoiceRetrain = inngest.createFunction(
       for (const user of allUsers) {
         const prefs = user.preferences ?? DEFAULT_PREFERENCES;
         if (!(prefs.autoRetrainVoice ?? true)) continue;
+        if (prefs.voiceProfileLocked) continue;
         if (await hasActiveAccess(user.id)) selected.push(user.id);
       }
       return selected;

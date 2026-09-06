@@ -112,6 +112,8 @@ export type UserPreferences = {
   timezone: string;
   /** Weekly automatic voice-profile retraining from recent sent replies (default true). */
   autoRetrainVoice?: boolean;
+  /** Manual voice-profile edits; weekly auto-retrain skips while true. */
+  voiceProfileLocked?: boolean;
   /** Extra free-form tone instructions appended to draft prompts. */
   toneInstructions: string;
   /** Named API keys (hash only). A promo name can grant bonus credits once on create. */
@@ -148,6 +150,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   briefHour: 8,
   timezone: "UTC",
   autoRetrainVoice: true,
+  voiceProfileLocked: false,
   toneInstructions: "",
 };
 

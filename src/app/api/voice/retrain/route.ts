@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { buildVoiceProfile } from "@/lib/ai";
-import { db, emailAccounts, users } from "@/lib/db";
+import { db, emailAccounts, users, DEFAULT_PREFERENCES } from "@/lib/db";
 import { getGmailClient, listRecentSentTexts } from "@/lib/gmail";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,14 @@ export async function POST() {
     const gmail = getGmailClient(account.refreshTokenEnc);
     const samples = await listRecentSentTexts(gmail, account.email, 40);
     const profile = await buildVoiceProfile(samples);
-    await db.update(users).set({ voiceProfile: profile }).where(eq(users.id, userId));
+    const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+    await db
+      .update(users)
+      .set({
+        voiceProfile: profile,
+        preferences: { ...(user?.preferences ?? DEFAULT_PREFERENCES), voiceProfileLocked: false },
+      })
+      .where(eq(users.id, userId));
     return NextResponse.json({ ok: true, retrained: samples.length });
   } catch (err) {
     console.error("voice retrain failed", err);
