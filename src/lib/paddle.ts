@@ -68,6 +68,15 @@ export function isPaddleSubscriptionId(id: string | null | undefined): id is str
   return !!id && id.startsWith("sub_");
 }
 
+async function customerExistsOnCurrentEnv(customerId: string): Promise<boolean> {
+  try {
+    await getPaddleInstance().customers.get(customerId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Create or reuse a Paddle customer. Stripe `cus_` leftovers are replaced with `ctm_`. */
 export async function ensurePaddleCustomer(userId: string): Promise<string> {
   const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
@@ -76,7 +85,11 @@ export async function ensurePaddleCustomer(userId: string): Promise<string> {
   const sub = await db.query.subscriptions.findFirst({
     where: eq(subscriptions.userId, userId),
   });
-  if (sub && isPaddleCustomerId(sub.stripeCustomerId)) {
+  if (
+    sub &&
+    isPaddleCustomerId(sub.stripeCustomerId) &&
+    (await customerExistsOnCurrentEnv(sub.stripeCustomerId))
+  ) {
     return sub.stripeCustomerId;
   }
 

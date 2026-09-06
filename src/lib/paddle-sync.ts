@@ -124,15 +124,25 @@ export async function syncPaddleSubscriptionForUser(userId: string): Promise<boo
   return true;
 }
 
+function priceIdFromTransaction(txn: {
+  items?: { price?: { id?: string } | null }[];
+  details?: { lineItems?: { priceId?: string }[] } | null;
+}): string {
+  return txn.items?.[0]?.price?.id || txn.details?.lineItems?.[0]?.priceId || "";
+}
+
 export async function applyTopupFromTransaction(txn: {
   id: string;
   customerId?: string | null;
   customData?: Record<string, unknown> | null;
   items?: { price?: { id?: string } | null }[];
-  details?: { totals?: { total?: string | number | null } | null } | null;
+  details?: {
+    totals?: { total?: string | number | null } | null;
+    lineItems?: { priceId?: string }[];
+  } | null;
 }): Promise<boolean> {
   const custom = (txn.customData ?? {}) as Record<string, unknown>;
-  const pack = packFromPaddlePriceId(txn.items?.[0]?.price?.id);
+  const pack = packFromPaddlePriceId(priceIdFromTransaction(txn));
   if (customString(custom, "type") !== "credit_topup" && !pack) return false;
 
   let userId = customString(custom, "userId");
@@ -172,10 +182,7 @@ export async function applyTopupFromTransaction(txn: {
  * Idempotent via credit_topups.stripe_session_id = Paddle transaction id.
  */
 export async function syncPaddleTopupsForUser(userId: string): Promise<number> {
-  const row = await db.query.subscriptions.findFirst({
-    where: eq(subscriptions.userId, userId),
-  });
-  const customerId = row?.stripeCustomerId ?? "";
+  const customerId = await ensurePaddleCustomer(userId);
   if (!isPaddleCustomerId(customerId)) return 0;
 
   const paddle = getPaddleInstance();

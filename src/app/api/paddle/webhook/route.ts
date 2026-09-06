@@ -24,15 +24,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const paddle = getPaddleInstance();
+    const eventData = await paddle.webhooks.unmarshal(rawBody, secret, signature);
     const cidrs = await paddleWebhookCidrs();
     const ip = requestClientIp(request);
     if (cidrs.length > 0 && ip && !ipInCidrList(ip, cidrs)) {
-      console.warn("Paddle webhook rejected: source IP not on allowlist");
-      return Response.json({ error: "Forbidden" }, { status: 403 });
+      console.warn("Paddle webhook IP not on allowlist; accepted after signature check", {
+        ip,
+      });
     }
-
-    const paddle = getPaddleInstance();
-    const eventData = await paddle.webhooks.unmarshal(rawBody, secret, signature);
     if (eventData) {
       await processPaddleEvent(eventData);
     }
