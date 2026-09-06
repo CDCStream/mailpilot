@@ -82,7 +82,7 @@ export function BillingButtons({
       >
         {loading === "pilot"
           ? "Opening checkout…"
-          : `Subscribe to Pilot — $${PLANS.pilot.priceMonthly}/mo`}
+          : `Subscribe to Pilot — $${PLANS.pilot.priceMonthly}/mo + tax`}
       </button>
       <button
         onClick={() => subscribe("wingman")}
@@ -91,7 +91,7 @@ export function BillingButtons({
       >
         {loading === "wingman"
           ? "Opening checkout…"
-          : `Subscribe to Wingman — $${PLANS.wingman.priceMonthly}/mo`}
+          : `Subscribe to Wingman — $${PLANS.wingman.priceMonthly}/mo + tax`}
       </button>
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>

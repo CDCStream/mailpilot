@@ -205,6 +205,7 @@ export default async function BillingPage({
                 <span className="text-2xl font-bold">${p.priceMonthly}</span>
                 <span className="text-sm font-normal text-zinc-500">/mo</span>
               </p>
+              <p className="mt-1 text-xs text-zinc-400">plus applicable tax</p>
               <p className="mt-2 flex flex-wrap gap-1.5">
                 <span className="inline-block rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-800">
                   {p.credits.toLocaleString("en-US")} credits / mo

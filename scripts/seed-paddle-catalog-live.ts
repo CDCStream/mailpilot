@@ -128,6 +128,7 @@ async function seed() {
       description,
       unitPrice: { amount: String(dollars * 100), currencyCode: "USD" },
       billingCycle: { interval: "month", frequency: 1 },
+      taxMode: "external",
       quantity: { minimum: 1, maximum: 1 },
       customData: { app: APP, kind: "plan", plan },
     });
@@ -155,6 +156,7 @@ async function seed() {
       name: `${pack.credits} credits`,
       description,
       unitPrice: { amount: String(pack.priceCents), currencyCode: "USD" },
+      taxMode: "external",
       quantity: { minimum: 1, maximum: 1 },
       customData: { app: APP, kind: "topup", pack: pack.id },
     });

@@ -155,7 +155,7 @@ export function CreditTopupScroller({
                 {money(pack.priceCents)}
               </span>
             </div>
-            <p className="mt-2 text-sm text-zinc-500">One-time purchase · USD</p>
+            <p className="mt-2 text-sm text-zinc-500">One-time purchase · USD · plus tax</p>
           </div>
 
           <div className="mt-8">

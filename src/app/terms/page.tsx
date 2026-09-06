@@ -24,7 +24,9 @@ export default function TermsPage() {
           <h2 className="text-lg font-semibold text-zinc-900">2. Subscriptions</h2>
           <p className="mt-2">
             Inbox Wingman is billed monthly (Pilot or Wingman) after a 14-day free trial, via our
-            payment provider Paddle, which acts as merchant of record for your purchase. Plans include a monthly AI credit allowance; when credits run out, AI triage
+            payment provider Paddle, which acts as merchant of record for your purchase. Listed
+            prices exclude tax; VAT or sales tax is added at checkout where the customer&apos;s
+            location requires it. Plans include a monthly AI credit allowance; when credits run out, AI triage
             and drafts pause until the next period or an upgrade. You can cancel anytime from
             the billing portal; access continues until the end of the paid period. See our{" "}
             <Link href="/refund" className="underline">

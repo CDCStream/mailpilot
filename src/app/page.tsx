@@ -27,7 +27,7 @@ const FAQ = [
   },
   {
     q: "How much do plans cost?",
-    a: `Early-bird pricing for our first 100 customers: Pilot is $${PLANS.pilot.priceMonthly}/month (normally $${PLANS.pilot.listMonthly}) — about ${Math.floor(PLANS.pilot.credits / CREDIT_COSTS.draft)} AI drafts/month, unlimited triage, up to ${PLANS.pilot.maxAccounts} Gmail accounts. Wingman is $${PLANS.wingman.priceMonthly}/month for heavier inboxes. Your early-bird price stays locked in for as long as you keep your subscription.`,
+    a: `Early-bird pricing for our first 100 customers: Pilot is $${PLANS.pilot.priceMonthly}/month (normally $${PLANS.pilot.listMonthly}) — about ${Math.floor(PLANS.pilot.credits / CREDIT_COSTS.draft)} AI drafts/month, unlimited triage, up to ${PLANS.pilot.maxAccounts} Gmail accounts. Wingman is $${PLANS.wingman.priceMonthly}/month for heavier inboxes. Listed prices exclude tax; VAT/sales tax is added at checkout where required. Your early-bird price stays locked in for as long as you keep your subscription.`,
   },
   {
     q: "Is my email safe?",
@@ -283,6 +283,7 @@ export default async function LandingPage() {
                   <span className="text-5xl font-bold">${p.priceMonthly}</span>
                   <span className="text-lg font-normal text-zinc-500">/month</span>
                 </p>
+                <p className="mt-1 text-sm text-zinc-400">plus applicable tax</p>
                 <p className="mt-3 flex flex-wrap gap-2">
                   <span className="inline-block rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-800">
                     {p.credits.toLocaleString("en-US")} credits / mo
