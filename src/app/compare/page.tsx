@@ -4,7 +4,8 @@ import { MarketingShell } from "@/components/marketing-shell";
 
 export const metadata: Metadata = {
   title: "Compare — Inbox Wingman",
-  description: "Inbox Wingman vs doing it manually, vs a full email client, vs autopilot senders.",
+  description:
+    "Inbox Wingman vs doing it manually vs a full AI client. For Fyxer and AI Emaily, see /alternatives.",
 };
 
 const ROWS: { label: string; wingman: string; manual: string; client: string }[] = [
@@ -85,6 +86,21 @@ export default function ComparePage() {
       </div>
 
       <p className="mt-8 text-sm text-zinc-600">
+        Comparing a named product? See{" "}
+        <Link href="/alternatives/fyxer" className="font-medium text-zinc-900 underline">
+          Wingman vs Fyxer
+        </Link>{" "}
+        and{" "}
+        <Link href="/alternatives/aiemaily" className="font-medium text-zinc-900 underline">
+          Wingman vs AI Emaily
+        </Link>
+        , or the{" "}
+        <Link href="/alternatives" className="font-medium text-zinc-900 underline">
+          alternatives index
+        </Link>
+        .
+      </p>
+      <p className="mt-4 text-sm text-zinc-600">
         Want the short version?{" "}
         <Link href="/login" className="font-medium text-zinc-900 underline">
           Connect Gmail

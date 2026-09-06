@@ -125,6 +125,13 @@ function loadFileArticles(): Article[] {
     .filter((a): a is Article => a !== null);
 }
 
+/** File-backed published posts only — no database. Used by /llms.txt. */
+export function getPublishedFileArticles(): Article[] {
+  return loadFileArticles()
+    .filter((a) => a.status === "published")
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
 function fromDbRow(row: typeof blogArticles.$inferSelect): Article {
   const date = row.publishedAt.toISOString().slice(0, 10);
   const updated = row.updatedAt.toISOString().slice(0, 10);

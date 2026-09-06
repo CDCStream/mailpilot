@@ -7,6 +7,8 @@
 
 export type FreeToolFaq = { q: string; a: string };
 
+export type FreeToolHowToStep = { name: string; text: string };
+
 export type FreeTool = {
   slug: string;
   /** Page H1, ≤ 60 chars, keyword-natural. */
@@ -15,10 +17,17 @@ export type FreeTool = {
   tagline: string;
   /** Meta description, ≤ 155 chars. */
   description: string;
+  /** One-sentence definition for AEO/GEO (first sentence = the answer). */
+  definition: string;
+  /** Honest limits — what this tool does not do. */
+  notThis: string[];
+  /** Visible how-to + HowTo JSON-LD. */
+  howTo: { name: string; totalTime: string; steps: FreeToolHowToStep[] };
   /** Primary tool-keyword (from KEYWORDS, never invented). */
   keyword: string;
   category: string;
   date: string;
+  updated: string;
   faq: FreeToolFaq[];
   relatedToolSlugs: string[];
   relatedArticleSlugs: string[];
@@ -35,9 +44,39 @@ export const FREE_TOOLS: FreeTool[] = [
       "Paste a subject line and instantly see how it truncates on desktop and mobile Gmail, plus common issues that hurt open rates.",
     description:
       "Test your email subject line for free: live Gmail desktop and mobile previews, character count, and checks for caps, punctuation, and filler words.",
+    definition:
+      "An email subject line tester shows how a subject will look in a typical Gmail desktop and mobile inbox list, and flags length, all-caps words, stacked punctuation, and filler openers before you send.",
+    notThis: [
+      "It does not send email or change anything in Gmail.",
+      "It does not predict or guarantee open rates.",
+      "Truncation is approximate — real devices and fonts vary.",
+    ],
+    howTo: {
+      name: "How to test an email subject line",
+      totalTime: "PT1M",
+      steps: [
+        {
+          name: "Paste the subject",
+          text: "Type or paste your subject line into the tester. Nothing is sent to a server.",
+        },
+        {
+          name: "Read the inbox preview",
+          text: "Check the desktop (~65 characters) and mobile (~38 characters) previews to see what gets cut.",
+        },
+        {
+          name: "Fix flagged checks",
+          text: "Front-load the point, stay under about 60 characters, drop all-caps, stacked punctuation, extra emoji, and filler openers like “quick question”.",
+        },
+        {
+          name: "Copy it into Gmail",
+          text: "Use the revised subject when you compose in Gmail.",
+        },
+      ],
+    },
     keyword: "email subject line tester",
     category: "Email writing",
     date: "2026-09-06",
+    updated: "2026-09-06",
     faq: [
       {
         q: "Is this subject line tester free?",
@@ -68,9 +107,39 @@ export const FREE_TOOLS: FreeTool[] = [
       "Build a clean, Gmail-ready plain-text signature from your name, title, and contact details — then copy it into Gmail settings.",
     description:
       "Free email signature generator: type your details, preview a Gmail-ready signature, and copy it. Runs in your browser — nothing is stored.",
+    definition:
+      "A free email signature generator builds a plain-text signature from your name, title, company, and contact details so you can paste it into Gmail Settings.",
+    notThis: [
+      "It does not create HTML, image, or banner signatures.",
+      "It does not log into Gmail or store what you type.",
+      "It is not a marketing-email or newsletter builder.",
+    ],
+    howTo: {
+      name: "How to create a Gmail email signature",
+      totalTime: "PT2M",
+      steps: [
+        {
+          name: "Enter your details",
+          text: "Fill in name, title, company, email, phone, and website. Skip any field you do not want in the signature.",
+        },
+        {
+          name: "Preview the plain-text signature",
+          text: "The preview updates in the browser. Keep it short: name, role, one contact line.",
+        },
+        {
+          name: "Copy the signature",
+          text: "Click Copy signature.",
+        },
+        {
+          name: "Paste it in Gmail Settings",
+          text: "Open Gmail → Settings → See all settings → General → Signature. Paste, then click Save Changes.",
+        },
+      ],
+    },
     keyword: "free email signature generator",
     category: "Email writing",
     date: "2026-09-06",
+    updated: "2026-09-06",
     faq: [
       {
         q: "Is this email signature generator free?",
@@ -101,9 +170,39 @@ export const FREE_TOOLS: FreeTool[] = [
       "Paste noisy senders, get a keep / filter / unsubscribe suggestion, and copy a Gmail search you can run yourself.",
     description:
       "Free Gmail unsubscribe helper: paste senders, get unsubscribe vs filter suggestions, and copy a from: search. Nothing is sent to a server.",
+    definition:
+      "A Gmail unsubscribe helper reviews a list of senders and suggests unsubscribe, filter, or keep — then gives you a from: search to run in Gmail yourself.",
+    notThis: [
+      "It never opens Gmail, never clicks Unsubscribe, and never sends email.",
+      "It is not a bulk unsubscriber or inbox cleaner.",
+      "Suggestions are heuristics — you decide what to keep.",
+    ],
+    howTo: {
+      name: "How to unsubscribe from emails in Gmail",
+      totalTime: "PT3M",
+      steps: [
+        {
+          name: "Paste senders",
+          text: "List noisy senders one per line — an address, a domain, or a From line.",
+        },
+        {
+          name: "Read the suggestion",
+          text: "Unsubscribe marketing and noreply lists. Filter invoices and receipts so they skip the inbox. Keep people you actually write back to.",
+        },
+        {
+          name: "Copy the Gmail query",
+          text: "Copy the from: search the helper builds.",
+        },
+        {
+          name: "Finish in Gmail",
+          text: "Paste the query into Gmail search. Open a message and use Gmail’s Unsubscribe link when it appears. Do not reply “stop”.",
+        },
+      ],
+    },
     keyword: "gmail unsubscribe",
     category: "Inbox cleanup",
     date: "2026-09-06",
+    updated: "2026-09-06",
     faq: [
       {
         q: "Does this tool unsubscribe me automatically?",
@@ -119,7 +218,7 @@ export const FREE_TOOLS: FreeTool[] = [
       },
     ],
     relatedToolSlugs: ["email-signature-generator", "email-subject-line-tester"],
-    relatedArticleSlugs: [],
+    relatedArticleSlugs: ["unsubscribe-on-gmail"],
     cta: {
       headline: "Unsubscribing is a start. Triage is the habit.",
       body: "Inbox Wingman sorts what still arrives, drafts the replies that matter, and leaves newsletters out of your morning. 14-day free trial, no card.",

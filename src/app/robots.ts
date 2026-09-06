@@ -10,5 +10,6 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     sitemap: "https://www.inboxwingman.com/sitemap.xml",
+    host: "https://www.inboxwingman.com",
   };
 }

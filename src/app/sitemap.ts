@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { ALTERNATIVES } from "@/lib/alternatives";
 import { getAllArticles } from "@/lib/blog";
 import { FREE_TOOLS } from "@/lib/free-tools";
 
@@ -11,6 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/features",
     "/use-cases",
     "/compare",
+    "/alternatives",
     "/docs",
     "/about",
     "/roadmap",
@@ -25,6 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/data-request",
     "/blog",
     "/tools",
+    "/llms.txt",
   ];
 
   const staticEntries: MetadataRoute.Sitemap = pages.map((path) => ({
@@ -43,10 +46,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const toolEntries: MetadataRoute.Sitemap = FREE_TOOLS.map((t) => ({
     url: `${BASE}/tools/${t.slug}`,
-    lastModified: new Date(t.date + "T00:00:00Z"),
+    lastModified: new Date((t.updated ?? t.date) + "T00:00:00Z"),
     changeFrequency: "monthly" as const,
     priority: 0.7,
   }));
 
-  return [...staticEntries, ...articleEntries, ...toolEntries];
+  const alternativeEntries: MetadataRoute.Sitemap = ALTERNATIVES.map((a) => ({
+    url: `${BASE}/alternatives/${a.slug}`,
+    lastModified: new Date((a.updated ?? a.date) + "T00:00:00Z"),
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
+  return [...staticEntries, ...articleEntries, ...toolEntries, ...alternativeEntries];
 }
