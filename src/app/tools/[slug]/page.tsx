@@ -12,6 +12,7 @@ import {
   absoluteUrl,
   breadcrumbLd,
   clipMetaDescription,
+  faqPageLd,
   formatDisplayDate,
   jsonLd,
   organizationLd,
@@ -78,16 +79,7 @@ function howToLd(tool: FreeTool): Record<string, unknown> {
 }
 
 function faqLd(tool: FreeTool): Record<string, unknown> | null {
-  if (tool.faq.length === 0) return null;
-  return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: tool.faq.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
+  return faqPageLd(tool.faq);
 }
 
 export function generateStaticParams(): Params[] {

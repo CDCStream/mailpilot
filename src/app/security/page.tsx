@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { JsonLd } from "@/components/json-ld";
+import { MarketingFaq } from "@/components/marketing-faq";
 import { MarketingShell } from "@/components/marketing-shell";
 import { SecurityAttestations } from "@/components/security-attestations";
-import { marketingMetadata } from "@/lib/seo";
+import { faqPageLd, marketingMetadata, type FaqItem } from "@/lib/seo";
 
 export const metadata = marketingMetadata({
   title: "Inbox Wingman Security — How we protect your Gmail",
@@ -10,9 +12,29 @@ export const metadata = marketingMetadata({
   path: "/security",
 });
 
+const FAQ: FaqItem[] = [
+  {
+    q: "Do you train AI on my email?",
+    a: "No. Your mail is never used to train general AI models — ours or anyone else's. Processing is only for the features you enable.",
+  },
+  {
+    q: "How are Gmail tokens stored?",
+    a: "Refresh tokens are encrypted at rest with AES-256-GCM. Access tokens are never stored. API keys stay in Sensitive Vercel environment variables.",
+  },
+  {
+    q: "Does Inbox Wingman send email on its own?",
+    a: "No. Wingman writes drafts and applies labels. There is no autopilot send — you approve every outbound message in Gmail.",
+  },
+  {
+    q: "What security reviews has Inbox Wingman passed?",
+    a: "Inbox Wingman is Google Verified and CASA Tier 2 AL1 accredited (In Compliance, TAC Security / App Defense Alliance).",
+  },
+];
+
 export default function SecurityPage() {
   return (
     <MarketingShell wide>
+      <JsonLd data={faqPageLd(FAQ)} />
       <p className="text-sm font-medium uppercase tracking-widest text-teal-700">Trust</p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">Security</h1>
       <p className="mt-3 max-w-2xl text-lg text-zinc-600">
@@ -129,6 +151,7 @@ export default function SecurityPage() {
           .
         </p>
       </div>
+      <MarketingFaq items={FAQ} />
     </MarketingShell>
   );
 }

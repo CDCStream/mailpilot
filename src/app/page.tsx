@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
-import { marketingMetadata } from "@/lib/seo";
+import { JsonLd } from "@/components/json-ld";
+import { faqPageLd, marketingMetadata, softwareApplicationLd } from "@/lib/seo";
 
 export const metadata = marketingMetadata({
   title: "Inbox Wingman — Your Gmail, triaged and drafted by AI",
@@ -106,6 +107,8 @@ export default async function LandingPage() {
 
   return (
     <main className="flex-1">
+      <JsonLd data={softwareApplicationLd()} />
+      <JsonLd data={faqPageLd(FAQ)} />
       <header className="relative z-20 border-b border-zinc-100/80 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <span className="flex items-center gap-3">

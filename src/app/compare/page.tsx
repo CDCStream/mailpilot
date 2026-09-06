@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { JsonLd } from "@/components/json-ld";
+import { MarketingFaq } from "@/components/marketing-faq";
 import { MarketingShell } from "@/components/marketing-shell";
-import { marketingMetadata } from "@/lib/seo";
+import { faqPageLd, marketingMetadata, softwareApplicationLd, type FaqItem } from "@/lib/seo";
 
 export const metadata = marketingMetadata({
   title: "Inbox Wingman Compare — vs manual Gmail vs a full AI client",
@@ -54,9 +56,30 @@ const ROWS: { label: string; wingman: string; manual: string; client: string }[]
   },
 ];
 
+const FAQ: FaqItem[] = [
+  {
+    q: "Is Inbox Wingman a new inbox?",
+    a: "No. It is a Gmail add-on. You stay in the inbox you already use — labels and drafts appear there.",
+  },
+  {
+    q: "Does Inbox Wingman send email without me?",
+    a: "Never. Full AI clients often offer optional auto-send. Wingman only labels mail and writes drafts for you to approve.",
+  },
+  {
+    q: "How is this different from doing Gmail manually?",
+    a: "Wingman applies triage labels, voice-matched drafts, a daily brief, and inbox chat. You still decide what sends.",
+  },
+  {
+    q: "Where can I compare Fyxer or AI Emaily?",
+    a: "See the alternatives index, or the dedicated Wingman vs Fyxer and Wingman vs AI Emaily pages. Competitor facts there are taken from their public sites.",
+  },
+];
+
 export default function ComparePage() {
   return (
     <MarketingShell wide>
+      <JsonLd data={softwareApplicationLd()} />
+      <JsonLd data={faqPageLd(FAQ)} />
       <p className="text-sm font-medium uppercase tracking-widest text-teal-700">Product</p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">Compare</h1>
       <p className="mt-3 max-w-2xl text-lg text-zinc-600">
@@ -85,6 +108,8 @@ export default function ComparePage() {
           </tbody>
         </table>
       </div>
+
+      <MarketingFaq items={FAQ} />
 
       <p className="mt-8 text-sm text-zinc-600">
         Comparing a named product? See{" "}

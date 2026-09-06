@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PLANS } from "@/lib/plans";
 
 /** Canonical base for marketing/SEO surfaces (matches sitemap.ts). */
 export const SITE_URL = "https://www.inboxwingman.com";
@@ -64,7 +65,57 @@ export function absoluteUrl(path: string): string {
 
 export const SITE_LOGO = absoluteUrl("/logo.png");
 
+export type FaqItem = { q: string; a: string };
+
 export type BreadcrumbItem = { name: string; url: string };
+
+/** Visible-FAQ pages only — Google requires the same Q&A on the page. */
+export function faqPageLd(items: FaqItem[]): Record<string, unknown> | null {
+  if (items.length === 0) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: { "@type": "Answer", text: item.a },
+    })),
+  };
+}
+
+/** Product schema for Inbox Wingman (homepage and other product pages). */
+export function softwareApplicationLd(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "@id": `${SITE_URL}/#software`,
+    name: SITE_NAME,
+    url: SITE_URL,
+    image: SITE_LOGO,
+    description:
+      "AI Gmail assistant that triages your inbox, drafts replies in your voice, and never sends without you.",
+    applicationCategory: "email productivity",
+    operatingSystem: "Web",
+    browserRequirements: "Requires a Google account with Gmail.",
+    featureList: [
+      "Gmail triage labels",
+      "Voice-matched drafts",
+      "Daily brief",
+      "Ask your inbox",
+      "Plain-English rules",
+      "Multi-inbox Gmail",
+    ],
+    offers: {
+      "@type": "AggregateOffer",
+      priceCurrency: "USD",
+      lowPrice: String(PLANS.pilot.priceMonthly),
+      highPrice: String(PLANS.wingman.priceMonthly),
+      offerCount: 2,
+      availability: "https://schema.org/InStock",
+    },
+    publisher: organizationLd(),
+  };
+}
 
 /** Publisher / org node reused on tool, blog, and CollectionPage JSON-LD. */
 export function organizationLd(): Record<string, unknown> {

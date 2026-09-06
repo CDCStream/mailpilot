@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { JsonLd } from "@/components/json-ld";
+import { MarketingFaq } from "@/components/marketing-faq";
 import { MarketingShell } from "@/components/marketing-shell";
 import { CREDIT_COSTS, PLANS } from "@/lib/plans";
-import { marketingMetadata } from "@/lib/seo";
+import { faqPageLd, marketingMetadata, softwareApplicationLd, type FaqItem } from "@/lib/seo";
 
 export const metadata = marketingMetadata({
   title: "Inbox Wingman Features — Gmail triage, voice drafts, and a daily brief",
@@ -53,9 +55,30 @@ const SECTIONS = [
   },
 ];
 
+const FAQ: FaqItem[] = [
+  {
+    q: "What does Inbox Wingman do inside Gmail?",
+    a: "It labels incoming mail (To Respond, FYI, Newsletter, and the rest), drafts replies in your voice, sends a daily brief, and lets you ask your inbox — without installing a new client.",
+  },
+  {
+    q: "Does Wingman send email for me?",
+    a: "No. It writes drafts and applies labels. You review and hit send yourself in Gmail.",
+  },
+  {
+    q: "How do AI credits work on features?",
+    a: `Triage is unlimited and free. A voice draft costs ${CREDIT_COSTS.draft} credits and a daily brief ${CREDIT_COSTS.brief}. Ask your inbox also uses credits.`,
+  },
+  {
+    q: "Can I connect more than one Gmail?",
+    a: `Yes. Pilot supports up to ${PLANS.pilot.maxAccounts} accounts; Wingman up to ${PLANS.wingman.maxAccounts}.`,
+  },
+];
+
 export default function FeaturesPage() {
   return (
     <MarketingShell wide>
+      <JsonLd data={softwareApplicationLd()} />
+      <JsonLd data={faqPageLd(FAQ)} />
       <p className="text-sm font-medium uppercase tracking-widest text-teal-700">Product</p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">Features</h1>
       <p className="mt-3 max-w-2xl text-lg text-zinc-600">
@@ -74,6 +97,8 @@ export default function FeaturesPage() {
           </section>
         ))}
       </div>
+
+      <MarketingFaq items={FAQ} />
 
       <div className="mt-12 text-center">
         <Link

@@ -6,7 +6,8 @@ import { ContentCta } from "@/components/content-cta";
 import { MarketingShell } from "@/components/marketing-shell";
 import { getAllArticles, getArticle } from "@/lib/blog";
 import { FREE_TOOLS } from "@/lib/free-tools";
-import { absoluteUrl, clipMetaDescription, jsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
+import { JsonLd } from "@/components/json-ld";
+import { absoluteUrl, clipMetaDescription, faqPageLd, jsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 type Params = { slug: string };
 
@@ -76,23 +77,10 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
     mainEntityOfPage: `${SITE_URL}/blog/${article.slug}`,
   });
 
-  const faqLd =
-    article.faq.length > 0
-      ? jsonLd({
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: article.faq.map((f) => ({
-            "@type": "Question",
-            name: f.q,
-            acceptedAnswer: { "@type": "Answer", text: f.a },
-          })),
-        })
-      : null;
-
   return (
     <MarketingShell>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleLd }} />
-      {faqLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqLd }} />}
+      <JsonLd data={faqPageLd(article.faq)} />
 
       <nav className="text-sm text-zinc-500">
         <Link href="/blog" className="hover:text-zinc-900">

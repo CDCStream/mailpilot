@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { JsonLd } from "@/components/json-ld";
+import { MarketingFaq } from "@/components/marketing-faq";
 import { MarketingShell } from "@/components/marketing-shell";
 import { CREDIT_COSTS, TRIAL_CREDITS, TRIAL_DAYS } from "@/lib/plans";
-import { marketingMetadata } from "@/lib/seo";
+import { faqPageLd, marketingMetadata, type FaqItem } from "@/lib/seo";
 
 export const metadata = marketingMetadata({
   title: "Inbox Wingman Docs — How Gmail connect, credits, and privacy work",
@@ -10,9 +12,29 @@ export const metadata = marketingMetadata({
   path: "/docs",
 });
 
+const FAQ: FaqItem[] = [
+  {
+    q: "How do I connect Gmail?",
+    a: "Sign in with Google and grant gmail.modify so Wingman can apply labels and create drafts. Add a test user in Google Cloud while the app is in testing mode.",
+  },
+  {
+    q: "What happens during onboarding?",
+    a: "We create colored Gmail labels, learn your voice from recent sent mail, and triage a sample of your inbox.",
+  },
+  {
+    q: "How do trial credits work?",
+    a: `The ${TRIAL_DAYS}-day trial includes ${TRIAL_CREDITS} credits. Costs: triage ${CREDIT_COSTS.triage}, draft ${CREDIT_COSTS.draft}, brief ${CREDIT_COSTS.brief}. Top-ups need an active plan and never expire.`,
+  },
+  {
+    q: "How do I add another Gmail account?",
+    a: "Open Settings → Connect Gmail. Limits depend on your plan. Each account gets its own labels and sync.",
+  },
+];
+
 export default function DocsPage() {
   return (
     <MarketingShell>
+      <JsonLd data={faqPageLd(FAQ)} />
       <p className="text-sm font-medium uppercase tracking-widest text-teal-700">Resources</p>
       <h1 className="mt-2 text-4xl font-bold tracking-tight">Documentation</h1>
       <p className="mt-3 text-zinc-600">A short guide to getting value in the first hour.</p>
@@ -77,6 +99,7 @@ export default function DocsPage() {
           </ul>
         </section>
       </div>
+      <MarketingFaq items={FAQ} />
     </MarketingShell>
   );
 }
