@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { SupportEmail } from "@/components/support-email";
 import { LEGAL_EFFECTIVE_DATE, PADDLE_BUYER_TERMS } from "@/lib/legal";
 import { marketingMetadata } from "@/lib/seo";
 
@@ -68,7 +69,7 @@ export default function TermsPage() {
             <Link href="/contact" className="underline">
               Contact
             </Link>{" "}
-            or support@inboxwingman.com
+            or <SupportEmail link={false} />
           </p>
         </section>
       </div>

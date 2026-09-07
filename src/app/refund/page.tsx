@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { SupportEmail } from "@/components/support-email";
 import { LEGAL_EFFECTIVE_DATE } from "@/lib/legal";
 import { marketingMetadata } from "@/lib/seo";
 
@@ -34,10 +35,7 @@ export default function RefundPage() {
           <p className="mt-2">
             Payments are processed by Paddle, our merchant of record. If a charge was made in
             error, or you were billed after a cancellation that should have taken effect, email{" "}
-            <a href="mailto:support@inboxwingman.com" className="underline">
-              support@inboxwingman.com
-            </a>{" "}
-            with the receipt. We review refund requests in good faith, typically within 7 days.
+            <SupportEmail /> with the receipt. We review refund requests in good faith, typically within 7 days.
             Unused monthly AI credits do not roll over and are not cashed out. Purchased top-up
             credits never expire and are not refunded once granted, except where required by law
             or when the charge itself was unauthorized.

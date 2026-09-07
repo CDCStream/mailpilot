@@ -1,4 +1,5 @@
 import { MarketingShell } from "@/components/marketing-shell";
+import { SupportEmail } from "@/components/support-email";
 import { LEGAL_EFFECTIVE_DATE } from "@/lib/legal";
 import { marketingMetadata } from "@/lib/seo";
 
@@ -24,11 +25,7 @@ export default function DataRequestPage() {
           <h2 className="font-semibold text-zinc-900">How to request</h2>
           <ol className="mt-3 list-decimal space-y-2 pl-5">
             <li>
-              Email{" "}
-              <a href="mailto:support@inboxwingman.com" className="underline">
-                support@inboxwingman.com
-              </a>{" "}
-              from the address on your Wingman account.
+              Email <SupportEmail /> from the address on your Wingman account.
             </li>
             <li>
               Subject line: <strong>Data request</strong>

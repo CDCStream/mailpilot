@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { SupportEmail } from "@/components/support-email";
 import { marketingMetadata } from "@/lib/seo";
 
 export const metadata = marketingMetadata({
   title: "Inbox Wingman Contact — Support and privacy requests",
   description:
-    "Email Inbox Wingman support for product questions, billing, or privacy and data requests. We reply from support@inboxwingman.com.",
+    "Email Inbox Wingman support for product questions, billing, or privacy and data requests.",
   path: "/contact",
 });
 
@@ -20,10 +21,7 @@ export default function ContactPage() {
         <div className="rounded-2xl border border-zinc-200 p-6">
           <h2 className="font-semibold text-zinc-900">Support & product</h2>
           <p className="mt-2">
-            Email{" "}
-            <a href="mailto:support@inboxwingman.com" className="font-medium underline">
-              support@inboxwingman.com
-            </a>
+            Email <SupportEmail className="font-medium underline" />
           </p>
         </div>
         <div className="rounded-2xl border border-zinc-200 p-6">
@@ -39,10 +37,7 @@ export default function ContactPage() {
         <div className="rounded-2xl border border-zinc-200 p-6">
           <h2 className="font-semibold text-zinc-900">Security reports</h2>
           <p className="mt-2">
-            Responsible disclosure welcome at{" "}
-            <a href="mailto:support@inboxwingman.com" className="font-medium underline">
-              support@inboxwingman.com
-            </a>{" "}
+            Responsible disclosure welcome at <SupportEmail className="font-medium underline" />{" "}
             with subject &quot;Security&quot;.
           </p>
         </div>

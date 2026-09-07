@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { SupportEmail } from "@/components/support-email";
 import { LEGAL_EFFECTIVE_DATE, PADDLE_PRIVACY } from "@/lib/legal";
 import { marketingMetadata } from "@/lib/seo";
 
@@ -114,7 +115,7 @@ export default function PrivacyPage() {
             <Link href="/data-request" className="underline">
               Data request
             </Link>{" "}
-            or email support@inboxwingman.com.
+            or email <SupportEmail link={false} />.
           </p>
         </section>
         <section>

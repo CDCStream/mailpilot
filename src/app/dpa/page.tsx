@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MarketingShell } from "@/components/marketing-shell";
+import { SupportEmail } from "@/components/support-email";
 import { LEGAL_EFFECTIVE_DATE, PADDLE_PRIVACY } from "@/lib/legal";
 import { marketingMetadata } from "@/lib/seo";
 
@@ -78,10 +79,7 @@ export default function DpaPage() {
           </p>
         </section>
         <p>
-          For a signed DPA for procurement, email{" "}
-          <a href="mailto:support@inboxwingman.com" className="underline">
-            support@inboxwingman.com
-          </a>
+          For a signed DPA for procurement, email <SupportEmail />
           .
         </p>
       </div>
