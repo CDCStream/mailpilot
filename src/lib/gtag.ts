@@ -3,7 +3,7 @@
 /** Public IDs only — leave unset and nothing loads. */
 export const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "G-83RT884KSZ";
 export const ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || "AW-18434564223";
-export const ADS_SUBSCRIBE_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_SUBSCRIBE_LABEL || "";
+export const ADS_SUBSCRIBE_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_SUBSCRIBE_LABEL || "8PFXCK-7mvMcEP_ApNZE";
 export const ADS_SIGNUP_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL || "bZwWCPu3oPMcEP_ApNZE";
 
 export const CONSENT_KEY = "iw_consent";
