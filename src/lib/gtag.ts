@@ -4,7 +4,7 @@
 export const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "G-83RT884KSZ";
 export const ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || "AW-18434564223";
 export const ADS_SUBSCRIBE_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_SUBSCRIBE_LABEL || "";
-export const ADS_SIGNUP_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL || "";
+export const ADS_SIGNUP_LABEL = process.env.NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL || "bZwWCPu3oPMcEP_ApNZE";
 
 export const CONSENT_KEY = "iw_consent";
 const SIGNUP_FIRED_KEY = "iw_ads_signup_fired";
