@@ -1,4 +1,4 @@
-const DEFAULT_ADMIN_EMAILS = ["fuatsezer199696@gmail.com"];
+const DEFAULT_ADMIN_EMAILS = ["fuatsezer199696@gmail.com", "fuats9232@gmail.com"];
 
 function parseList(raw: string | undefined): string[] {
   return (raw || "")
