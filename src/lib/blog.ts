@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db, blogArticles } from "@/lib/db";
 
 /**
@@ -160,9 +160,30 @@ function fromDbRow(row: typeof blogArticles.$inferSelect): Article {
   };
 }
 
+const DB_READ_MS = 8_000;
+
+function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`${label} timeout`)), DB_READ_MS);
+    promise.then(
+      (value) => {
+        clearTimeout(t);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(t);
+        reject(error);
+      },
+    );
+  });
+}
+
 async function loadDbArticles(): Promise<Article[]> {
   try {
-    const rows = await db.select().from(blogArticles).orderBy(desc(blogArticles.publishedAt));
+    const rows = await withTimeout(
+      db.select().from(blogArticles).orderBy(desc(blogArticles.publishedAt)),
+      "blog_articles",
+    );
     return rows.map(fromDbRow);
   } catch (error) {
     console.error("blog_articles read failed:", error);
@@ -170,7 +191,12 @@ async function loadDbArticles(): Promise<Article[]> {
   }
 }
 
+let cachedPublished: Article[] | null = null;
+
 export async function getAllArticles(options?: { includeUnpublished?: boolean }): Promise<Article[]> {
+  const includeUnpublished = Boolean(options?.includeUnpublished);
+  if (!includeUnpublished && cachedPublished) return cachedPublished;
+
   const [files, dbRows] = await Promise.all([
     Promise.resolve(loadFileArticles()),
     loadDbArticles(),
@@ -179,11 +205,27 @@ export async function getAllArticles(options?: { includeUnpublished?: boolean })
   const bySlug = new Map<string, Article>();
   for (const a of dbRows) bySlug.set(a.slug, a);
   for (const a of files) bySlug.set(a.slug, a);
-  return [...bySlug.values()]
-    .filter((a) => options?.includeUnpublished || a.status === "published")
+  const articles = [...bySlug.values()]
+    .filter((a) => includeUnpublished || a.status === "published")
     .sort((a, b) => b.date.localeCompare(a.date));
+  if (!includeUnpublished) cachedPublished = articles;
+  return articles;
 }
 
 export async function getArticle(slug: string): Promise<Article | null> {
-  return (await getAllArticles()).find((a) => a.slug === slug) ?? null;
+  const fromFile = loadFileArticles().find((a) => a.slug === slug);
+  if (fromFile) return fromFile.status === "published" ? fromFile : null;
+
+  try {
+    const rows = await withTimeout(
+      db.select().from(blogArticles).where(eq(blogArticles.slug, slug)).limit(1),
+      "blog_article",
+    );
+    const row = rows[0];
+    if (!row || row.status !== "published") return null;
+    return fromDbRow(row);
+  } catch (error) {
+    console.error("blog_article read failed:", error);
+    return null;
+  }
 }

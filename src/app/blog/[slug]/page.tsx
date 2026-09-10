@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ArticleMarkdown } from "@/components/article-markdown";
 import { ContentCta } from "@/components/content-cta";
 import { MarketingShell } from "@/components/marketing-shell";
-import { getAllArticles, getArticle } from "@/lib/blog";
+import { getArticle, getPublishedFileArticles } from "@/lib/blog";
 import { FREE_TOOLS } from "@/lib/free-tools";
 import { JsonLd } from "@/components/json-ld";
 import {
@@ -21,8 +21,9 @@ type Params = { slug: string };
 
 export const dynamicParams = true;
 
-export async function generateStaticParams(): Promise<Params[]> {
-  return (await getAllArticles()).map((a) => ({ slug: a.slug }));
+/** File posts only. Outrank/DB slugs render on demand so a slow DB cannot fail the build. */
+export function generateStaticParams(): Params[] {
+  return getPublishedFileArticles().map((a) => ({ slug: a.slug }));
 }
 
 export async function generateMetadata({
