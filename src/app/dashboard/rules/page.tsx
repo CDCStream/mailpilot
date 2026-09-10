@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db, rules } from "@/lib/db";
@@ -8,8 +9,10 @@ import { AddRuleForm } from "./add-rule-form";
 
 export default async function RulesPage() {
   const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) redirect("/login");
   const userRules = await db.query.rules.findMany({
-    where: eq(rules.userId, session!.user.id),
+    where: eq(rules.userId, userId),
     orderBy: rules.createdAt,
   });
   const existingInstructions = new Set(userRules.map((r) => r.instruction));

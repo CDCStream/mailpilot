@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { and, count, desc, eq, ilike, inArray, isNotNull, or, sql, type SQL } from "drizzle-orm";
 import { auth } from "@/auth";
@@ -84,7 +85,8 @@ export default async function InboxPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await auth();
-  const userId = session!.user.id;
+  const userId = session?.user?.id;
+  if (!userId) redirect("/login");
   const sp = await searchParams;
 
   const category =

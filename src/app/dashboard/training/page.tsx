@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db, users, DEFAULT_PREFERENCES, TONE_PRESET_INSTRUCTIONS } from "@/lib/db";
@@ -13,7 +14,8 @@ export default async function TrainingPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await auth();
-  const userId = session!.user.id;
+  const userId = session?.user?.id;
+  if (!userId) redirect("/login");
   const sp = await searchParams;
   const retrained = typeof sp.retrained === "string" ? Number(sp.retrained) : null;
 

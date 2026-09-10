@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { and, desc, eq, gte, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db, emailAccounts, messages } from "@/lib/db";
@@ -12,7 +13,8 @@ import { isNoActionSummary } from "@/lib/triage";
 
 export default async function DraftsPage() {
   const session = await auth();
-  const userId = session!.user.id;
+  const userId = session?.user?.id;
+  if (!userId) redirect("/login");
 
   const allAccounts = await db.query.emailAccounts.findMany({
     where: eq(emailAccounts.userId, userId),

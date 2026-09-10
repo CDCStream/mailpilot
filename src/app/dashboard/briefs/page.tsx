@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { and, desc, eq, gte, inArray, isNotNull } from "drizzle-orm";
 import { auth } from "@/auth";
 import {
@@ -25,7 +26,8 @@ function hourLabel(h: number): string {
 
 export default async function BriefsPage() {
   const session = await auth();
-  const userId = session!.user.id;
+  const userId = session?.user?.id;
+  if (!userId) redirect("/login");
 
   const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
   const prefs = user?.preferences ?? DEFAULT_PREFERENCES;

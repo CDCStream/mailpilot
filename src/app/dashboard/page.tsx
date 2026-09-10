@@ -23,7 +23,8 @@ import {
 
 export default async function OverviewPage() {
   const session = await auth();
-  const userId = session!.user.id;
+  const userId = session?.user?.id;
+  if (!userId) redirect("/login");
 
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),

@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db, subscriptions } from "@/lib/db";
 import { billingEnabled } from "@/lib/billing";
@@ -28,7 +29,8 @@ export default async function BillingPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await auth();
-  const userId = session!.user.id;
+  const userId = session?.user?.id;
+  if (!userId) redirect("/login");
   const sp = await searchParams;
   const planOk = sp.status === "success";
   const topupOk = sp.topup === "success";
