@@ -128,6 +128,24 @@ const TONE_OPTIONS: { id: TonePreset; title: string; desc: string; preview: stri
 const TOTAL_STEPS = 4;
 const MAX_VOICE_SAMPLES = 10;
 
+/** Fire-and-forget funnel breadcrumb — never blocks the wizard. */
+function trackStep(step: number, properties: Record<string, unknown> = {}) {
+  try {
+    void fetch("/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "onboarding_step",
+        path: "/onboarding",
+        properties: { step, ...properties },
+      }),
+      keepalive: true,
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
 type VoicePath = "preset" | "samples";
 
 const VOICE_PATH_OPTIONS: { id: VoicePath; title: string; desc: string; icon: string }[] = [
@@ -205,6 +223,7 @@ export function OnboardingProgress() {
 
   useEffect(() => {
     cancelledRef.current = false;
+    trackStep(1);
     return () => {
       cancelledRef.current = true;
     };
@@ -243,7 +262,11 @@ export function OnboardingProgress() {
         if (!stale) setSamples(data.samples);
       })
       .catch((status: unknown) => {
-        if (!stale) setSamplesError(status === 403 ? "permission" : "generic");
+        if (!stale) {
+          const kind = status === 403 ? "permission" : "generic";
+          setSamplesError(kind);
+          trackStep(3, { action: "samples_error", kind });
+        }
       });
     return () => {
       stale = true;
@@ -262,6 +285,7 @@ export function OnboardingProgress() {
 
   async function start(voiceSampleIds: string[]) {
     setStep(4);
+    trackStep(4, { persona, mode, tone, voicePath, samplesPicked: voiceSampleIds.length });
     const res = await fetch("/api/onboarding", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -270,6 +294,7 @@ export function OnboardingProgress() {
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       if (!cancelledRef.current) setError(body.error ?? "Setup could not start.");
+      trackStep(4, { action: "setup_failed" });
       return;
     }
     poll();
@@ -379,14 +404,20 @@ export function OnboardingProgress() {
             <div className="mt-8 flex items-center justify-between">
               <button
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  trackStep(2, { skippedPersona: true });
+                  setStep(2);
+                }}
                 className="text-sm text-zinc-400 underline-offset-2 hover:underline"
               >
                 Skip
               </button>
               <button
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  trackStep(2, { persona });
+                  setStep(2);
+                }}
                 disabled={!persona}
                 className="rounded-full bg-zinc-900 px-10 py-3.5 text-base font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -444,7 +475,10 @@ export function OnboardingProgress() {
               </button>
               <button
                 type="button"
-                onClick={() => setStep(3)}
+                onClick={() => {
+                  trackStep(3, { mode });
+                  setStep(3);
+                }}
                 className="rounded-full bg-zinc-900 px-10 py-3.5 text-base font-semibold text-white hover:bg-zinc-800"
               >
                 Continue →

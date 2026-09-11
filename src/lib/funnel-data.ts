@@ -17,6 +17,8 @@ export type FunnelPerson = {
   events: number;
   signedUp: boolean;
   gmail: boolean;
+  /** Highest onboarding wizard step reached (0 = never opened it). */
+  onboardingStep: number;
   onboarded: boolean;
   drafted: boolean;
   checkout: boolean;
@@ -61,6 +63,7 @@ export async function loadWingmanFunnel(days = 14) {
       events: 0,
       signedUp: false,
       gmail: false,
+      onboardingStep: 0,
       onboarded: false,
       drafted: false,
       checkout: false,
@@ -81,6 +84,10 @@ export async function loadWingmanFunnel(days = 14) {
     }
     if (row.event === "signup") person.signedUp = true;
     if (row.event === "account_connected") person.gmail = true;
+    if (row.event === "onboarding_step") {
+      const step = Number(row.properties?.step) || 0;
+      if (step > person.onboardingStep) person.onboardingStep = step;
+    }
     if (row.event === "onboarded") person.onboarded = true;
     if (row.event === "draft_created") person.drafted = true;
     if (row.event === "checkout_started") person.checkout = true;
@@ -141,7 +148,20 @@ export async function loadWingmanFunnel(days = 14) {
     { key: "paid", label: "Paid", value: paid },
   ];
 
-  return { since: since.toISOString(), steps, people: list.sort((a, b) => (b.lastAt ?? "").localeCompare(a.lastAt ?? "")) };
+  const onboardingSteps: FunnelStep[] = [
+    { key: "onb1", label: "1 · Persona", value: list.filter((p) => p.onboardingStep >= 1).length },
+    { key: "onb2", label: "2 · Inbox mode", value: list.filter((p) => p.onboardingStep >= 2).length },
+    { key: "onb3", label: "3 · Voice", value: list.filter((p) => p.onboardingStep >= 3).length },
+    { key: "onb4", label: "4 · Setup started", value: list.filter((p) => p.onboardingStep >= 4).length },
+    { key: "onb5", label: "Finished", value: list.filter((p) => p.onboardingStep >= 1 && p.onboarded).length },
+  ];
+
+  return {
+    since: since.toISOString(),
+    steps,
+    onboardingSteps,
+    people: list.sort((a, b) => (b.lastAt ?? "").localeCompare(a.lastAt ?? "")),
+  };
 }
 
 export type FunnelJourneyEvent = {
@@ -149,12 +169,19 @@ export type FunnelJourneyEvent = {
   event: string;
   path: string | null;
   referrer: string | null;
+  properties: Record<string, unknown> | null;
   createdAt: string;
 };
 
 function personFromEvents(
   id: string,
-  rows: { event: string; path: string | null; createdAt: Date; userId: string | null }[],
+  rows: {
+    event: string;
+    path: string | null;
+    createdAt: Date;
+    userId: string | null;
+    properties: Record<string, unknown> | null;
+  }[],
 ): FunnelPerson {
   const last = rows[rows.length - 1];
   const first = rows[0];
@@ -167,6 +194,11 @@ function personFromEvents(
     events: rows.length,
     signedUp: rows.some((r) => r.event === "signup"),
     gmail: rows.some((r) => r.event === "account_connected"),
+    onboardingStep: rows.reduce(
+      (max, r) =>
+        r.event === "onboarding_step" ? Math.max(max, Number(r.properties?.step) || 0) : max,
+      0,
+    ),
     onboarded: rows.some((r) => r.event === "onboarded"),
     drafted: rows.some((r) => r.event === "draft_created"),
     checkout: rows.some((r) => r.event === "checkout_started"),
@@ -244,6 +276,7 @@ export async function loadFunnelJourney(personId: string, days = 14) {
       event: r.event,
       path: r.path,
       referrer: r.referrer,
+      properties: r.properties,
       createdAt: r.createdAt.toISOString(),
     })),
   };

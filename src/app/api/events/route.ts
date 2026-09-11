@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { ANON_COOKIE, newAnonId, trackEvent, type TrackedEvent } from "@/lib/analytics";
 
-const CLIENT_EVENTS = new Set<TrackedEvent>(["page_view", "checkout_started"]);
+const CLIENT_EVENTS = new Set<TrackedEvent>(["page_view", "checkout_started", "onboarding_step"]);
 
 export async function POST(req: Request) {
   let body: { event?: string; path?: string; referrer?: string; properties?: Record<string, unknown> };

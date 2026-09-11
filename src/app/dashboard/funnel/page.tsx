@@ -11,7 +11,8 @@ export default async function FunnelPage() {
   const session = await auth();
   if (!isFunnelAdmin(session?.user?.email)) redirect("/dashboard");
 
-  const { steps, people, since } = await loadWingmanFunnel(14);
+  const { steps, onboardingSteps, people, since } = await loadWingmanFunnel(14);
+  const onbTop = onboardingSteps[0]?.value ?? 0;
 
   return (
     <div className="w-full px-6 py-10 lg:px-10">
@@ -25,6 +26,41 @@ export default async function FunnelPage() {
       <div className="mt-8">
         <FunnelViz steps={steps} />
       </div>
+
+      <section className="mt-10 rounded-2xl border border-zinc-200 p-6">
+        <h2 className="text-lg font-semibold">Onboarding drop-off</h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Highest wizard step reached per person (last 14 days). Steps: persona → inbox mode →
+          voice → setup.
+        </p>
+        {onbTop === 0 ? (
+          <p className="mt-4 text-sm text-zinc-500">
+            No onboarding-step events yet — they start recording with the next signup.
+          </p>
+        ) : (
+          <div className="mt-5 grid gap-2 sm:grid-cols-5">
+            {onboardingSteps.map((s, i) => {
+              const prev = i > 0 ? onboardingSteps[i - 1]!.value : null;
+              const lostHere = prev != null ? prev - s.value : 0;
+              return (
+                <div key={s.key} className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
+                  <p className="truncate text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                    {s.label}
+                  </p>
+                  <p className="mt-1 text-xl font-semibold tabular-nums text-zinc-900">
+                    {s.value}
+                  </p>
+                  {prev != null && (
+                    <p className={`text-xs ${lostHere > 0 ? "text-rose-600" : "text-zinc-400"}`}>
+                      {lostHere > 0 ? `−${lostHere} dropped` : "no loss"}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <div className="mt-10 overflow-x-auto rounded-2xl border border-zinc-200">
         <table className="w-full min-w-[40rem] text-left text-sm">

@@ -79,6 +79,18 @@ export default async function FunnelPersonPage({
                     <span className="font-mono text-sm text-zinc-500">{ev.path}</span>
                   ) : null}
                 </div>
+                {ev.properties && Object.keys(ev.properties).length > 0 ? (
+                  <p className="mt-1 flex flex-wrap gap-1.5">
+                    {Object.entries(ev.properties).map(([k, v]) => (
+                      <span
+                        key={k}
+                        className="rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-600"
+                      >
+                        {k}: {String(v)}
+                      </span>
+                    ))}
+                  </p>
+                ) : null}
                 <p className="mt-1 text-xs text-zinc-400">{when(ev.createdAt)}</p>
                 {ev.referrer ? (
                   <p className="mt-0.5 truncate text-xs text-zinc-400">from {ev.referrer}</p>

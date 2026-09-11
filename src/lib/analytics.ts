@@ -7,6 +7,7 @@ export const TRACKED_EVENTS = [
   "page_view",
   "signup",
   "account_connected",
+  "onboarding_step",
   "onboarded",
   "draft_created",
   "brief_generated",
