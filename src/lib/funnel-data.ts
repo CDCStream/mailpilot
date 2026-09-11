@@ -1,4 +1,4 @@
-import { desc, gte, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, or } from "drizzle-orm";
 import { db, analyticsEvents, subscriptions, users } from "@/lib/db";
 import { funnelAdminEmails, funnelSinceIso } from "@/lib/funnel-admin";
 
@@ -142,4 +142,109 @@ export async function loadWingmanFunnel(days = 14) {
   ];
 
   return { since: since.toISOString(), steps, people: list.sort((a, b) => (b.lastAt ?? "").localeCompare(a.lastAt ?? "")) };
+}
+
+export type FunnelJourneyEvent = {
+  id: string;
+  event: string;
+  path: string | null;
+  referrer: string | null;
+  createdAt: string;
+};
+
+function personFromEvents(
+  id: string,
+  rows: { event: string; path: string | null; createdAt: Date; userId: string | null }[],
+): FunnelPerson {
+  const last = rows[rows.length - 1];
+  const first = rows[0];
+  return {
+    id,
+    kind: rows.some((r) => r.userId) ? "user" : "anon",
+    email: null,
+    lastPath: last?.path ?? first?.path ?? null,
+    lastAt: last?.createdAt.toISOString() ?? null,
+    events: rows.length,
+    signedUp: rows.some((r) => r.event === "signup"),
+    gmail: rows.some((r) => r.event === "account_connected"),
+    onboarded: rows.some((r) => r.event === "onboarded"),
+    drafted: rows.some((r) => r.event === "draft_created"),
+    checkout: rows.some((r) => r.event === "checkout_started"),
+    paid: rows.some((r) => r.event === "paid"),
+    plan: null,
+  };
+}
+
+export async function loadFunnelJourney(personId: string, days = 14) {
+  const since = new Date(funnelSinceIso(days));
+  const adminEmails = funnelAdminEmails();
+  const isAnon = personId.startsWith("anon:");
+  const anonId = isAnon ? personId.slice("anon:".length) : null;
+  const userId = isAnon ? null : personId;
+
+  let rows;
+  if (anonId) {
+    rows = await db
+      .select()
+      .from(analyticsEvents)
+      .where(and(eq(analyticsEvents.anonId, anonId), gte(analyticsEvents.createdAt, since)))
+      .orderBy(asc(analyticsEvents.createdAt))
+      .limit(500);
+  } else if (userId) {
+    const own = await db
+      .select()
+      .from(analyticsEvents)
+      .where(and(eq(analyticsEvents.userId, userId), gte(analyticsEvents.createdAt, since)))
+      .limit(500);
+    const anonIds = [...new Set(own.map((r) => r.anonId).filter(Boolean))];
+    rows = await db
+      .select()
+      .from(analyticsEvents)
+      .where(
+        and(
+          anonIds.length
+            ? or(eq(analyticsEvents.userId, userId), inArray(analyticsEvents.anonId, anonIds))
+            : eq(analyticsEvents.userId, userId),
+          gte(analyticsEvents.createdAt, since),
+        ),
+      )
+      .orderBy(asc(analyticsEvents.createdAt))
+      .limit(500);
+  } else {
+    return null;
+  }
+
+  if (rows.length === 0) return null;
+
+  const person = personFromEvents(personId, rows);
+  const linkedUserId = userId ?? rows.find((r) => r.userId)?.userId ?? null;
+  if (linkedUserId) {
+    const u = await db.query.users.findFirst({
+      where: eq(users.id, linkedUserId),
+      columns: { id: true, email: true, onboardedAt: true },
+    });
+    if (u?.email && adminEmails.includes(u.email.toLowerCase())) return null;
+    person.email = u?.email ?? null;
+    if (u?.onboardedAt) person.onboarded = true;
+    const sub = await db.query.subscriptions.findFirst({
+      where: eq(subscriptions.userId, linkedUserId),
+      columns: { status: true, plan: true },
+    });
+    if (sub?.status === "active" || sub?.status === "past_due") {
+      person.paid = true;
+      person.plan = sub.plan;
+    }
+  }
+
+  return {
+    since: since.toISOString(),
+    person,
+    events: rows.map((r) => ({
+      id: r.id,
+      event: r.event,
+      path: r.path,
+      referrer: r.referrer,
+      createdAt: r.createdAt.toISOString(),
+    })),
+  };
 }

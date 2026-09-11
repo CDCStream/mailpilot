@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { isFunnelAdmin } from "@/lib/funnel-admin";
@@ -40,9 +41,14 @@ export default async function FunnelPage() {
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {people.slice(0, 200).map((p) => (
-              <tr key={p.id}>
+              <tr key={p.id} className="relative cursor-pointer hover:bg-zinc-50">
                 <td className="px-4 py-3 font-medium text-zinc-900">
-                  {p.email ?? p.id.slice(0, 12)}
+                  <Link
+                    href={`/dashboard/funnel/${encodeURIComponent(p.id)}`}
+                    className="after:absolute after:inset-0"
+                  >
+                    {p.email ?? p.id.slice(0, 12)}
+                  </Link>
                 </td>
                 <td className="px-4 py-3 text-zinc-500">{p.kind}</td>
                 <td className="px-4 py-3 text-zinc-500">{p.gmail ? "yes" : "—"}</td>
