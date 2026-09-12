@@ -148,6 +148,30 @@ function trackStep(step: number, properties: Record<string, unknown> = {}) {
 
 type VoicePath = "preset" | "samples";
 
+/** Survive a page refresh — wizard choices live in sessionStorage until setup finishes. */
+const WIZARD_STATE_KEY = "iw_onboarding_wizard";
+
+type SavedWizardState = {
+  step: number;
+  persona: Persona | null;
+  mode: InboxMode;
+  tone: TonePreset;
+  voicePath: VoicePath | null;
+  selectedIds: string[];
+};
+
+function readSavedWizardState(): SavedWizardState | null {
+  try {
+    const raw = sessionStorage.getItem(WIZARD_STATE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as SavedWizardState;
+    if (typeof saved.step !== "number" || saved.step < 1 || saved.step > TOTAL_STEPS) return null;
+    return saved;
+  } catch {
+    return null;
+  }
+}
+
 const VOICE_PATH_OPTIONS: { id: VoicePath; title: string; desc: string; icon: string }[] = [
   {
     id: "preset",
@@ -220,14 +244,42 @@ export function OnboardingProgress() {
   const [error, setError] = useState<string | null>(null);
   const [tourDone, setTourDone] = useState(false);
   const cancelledRef = useRef(false);
+  const restoredRef = useRef(false);
 
   useEffect(() => {
     cancelledRef.current = false;
-    trackStep(1);
+    const saved = readSavedWizardState();
+    if (saved) {
+      setStep(saved.step);
+      setPersona(saved.persona ?? null);
+      if (saved.mode) setMode(saved.mode);
+      if (saved.tone) setTone(saved.tone);
+      setVoicePath(saved.voicePath ?? null);
+      setSelectedIds(Array.isArray(saved.selectedIds) ? saved.selectedIds : []);
+      // Refresh mid-setup: keep watching the backend instead of restarting the wizard.
+      if (saved.step === 4) poll();
+    } else {
+      trackStep(1);
+    }
+    restoredRef.current = true;
     return () => {
       cancelledRef.current = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Persist every choice so a refresh resumes where the user left off.
+  useEffect(() => {
+    if (!restoredRef.current) return;
+    try {
+      sessionStorage.setItem(
+        WIZARD_STATE_KEY,
+        JSON.stringify({ step, persona, mode, tone, voicePath, selectedIds }),
+      );
+    } catch {
+      /* private mode */
+    }
+  }, [step, persona, mode, tone, voicePath, selectedIds]);
 
   async function poll() {
     const res = await fetch("/api/onboarding");
@@ -242,7 +294,14 @@ export function OnboardingProgress() {
 
   // Leave for the dashboard only when setup is done AND the user finished the tour.
   useEffect(() => {
-    if (status?.done && tourDone) router.replace("/dashboard");
+    if (status?.done && tourDone) {
+      try {
+        sessionStorage.removeItem(WIZARD_STATE_KEY);
+      } catch {
+        /* ignore */
+      }
+      router.replace("/dashboard");
+    }
   }, [status?.done, tourDone, router]);
 
   function choosePersona(p: Persona) {
