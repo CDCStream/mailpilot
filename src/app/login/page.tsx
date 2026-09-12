@@ -40,6 +40,19 @@ export default async function LoginPage({
               On the Google consent screen, please tick the checkbox that lets Inbox Wingman read,
               compose, and manage your email. Without it the app can&apos;t triage your inbox.
             </p>
+            <form
+              action={async () => {
+                "use server";
+                await signIn("google", { redirectTo: "/onboarding" });
+              }}
+            >
+              <button
+                type="submit"
+                className="mt-3 w-full rounded-full bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700"
+              >
+                Try again — tick the Gmail checkbox
+              </button>
+            </form>
           </div>
         ) : error ? (
           <div className="mt-6 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-left text-sm text-red-900">
@@ -77,6 +90,18 @@ export default async function LoginPage({
             Continue with Google
           </button>
         </form>
+        <ul className="mx-auto mt-5 flex max-w-xs flex-col gap-1.5 text-left text-xs text-zinc-500">
+          {[
+            "Nothing sends without you — Wingman only writes drafts.",
+            "Revoke access anytime from your Google account.",
+            "Your email is never used to train AI models.",
+          ].map((line) => (
+            <li key={line} className="flex gap-2">
+              <span className="mt-px text-teal-600">✓</span>
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
         <p className="mt-6 text-xs text-zinc-400">
           By continuing you agree to our{" "}
           <Link href="/terms" className="underline">
